@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  name           String
+  phone_number   String    @unique
+  email          String?   @unique
+  password_hash  String
+  role           String    @default("user")
+  wallet_balance Float     @default(0.00)
+  created_at     DateTime  @default(now())
+  
+  bids           Bid[]
+  notifications  Notification[]
+  won_items      Item[]    @relation("Winner")
+}
+
+model Item {
+  id             Int       @id @default(autoincrement())
+  title          String
+  description    String
+  image_url      String?
+  base_price     Float
+  start_time     DateTime
+  end_time       DateTime
+  status         String    @default("upcoming") // upcoming, active, closed
+  winner_id      Int?
+  created_at     DateTime  @default(now())
+  
+  winner         User?     @relation("Winner", fields: [winner_id], references: [id])
+  bids           Bid[]
+}
+
+model Bid {
+  id             Int       @id @default(autoincrement())
+  amount         Float
+  is_unique      Boolean   @default(true)
+  created_at     DateTime  @default(now())
+  
+  item_id        Int
+  item           Item      @relation(fields: [item_id], references: [id])
+  
+  user_id        Int
+  user           User      @relation(fields: [user_id], references: [id])
+}
+
+model Notification {
+  id             Int       @id @default(autoincrement())
+  message        String
+  is_read        Boolean   @default(false)
+  created_at     DateTime  @default(now())
+  
+  user_id        Int
+  user           User      @relation(fields: [user_id], references: [id])
+}
