@@ -27,10 +27,12 @@ model Item {
   title          String
   description    String
   image_url      String?
-  base_price     Float
+  category       String    @default("Electronics")
+  pool_type      String    @default("open")
+  base_price     Float 
   start_time     DateTime
   end_time       DateTime
-  status         String    @default("upcoming") // upcoming, active, closed
+  status         String    @default("active")
   winner_id      Int?
   created_at     DateTime  @default(now())
   

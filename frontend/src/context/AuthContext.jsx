@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
     const fetchUser = async () => {
       if (token) {
         try {
-          const res = await axios.get('http://localhost:5000/api/users/profile');
+          const res = await axios.get('/api/users/profile');
           setUser(res.data);
         } catch (err) {
           console.error(err);
@@ -40,25 +40,27 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize socket when user logs in
   useEffect(() => {
-    if (user) {
-      const newSocket = io('http://localhost:5000');
+    if (user?.id) {
+      const newSocket = io();
       newSocket.on('connect', () => {
         newSocket.emit('authenticate', user.id);
       });
       setSocket(newSocket);
       return () => newSocket.close();
+    } else {
+      setSocket(null);
     }
-  }, [user]);
+  }, [user?.id]);
 
   const login = async (phone_number, password) => {
-    const res = await axios.post('http://localhost:5000/api/auth/login', { phone_number, password });
+    const res = await axios.post('/api/auth/login', { phone_number, password });
     localStorage.setItem('token', res.data.token);
     setToken(res.data.token);
     setUser(res.data.user);
   };
 
   const register = async (name, phone_number, password) => {
-    const res = await axios.post('http://localhost:5000/api/auth/register', { name, phone_number, password });
+    const res = await axios.post('/api/auth/register', { name, phone_number, password });
     localStorage.setItem('token', res.data.token);
     setToken(res.data.token);
     setUser(res.data.user);

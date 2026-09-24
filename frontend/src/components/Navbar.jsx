@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, Wallet, LogOut, User as UserIcon } from 'lucide-react';
+import { Bell, Wallet, LogOut, Crown, Smartphone, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 
 const Navbar = () => {
@@ -12,22 +12,24 @@ const Navbar = () => {
 
   useEffect(() => {
     if (user) {
-      axios.get('http://localhost:5000/api/users/notifications').then(res => {
+      axios.get('/api/users/notifications').then(res => {
         setNotifications(res.data);
-      });
+      }).catch(() => {});
     }
   }, [user]);
 
   useEffect(() => {
     if (socket) {
-      socket.on('bid_duplicated', (data) => {
+      const handleDup = (data) => {
         setNotifications(prev => [{
           id: Date.now(),
           message: data.message,
           is_read: false,
           created_at: new Date()
         }, ...prev]);
-      });
+      };
+      socket.on('bid_duplicated', handleDup);
+      return () => socket.off('bid_duplicated', handleDup);
     }
   }, [socket]);
 
@@ -39,49 +41,70 @@ const Navbar = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <nav className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+    <nav className="bg-[#0D0E11]/90 backdrop-blur-md shadow-md border-b border-zinc-800/80 sticky top-0 z-40">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          Tinish Bid
-        </Link>
+        {/* Brand Logo & Crown Icon matching Screenshot */}
+        <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 text-xl md:text-2xl font-black tracking-tight text-white group">
+            <Crown size={24} className="text-amber-400 fill-amber-400/20 group-hover:scale-110 transition-transform" />
+            <span>
+            ትንሽ<span className="text-amber-400">Bid</span>
+            </span>
+          </Link>
+          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            Phone Auctions
+          </span>
+        </div>
         
-        <div className="flex items-center gap-6">
+        {/* Top Right Actions */}
+        <div className="flex items-center gap-2.5 md:gap-4">
           {user ? (
             <>
               {user.role === 'admin' && (
-                <Link to="/admin" className="text-sm font-semibold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors">
-                  Admin Dashboard
+                <Link to="/admin" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 rounded-full transition-colors">
+                  <ShieldCheck size={14} />
+                  Admin Portal
                 </Link>
               )}
-              <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full">
-                <UserIcon size={14} className="text-indigo-600" />
-                <span>{user.phone_number || user.name}</span>
+              
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 bg-[#16161A] px-3 py-1.5 rounded-full border border-zinc-800">
+                <Smartphone size={13} className="text-amber-400" />
+                <span className="font-mono text-xs">{user.phone_number || user.name}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full font-medium">
-                <Wallet size={18} className="text-emerald-500" />
+
+              <div className="flex items-center gap-1.5 text-xs md:text-sm font-bold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-3 py-1.5 rounded-full">
+                <Wallet size={15} className="text-amber-400" />
                 <span>{user.wallet_balance} ETB</span>
               </div>
               
+              {/* Dark Styled Notifications Bell */}
               <div className="relative">
                 <button 
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors relative"
+                  className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-[#222228] text-zinc-300 hover:text-white rounded-full border border-zinc-800 transition-colors relative"
+                  aria-label="Notifications"
                 >
-                  <Bell size={22} />
+                  <Bell size={18} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-[#18181C] animate-pulse"></span>
                   )}
                 </button>
                 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden">
-                    <div className="p-3 border-b border-slate-100 font-semibold text-slate-800">Notifications</div>
-                    <div className="max-h-80 overflow-y-auto">
+                  <div className="absolute right-0 mt-2 w-72 md:w-80 bg-[#141418] text-white rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden z-50">
+                    <div className="p-3 bg-[#1A1A20] border-b border-zinc-800/80 font-bold text-xs flex justify-between items-center text-zinc-200">
+                      <span>Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-bold bg-amber-500 text-black px-2 py-0.5 rounded-full">{unreadCount} new</span>
+                      )}
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-slate-500">No notifications</div>
+                        <div className="p-6 text-center text-xs text-zinc-500">No recent notifications</div>
                       ) : (
                         notifications.map((n, i) => (
-                          <div key={i} className={`p-4 text-sm border-b border-slate-50 ${n.is_read ? 'text-slate-500' : 'text-slate-800 bg-indigo-50/30'}`}>
+                          <div key={i} className={`p-3 text-xs border-b border-zinc-800/60 ${n.is_read ? 'text-zinc-500' : 'text-zinc-200 bg-amber-500/10 font-medium'}`}>
                             {n.message}
                           </div>
                         ))
@@ -93,15 +116,26 @@ const Navbar = () => {
               
               <button 
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-slate-500 hover:text-red-500 transition-colors"
+                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-red-950/40 text-zinc-400 hover:text-red-400 rounded-full border border-zinc-800 transition-colors"
+                title="Sign Out"
               >
-                <LogOut size={20} />
+                <LogOut size={16} />
               </button>
             </>
           ) : (
-            <div className="flex gap-3">
-              <Link to="/login" className="px-4 py-2 text-slate-600 font-medium hover:text-indigo-600 transition-colors">Login</Link>
-              <Link to="/register" className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200">Register</Link>
+            <div className="flex items-center gap-2">
+              <Link 
+                to="/login" 
+                className="px-3.5 py-1.5 text-xs md:text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link 
+                to="/register" 
+                className="px-4 py-1.5 text-xs md:text-sm font-bold bg-gradient-to-r from-amber-500 to-amber-600 text-black rounded-full hover:brightness-110 transition-all shadow-md shadow-amber-500/10 active:scale-95"
+              >
+                Register Phone
+              </Link>
             </div>
           )}
         </div>
