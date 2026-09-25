@@ -51,7 +51,7 @@ const Navbar = () => {
             ትንሽ<span className="text-amber-400">Bid</span>
             </span>
           </Link>
-          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full">
+          {/* <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
             Phone Auctions
           </span>
@@ -60,7 +60,7 @@ const Navbar = () => {
             <Link to="/my-bids" className="hidden md:inline-flex text-xs font-bold text-zinc-300 hover:text-amber-400 transition-colors ml-2">
               My Bids
             </Link>
-          )}
+          )} */}
         </div>
         
         {/* Top Right Actions */}
@@ -74,7 +74,7 @@ const Navbar = () => {
                 </Link>
               )}
               
-              <Link 
+              {/* <Link 
                 to="/profile" 
                 className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#16161A] hover:bg-[#202026] px-3 py-1.5 rounded-full border border-zinc-800 transition-colors"
                 title="View Profile"
@@ -86,7 +86,7 @@ const Navbar = () => {
               <div className="flex items-center gap-1.5 text-xs md:text-sm font-bold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-3 py-1.5 rounded-full">
                 <Wallet size={15} className="text-amber-400" />
                 <span>{user.wallet_balance} ETB</span>
-              </div>
+              </div> */}
               
               {/* Dark Styled Notifications Bell */}
               <div className="relative">

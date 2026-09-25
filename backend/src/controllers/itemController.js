@@ -17,7 +17,12 @@ exports.getItemById = async (req, res) => {
       where: { id: parseInt(req.params.id) },
       include: {
         bids: {
-          orderBy: { amount: 'asc' }
+          include: {
+            user: {
+              select: { id: true, name: true, phone_number: true }
+            }
+          },
+          orderBy: { created_at: 'desc' }
         }
       }
     });
