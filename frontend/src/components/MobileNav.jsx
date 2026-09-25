@@ -1,32 +1,52 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Wallet, User, LogIn, ShieldAlert } from 'lucide-react';
+import { Home, Hourglass, User, LogIn, ShieldCheck } from 'lucide-react';
 
 const MobileNav = () => {
   const location = useLocation();
   const { user } = useAuth();
   const currentPath = location.pathname;
 
-  const navItems = [
-    {
-      label: 'Home',
-      path: '/',
-      icon: Home,
-      exact: true
-    },
-    {
-      label: 'Wallet',
-      path: user ? '/item/1' : '/login',
-      icon: Wallet,
-      badge: user ? `${user.wallet_balance} ETB` : null
-    },
-    {
-      label: user ? (user.role === 'admin' ? 'Admin' : 'Account') : 'Login',
-      path: user ? (user.role === 'admin' ? '/admin' : '/') : '/login',
-      icon: user ? (user.role === 'admin' ? ShieldAlert : User) : LogIn
-    }
-  ];
+  const isAdmin = user?.role === 'admin';
+
+  const navItems = isAdmin 
+    ? [
+        {
+          label: 'Admin Portal',
+          path: '/admin',
+          icon: ShieldCheck,
+        },
+        {
+          label: 'Catalog',
+          path: '/',
+          icon: Home,
+          exact: true
+        },
+        {
+          label: 'Profile',
+          path: '/profile',
+          icon: User
+        }
+      ]
+    : [
+        {
+          label: 'Home',
+          path: '/',
+          icon: Home,
+          exact: true
+        },
+        {
+          label: 'My Bids',
+          path: '/my-bids',
+          icon: Hourglass,
+        },
+        {
+          label: 'Profile',
+          path: user ? '/profile' : '/login',
+          icon: User
+        }
+      ];
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0E0F12]/95 backdrop-blur-xl border-t border-zinc-800/80 shadow-[0_-4px_25px_rgba(0,0,0,0.5)] px-4 py-2">

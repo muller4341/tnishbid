@@ -55,6 +55,12 @@ const Navbar = () => {
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
             Phone Auctions
           </span>
+
+          {user?.role !== 'admin' && (
+            <Link to="/my-bids" className="hidden md:inline-flex text-xs font-bold text-zinc-300 hover:text-amber-400 transition-colors ml-2">
+              My Bids
+            </Link>
+          )}
         </div>
         
         {/* Top Right Actions */}
@@ -68,10 +74,14 @@ const Navbar = () => {
                 </Link>
               )}
               
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 bg-[#16161A] px-3 py-1.5 rounded-full border border-zinc-800">
+              <Link 
+                to="/profile" 
+                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#16161A] hover:bg-[#202026] px-3 py-1.5 rounded-full border border-zinc-800 transition-colors"
+                title="View Profile"
+              >
                 <Smartphone size={13} className="text-amber-400" />
-                <span className="font-mono text-xs">{user.phone_number || user.name}</span>
-              </div>
+                <span className="font-mono text-xs">{user.name || user.phone_number}</span>
+              </Link>
 
               <div className="flex items-center gap-1.5 text-xs md:text-sm font-bold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-3 py-1.5 rounded-full">
                 <Wallet size={15} className="text-amber-400" />

@@ -26,8 +26,12 @@ const Login = () => {
     }
 
     try {
-      await login(cleanPhone, password);
-      navigate(redirectPath);
+      const loggedUser = await login(cleanPhone, password);
+      if (loggedUser && loggedUser.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate(redirectPath);
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please check phone number and password.');
     }

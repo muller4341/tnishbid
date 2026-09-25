@@ -91,3 +91,19 @@ exports.placeBid = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+exports.getUserBids = async (req, res) => {
+  try {
+    const user_id = req.user.id;
+    const userBids = await prisma.bid.findMany({
+      where: { user_id },
+      include: {
+        item: true
+      },
+      orderBy: { created_at: 'desc' }
+    });
+    res.json(userBids);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -4,9 +4,29 @@ exports.getProfile = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, name: true, phone_number: true, email: true, wallet_balance: true, role: true }
+      select: { id: true, name: true, phone_number: true, email: true, wallet_balance: true, role: true, created_at: true }
     });
-    res.json(user);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const totalBids = await prisma.bid.count({ where: { user_id: req.user.id } });
+    const auctionsWon = await prisma.item.count({ where: { winner_id: req.user.id } });
+    const activeBids = await prisma.bid.groupBy({
+      by: ['item_id'],
+      where: { 
+        user_id: req.user.id,
+        item: { status: 'active' }
+      }
+    });
+
+    res.json({
+      ...user,
+      totalBids,
+      auctionsWon,
+      activePools: activeBids.length
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

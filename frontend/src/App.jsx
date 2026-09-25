@@ -7,6 +7,8 @@ import Register from './pages/Register';
 import ItemDetails from './pages/ItemDetails';
 import Discover from './pages/Discover';
 import AdminDashboard from './pages/AdminDashboard';
+import Profile from './pages/Profile';
+import MyBids from './pages/MyBids';
 import Navbar from './components/Navbar';
 import MobileNav from './components/MobileNav';
 
@@ -23,9 +25,18 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/my-bids" element={<MyBids />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/item/:id" element={<ItemDetails />} />
+          <Route 
+            path="/profile" 
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            } 
+          />
           <Route 
             path="/admin" 
             element={
