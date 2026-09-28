@@ -39,7 +39,8 @@ exports.createItem = async (req, res) => {
     let image_url = '';
     
     if (req.file) {
-      image_url = `/uploads/${req.file.filename}`;
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      image_url = `data:${req.file.mimetype};base64,${b64}`;
     }
 
     const item = await prisma.item.create({
@@ -71,7 +72,8 @@ exports.updateItem = async (req, res) => {
 
     let image_url = existing.image_url;
     if (req.file) {
-      image_url = `/uploads/${req.file.filename}`;
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      image_url = `data:${req.file.mimetype};base64,${b64}`;
     }
 
     const updated = await prisma.item.update({
