@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "build": "prisma generate",
+    "build": "npx prisma generate",
+    "postinstall": "prisma generate",
     "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -20,13 +21,13 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "prisma": "^5.22.0",
     "socket.io": "^4.8.3"
   },
   "prisma": {
     "seed": "node seed.js"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14",
-    "prisma": "^5.22.0"
+    "nodemon": "^3.1.14"
   }
 }
