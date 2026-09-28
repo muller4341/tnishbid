@@ -144,14 +144,7 @@ const MyBids = () => {
   return (
     <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased">
       {/* Phone Status Bar Header */}
-      <div className="flex justify-between items-center px-3 py-2 text-xs font-semibold text-zinc-400 mb-2 select-none">
-        <span className="font-mono text-xs text-zinc-300">9:41</span>
-        <div className="flex items-center gap-1.5 text-zinc-300">
-          <Signal size={14} />
-          <Wifi size={14} />
-          <Battery size={16} className="rotate-90" />
-        </div>
-      </div>
+      
 
       {/* Main Title */}
       <h1 className="text-3xl font-black text-white tracking-tight mb-4 font-serif">
@@ -332,3 +325,24 @@ const MyBids = () => {
 };
 
 export default MyBids;
+
+
+
+// // Set up this Neon project in the current working directory.
+
+// // 1. `npm i -g neon@latest && neon login`
+// // 2. `neon skills -y`
+// // 3. `neon mcp -y`
+// // 4. `neon link --project-id raspy-waterfall-65438059 --branch production -y`
+// // 5. `neon config init`
+// // 6. Update `neon.ts`:
+
+// // ```ts
+// // import { defineConfig } from "@neon/config/v1";
+
+// // export default defineConfig({});
+// // ```
+
+// // 7. `neon deploy`
+
+// postgresql://neondb_owner:npg_CJ2Ed0kNUAXv@ep-tiny-surf-zabwk1cn-pooler.c-2.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
