@@ -19,8 +19,34 @@ import {
   ShieldCheck,
   Info,
   TrendingDown,
-  Lock
+  Lock,
+  User
 } from 'lucide-react';
+
+const BidderAvatar = ({ src, alt }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  if (!src || hasError) {
+    return (
+      <div className="w-10 h-10 rounded-full border border-zinc-800 bg-zinc-800/80 flex items-center justify-center text-zinc-300 shrink-0 shadow-sm">
+        <User size={20} />
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={src} 
+      alt={alt}
+      className="w-10 h-10 rounded-full object-cover border border-zinc-800 bg-zinc-900 shrink-0"
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 const ItemDetails = () => {
   const { id } = useParams();
@@ -80,6 +106,9 @@ const ItemDetails = () => {
           const diffVal = prevBid ? (b.amount - prevBid.amount) : (b.amount - (res.data.base_price || 0));
           const incStr = diffVal > 0 ? `+${diffVal.toLocaleString()} Birr` : `+${b.amount.toLocaleString()} Birr`;
 
+          const localAvatar = localStorage.getItem(`user_avatar_${b.user_id}`);
+          const userAvatar = b.user?.avatar || (isCurrUser ? user?.avatar : null) || localAvatar || null;
+
           return {
             id: b.id,
             name: isCurrUser ? `${uName} (You)` : uName,
@@ -88,7 +117,7 @@ const ItemDetails = () => {
             increment: incStr,
             isUser: isCurrUser,
             badge: isCurrUser ? '10X' : null,
-            avatar: isCurrUser ? '/avatar.png' : `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150`
+            avatar: userAvatar
           };
         });
         setRecentBidsStream(formatted);
@@ -244,14 +273,7 @@ const ItemDetails = () => {
   return (
     <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased">
       {/* Phone Status Header */}
-      <div className="flex justify-between items-center px-3 py-2 text-xs font-semibold text-zinc-400 mb-2 select-none">
-        <span className="font-mono text-xs text-zinc-300">9:41</span>
-        <div className="flex items-center gap-1.5 text-zinc-300">
-          <Signal size={14} />
-          <Wifi size={14} />
-          <Battery size={16} className="rotate-90" />
-        </div>
-      </div>
+      
 
       {/* ========================================================================= */}
       {/* 1. OPEN BID POOL LAYOUT (Matches New Screenshots)                       */}
@@ -354,15 +376,7 @@ const ItemDetails = () => {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <img 
-                              src={bidder.avatar} 
-                              alt={bidder.name}
-                              className="w-10 h-10 rounded-full object-cover border border-zinc-800 bg-zinc-900"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150";
-                              }}
-                            />
+                            <BidderAvatar src={bidder.avatar} alt={bidder.name} />
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <p className="font-bold text-sm text-white">{bidder.name}</p>
