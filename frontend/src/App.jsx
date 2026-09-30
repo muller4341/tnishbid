@@ -25,7 +25,14 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/discover" element={<Discover />} />
-          <Route path="/my-bids" element={<MyBids />} />
+          <Route 
+            path="/my-bids" 
+            element={
+              <PrivateRoute>
+                <MyBids />
+              </PrivateRoute>
+            } 
+          />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/item/:id" element={<ItemDetails />} />

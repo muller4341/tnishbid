@@ -74,8 +74,8 @@ const Discover = () => {
     return items.filter(item => {
       // 1. Pool filter
       const matchesPool = activePool === 'premium' 
-        ? item.pool_type === 'premium' 
-        : (item.pool_type === 'open' || !item.pool_type);
+        ? (item.pool_type === 'lub' || item.pool_type === 'premium') 
+        : (item.pool_type === 'open' || !item.pool_type || (item.pool_type !== 'lub' && item.pool_type !== 'premium'));
 
       // 2. Category filter
       let matchesCategory = true;

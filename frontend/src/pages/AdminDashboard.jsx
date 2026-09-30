@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import ProductBidsDetailModal from '../components/ProductBidsDetailModal';
 import { 
   Users, 
+  User,
   Flame, 
   DollarSign, 
   Trophy, 
@@ -85,6 +87,7 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [timeframe, setTimeframe] = useState('7d'); // '7d' | '30d'
+  const [selectedTrendProductId, setSelectedTrendProductId] = useState('all'); // 'all' or product ID
 
   // Modals
   const [selectedProductLog, setSelectedProductLog] = useState(null);
@@ -104,14 +107,14 @@ const AdminDashboard = () => {
     start_time: '',
     end_time: ''
   });
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [formSubmitting, setFormSubmitting] = useState(false);
 
   // Edit Form State
   const [editFormData, setEditFormData] = useState({});
-  const [editImageFile, setEditImageFile] = useState(null);
-  const [editImagePreview, setEditImagePreview] = useState(null);
+  const [editImageFiles, setEditImageFiles] = useState([]);
+  const [editImagePreviews, setEditImagePreviews] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -149,13 +152,18 @@ const AdminDashboard = () => {
     try {
       const data = new FormData();
       Object.keys(formData).forEach(key => data.append(key, formData[key]));
-      if (imageFile) data.append('image', imageFile);
+      
+      if (imageFiles.length > 0) {
+        imageFiles.forEach(file => {
+          data.append('images', file);
+        });
+      }
 
       await axios.post('/api/items', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      setSuccess(`Auction item "${formData.title}" created successfully!`);
+      setSuccess(`Auction item "${formData.title}" created successfully with ${imageFiles.length || 1} image(s)!`);
       setFormData({
         title: '',
         description: '',
@@ -165,8 +173,8 @@ const AdminDashboard = () => {
         start_time: toLocalISO(new Date()),
         end_time: toLocalISO(new Date(Date.now() + 86400000))
       });
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       fetchDashboardData();
       setActiveTab('products');
     } catch (err) {
@@ -230,16 +238,34 @@ const AdminDashboard = () => {
     });
   }, [statsData, categoryFilter, searchQuery]);
 
-  // Derived Trend Chart Max Values
-  const maxBidPoint = useMemo(() => {
-    if (!statsData?.biddingTrend) return 100;
-    return Math.max(...statsData.biddingTrend.map(d => d.bids), 50);
-  }, [statsData]);
+  // Derived Trend Data based on Selected Product & Timeframe (100% Real Database Values)
+  const activeTrendData = useMemo(() => {
+    if (!statsData) return [];
+    if (selectedTrendProductId === 'all') {
+      return timeframe === '7d' 
+        ? (statsData.biddingTrend7 || statsData.biddingTrend || [])
+        : (statsData.biddingTrend30 || statsData.biddingTrend || []);
+    }
+    const prod = statsData.productStats?.find(p => p.id === parseInt(selectedTrendProductId));
+    if (!prod) return [];
+    return timeframe === '7d' ? (prod.dailyTrend7 || []) : (prod.dailyTrend30 || []);
+  }, [statsData, selectedTrendProductId, timeframe]);
 
-  const maxRevenuePoint = useMemo(() => {
-    if (!statsData?.biddingTrend) return 1000;
-    return Math.max(...statsData.biddingTrend.map(d => d.revenue), 500);
-  }, [statsData]);
+  const activeMaxBids = useMemo(() => {
+    if (!activeTrendData || activeTrendData.length === 0) return 10;
+    const maxVal = Math.max(...activeTrendData.map(d => d.bids));
+    return maxVal > 0 ? maxVal : 10;
+  }, [activeTrendData]);
+
+  const activeTotalBidsInTrend = useMemo(() => {
+    if (!activeTrendData) return 0;
+    return activeTrendData.reduce((sum, d) => sum + d.bids, 0);
+  }, [activeTrendData]);
+
+  const activeTotalRevenueInTrend = useMemo(() => {
+    if (!activeTrendData) return 0;
+    return activeTrendData.reduce((sum, d) => sum + d.revenue, 0);
+  }, [activeTrendData]);
 
   if (loading) {
     return (
@@ -483,9 +509,9 @@ const AdminDashboard = () => {
 
             {/* CHARTS ROW */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* GRAPH 1: Bidding Volume & Revenue Growth Line Curve */}
+              {/* GRAPH 1: Bidding Volume & Revenue Growth Line Curve (100% Real Per Product) */}
               <div className="bg-[#141519] border border-zinc-800/90 rounded-2xl p-5 shadow-xl space-y-4">
-                <div className="flex justify-between items-center border-b border-zinc-800/80 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
                   <div>
                     <h3 className="font-bold text-base text-white flex items-center gap-2">
                       <TrendingUp size={18} className="text-amber-400" />
@@ -493,43 +519,78 @@ const AdminDashboard = () => {
                     </h3>
                     <p className="text-xs text-zinc-400 mt-0.5">Real-time daily progression of placed bids</p>
                   </div>
-                  <div className="flex gap-1 bg-[#0E0F12] border border-zinc-800 p-1 rounded-xl">
-                    <button 
-                      onClick={() => setTimeframe('7d')}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                        timeframe === '7d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
-                      }`}
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Product Selector Dropdown */}
+                    <select
+                      value={selectedTrendProductId}
+                      onChange={(e) => setSelectedTrendProductId(e.target.value)}
+                      className="bg-[#0E0F12] border border-zinc-800 text-xs font-bold text-amber-400 rounded-xl px-2.5 py-1.5 focus:outline-none cursor-pointer max-w-[200px] truncate"
+                      title="Select product to view real daily bidding progression"
                     >
-                      7 Days
-                    </button>
-                    <button 
-                      onClick={() => setTimeframe('30d')}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                        timeframe === '30d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      30 Days
-                    </button>
+                      <option value="all">🌟 All Products Combined</option>
+                      {statsData?.productStats?.map(prod => (
+                        <option key={prod.id} value={prod.id}>
+                          📦 {prod.title} ({prod.totalBids} bids)
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Timeframe Buttons */}
+                    <div className="flex gap-1 bg-[#0E0F12] border border-zinc-800 p-1 rounded-xl">
+                      <button 
+                        onClick={() => setTimeframe('7d')}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                          timeframe === '7d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        7 Days
+                      </button>
+                      <button 
+                        onClick={() => setTimeframe('30d')}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                          timeframe === '30d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        30 Days
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* SVG Line / Bar Visualizer */}
-                <div className="h-56 w-full pt-4 relative flex items-end gap-2 md:gap-4 px-2 border-b border-zinc-800">
-                  {statsData?.biddingTrend?.map((pt, idx) => {
-                    const heightPercent = Math.min(Math.max((pt.bids / maxBidPoint) * 100, 15), 100);
+                <div className="h-56 w-full pt-4 relative flex items-end gap-1.5 md:gap-3 px-2 border-b border-zinc-800 overflow-x-auto">
+                  {activeTrendData?.map((pt, idx) => {
+                    const heightPercent = pt.bids > 0 
+                      ? Math.min(Math.max((pt.bids / activeMaxBids) * 100, 12), 100) 
+                      : 4;
+
                     return (
-                      <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                      <div key={idx} className="flex-1 min-w-[24px] flex flex-col items-center h-full justify-end group relative">
                         {/* Tooltip on Hover */}
-                        <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black border border-amber-400/40 text-white text-[10px] font-mono px-2 py-1 rounded-lg z-20 whitespace-nowrap shadow-xl pointer-events-none">
-                          <span className="text-amber-400 font-bold">{pt.bids} Bids</span> | {pt.revenue} ETB
+                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-black border border-amber-400/50 text-white text-[10px] font-mono px-2.5 py-1.5 rounded-xl z-30 whitespace-nowrap shadow-2xl pointer-events-none text-center">
+                          <p className="font-bold text-amber-400">{pt.date}</p>
+                          <p><span className="text-emerald-400 font-bold">{pt.bids} Bids</span> ({pt.uniqueBids} Unique / {pt.duplicatedBids} Dup)</p>
+                          <p className="text-zinc-400">{pt.revenue} ETB Fee Revenue</p>
                         </div>
+
+                        {/* Real Bid Count Badge on top of bar if > 0 */}
+                        {pt.bids > 0 && (
+                          <span className="text-[10px] font-mono font-black text-amber-400 mb-1 group-hover:scale-110 transition-transform">
+                            {pt.bids}
+                          </span>
+                        )}
 
                         {/* Bar Visualizer */}
                         <div 
                           style={{ height: `${heightPercent}%` }}
-                          className="w-full max-w-[36px] bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400 rounded-t-lg group-hover:brightness-125 transition-all shadow-[0_0_12px_rgba(245,158,11,0.25)] relative"
+                          className={`w-full max-w-[36px] rounded-t-lg transition-all duration-300 relative ${
+                            pt.bids > 0 
+                              ? 'bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400 group-hover:brightness-125 shadow-[0_0_12px_rgba(245,158,11,0.3)]' 
+                              : 'bg-zinc-800/60 border-t border-zinc-700/50'
+                          }`}
                         >
-                          <div className="w-full h-1 bg-white/40 rounded-t-lg"></div>
+                          {pt.bids > 0 && <div className="w-full h-1 bg-white/40 rounded-t-lg"></div>}
                         </div>
 
                         {/* Date Label */}
@@ -542,11 +603,17 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-zinc-400 pt-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-gradient-to-tr from-amber-600 to-amber-400"></span>
-                    <span>Daily Bids Volume</span>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 font-bold text-white">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-tr from-amber-600 to-amber-400"></span>
+                      {selectedTrendProductId === 'all' ? 'All Products Combined' : 'Selected Product Trend'}
+                    </span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-amber-400 font-extrabold">{activeTotalBidsInTrend} Total Bids</span>
                   </div>
-                  <span className="text-emerald-400 font-bold text-xs">▲ Strong Upward Momentum</span>
+                  <span className="text-emerald-400 font-bold text-xs">
+                    {activeTotalRevenueInTrend} ETB Revenue
+                  </span>
                 </div>
               </div>
 
@@ -570,10 +637,17 @@ const AdminDashboard = () => {
                       const totalBids = prod.totalBids || 1;
                       const uniquePct = Math.round(((prod.uniqueBidsCount || 0) / totalBids) * 100);
                       return (
-                        <div key={prod.id} className="space-y-1 bg-[#0E0F12] border border-zinc-800/80 p-3 rounded-xl">
+                        <div 
+                          key={prod.id} 
+                          onClick={() => setSelectedProductLog(prod)}
+                          className="space-y-1 bg-[#0E0F12] hover:bg-[#16181F] border border-zinc-800/80 hover:border-amber-500/40 p-3 rounded-xl cursor-pointer transition-all"
+                          title="Click to view detailed bid information"
+                        >
                           <div className="flex justify-between items-center text-xs">
                             <span className="font-bold text-zinc-200 truncate max-w-[180px]">{prod.title}</span>
-                            <span className="font-mono text-amber-400 font-extrabold">{prod.totalBids} Total Bids</span>
+                            <span className="font-mono text-amber-400 font-extrabold flex items-center gap-1">
+                              {prod.totalBids} Bids <Eye size={12} className="text-zinc-500" />
+                            </span>
                           </div>
                           <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden flex">
                             <div 
@@ -621,15 +695,22 @@ const AdminDashboard = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {statsData?.productStats?.slice(0, 3).map(item => (
-                  <div key={item.id} className="bg-[#0E0F12] border border-zinc-800 p-3.5 rounded-2xl flex items-center gap-3">
+                  <div 
+                    key={item.id} 
+                    onClick={() => setSelectedProductLog(item)}
+                    className="bg-[#0E0F12] hover:bg-[#16181F] border border-zinc-800 hover:border-amber-500/40 p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer transition-all group"
+                    title="Click to view detailed bid information"
+                  >
                     <img 
                       src={item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'} 
                       alt={item.title} 
                       className="w-14 h-14 object-cover rounded-xl border border-zinc-800 bg-zinc-900"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm text-white truncate">{item.title}</h4>
-                      <p className="text-xs text-amber-400 font-extrabold mt-0.5">{item.totalBids} Bids</p>
+                      <h4 className="font-bold text-sm text-white truncate group-hover:text-amber-400 transition-colors">{item.title}</h4>
+                      <p className="text-xs text-amber-400 font-extrabold mt-0.5 flex items-center gap-1">
+                        {item.totalBids} Bids <Eye size={12} />
+                      </p>
                       <p className="text-[10px] text-zinc-500 mt-0.5">
                         LUB: {item.lowestUniqueBid ? `${item.lowestUniqueBid} Birr` : 'None yet'}
                       </p>
@@ -719,9 +800,9 @@ const AdminDashboard = () => {
 
                           <td className="py-3.5 px-4">
                             <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                              prod.pool_type === 'lub' ? 'bg-purple-950/80 text-purple-400 border border-purple-500/30' : 'bg-blue-950/80 text-blue-400 border border-blue-500/30'
+                              (prod.is_lub || prod.pool_type === 'lub' || prod.pool_type === 'premium') ? 'bg-purple-950/80 text-purple-400 border border-purple-500/30' : 'bg-blue-950/80 text-blue-400 border border-blue-500/30'
                             }`}>
-                              {prod.pool_type === 'lub' ? 'LUB Pool' : 'Open Pool'}
+                              {(prod.is_lub || prod.pool_type === 'lub' || prod.pool_type === 'premium') ? 'LUB Pool' : 'Open Pool'}
                             </span>
                             <p className="font-black text-amber-400 mt-1">{prod.base_price} ETB</p>
                           </td>
@@ -777,10 +858,11 @@ const AdminDashboard = () => {
 
                             <button
                               onClick={() => setSelectedProductLog(prod)}
-                              className="bg-[#181A20] hover:bg-[#252832] text-zinc-300 p-1.5 rounded-lg transition-colors border border-zinc-800"
-                              title="View bid history log"
+                              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                              title="View detailed bid information & bidder history"
                             >
-                              <Eye size={15} />
+                              <Eye size={14} />
+                              <span>View Bids ({prod.totalBids})</span>
                             </button>
 
                             <button
@@ -831,9 +913,17 @@ const AdminDashboard = () => {
                     {statsData?.users?.map(u => (
                       <tr key={u.id} className="hover:bg-[#1A1C22] transition-colors">
                         <td className="py-3.5 px-4 flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-black font-black flex items-center justify-center text-xs">
-                            {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
-                          </div>
+                          {u.image_url || u.avatar_url || u.image || localStorage.getItem(`user_avatar_${u.id}`) ? (
+                            <img 
+                              src={u.image_url || u.avatar_url || u.image || localStorage.getItem(`user_avatar_${u.id}`)} 
+                              alt={u.name} 
+                              className="w-9 h-9 rounded-full object-cover border border-amber-500/40 bg-zinc-800"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/20 text-amber-400 border border-amber-500/40 flex items-center justify-center">
+                              <User size={18} />
+                            </div>
+                          )}
                           <div>
                             <p className="font-bold text-sm text-white">{u.name}</p>
                             <p className="text-[11px] font-mono text-zinc-400">{u.phone_number}</p>
@@ -914,9 +1004,22 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="bg-[#0E0F12] border border-zinc-800 p-3 rounded-xl flex justify-between items-center">
-                      <div>
-                        <p className="text-xs font-bold text-amber-400">{win.winnerName}</p>
-                        <p className="text-[11px] font-mono text-zinc-400">{win.winnerPhone}</p>
+                      <div className="flex items-center gap-2.5">
+                        {win.winnerImage || win.image_url ? (
+                          <img 
+                            src={win.winnerImage || win.image_url} 
+                            alt={win.winnerName} 
+                            className="w-9 h-9 rounded-full object-cover border border-amber-400 bg-zinc-800"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                            <User size={18} />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs font-bold text-amber-400">{win.winnerName}</p>
+                          <p className="text-[11px] font-mono text-zinc-400">{win.winnerPhone}</p>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-zinc-500">Winning Bid</p>
@@ -1030,21 +1133,56 @@ const AdminDashboard = () => {
               </div>
 
               <div>
-                <label className="font-bold text-zinc-300 block mb-1">Product Image File</label>
+                <label className="font-bold text-zinc-300 block mb-1">
+                  Product Images (Select 1 or Multiple Files)
+                </label>
                 <input 
                   type="file" 
                   accept="image/*"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setImageFile(file);
-                      setImagePreview(URL.createObjectURL(file));
+                    const files = Array.from(e.target.files);
+                    if (files.length > 0) {
+                      setImageFiles(prev => [...prev, ...files]);
+                      const newPreviews = files.map(f => URL.createObjectURL(f));
+                      setImagePreviews(prev => [...prev, ...newPreviews]);
                     }
                   }}
-                  className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl p-2 text-xs text-zinc-400"
+                  className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-400 file:bg-amber-500 file:text-black file:border-0 file:rounded-lg file:px-3 file:py-1 file:font-bold file:mr-3 cursor-pointer"
                 />
-                {imagePreview && (
-                  <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-xl mt-2 border border-amber-400" />
+
+                {/* Previews Grid */}
+                {imagePreviews.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    <p className="text-[11px] font-bold text-amber-400">
+                      {imagePreviews.length} Image(s) Selected for Upload:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {imagePreviews.map((src, idx) => (
+                        <div key={idx} className="relative group">
+                          <img 
+                            src={src} 
+                            alt={`Preview ${idx + 1}`} 
+                            className="w-20 h-20 object-cover rounded-xl border border-amber-400/60 bg-zinc-900 shadow-md" 
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImageFiles(prev => prev.filter((_, i) => i !== idx));
+                              setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                            }}
+                            className="absolute -top-1.5 -right-1.5 bg-rose-600 hover:bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shadow-md cursor-pointer"
+                            title="Remove image"
+                          >
+                            ×
+                          </button>
+                          <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-mono px-1 rounded">
+                            #{idx + 1}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -1063,42 +1201,14 @@ const AdminDashboard = () => {
 
       {/* --- MODALS --- */}
 
-      {/* Product Bid Log History Modal */}
+      {/* Product Detailed Bids Modal */}
       {selectedProductLog && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#141519] border border-zinc-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <div>
-                <h3 className="font-bold text-base text-white">{selectedProductLog.title}</h3>
-                <p className="text-xs text-amber-400">Bid History Log ({selectedProductLog.totalBids} Total Bids)</p>
-              </div>
-              <button onClick={() => setSelectedProductLog(null)} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white">
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs bg-[#0E0F12] p-3 rounded-xl font-bold text-zinc-400">
-                <span>Lowest Unique Bid:</span>
-                <span className="text-emerald-400">{selectedProductLog.lowestUniqueBid ? `${selectedProductLog.lowestUniqueBid} ETB` : 'None'}</span>
-              </div>
-
-              <div className="flex justify-between text-xs bg-[#0E0F12] p-3 rounded-xl font-bold text-zinc-400">
-                <span>Highest Bid:</span>
-                <span className="text-amber-400">{selectedProductLog.highestBid ? `${selectedProductLog.highestBid} ETB` : 'None'}</span>
-              </div>
-            </div>
-
-            <div className="text-center pt-2">
-              <button 
-                onClick={() => setSelectedProductLog(null)}
-                className="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold px-5 py-2 rounded-xl"
-              >
-                Close Log
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProductBidsDetailModal
+          product={selectedProductLog}
+          onClose={() => setSelectedProductLog(null)}
+          onAdjustWallet={(u) => setWalletModalUser(u)}
+          onRefresh={fetchDashboardData}
+        />
       )}
 
       {/* Adjust User Wallet Modal */}

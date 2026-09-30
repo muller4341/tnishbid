@@ -312,9 +312,9 @@ const Home = () => {
            item.description?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  // FILTERING BASED ON ADMIN POOL REGISTRATION (pool_type: "premium" vs "open")
-  const premiumPools = filteredItems.filter(item => item.pool_type === 'premium');
-  const openBids = filteredItems.filter(item => item.pool_type === 'open' || !item.pool_type);
+  // FILTERING BASED ON ADMIN POOL REGISTRATION (pool_type: "lub" / "premium" vs "open")
+  const premiumPools = filteredItems.filter(item => item.pool_type === 'lub' || item.pool_type === 'premium');
+  const openBids = filteredItems.filter(item => item.pool_type === 'open' || (!item.pool_type || (item.pool_type !== 'lub' && item.pool_type !== 'premium')));
 
   if (loading) {
     return (

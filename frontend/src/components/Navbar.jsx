@@ -51,16 +51,14 @@ const Navbar = () => {
             ትንሽ<span className="text-amber-400">Bid</span>
             </span>
           </Link>
-          {/* <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-            Phone Auctions
-          </span>
-
-          {user?.role !== 'admin' && (
-            <Link to="/my-bids" className="hidden md:inline-flex text-xs font-bold text-zinc-300 hover:text-amber-400 transition-colors ml-2">
+          {user && user.role !== 'admin' && (
+            <Link 
+              to="/my-bids" 
+              className="hidden md:inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 rounded-full transition-colors ml-3"
+            >
               My Bids
             </Link>
-          )} */}
+          )}
         </div>
         
         {/* Top Right Actions */}

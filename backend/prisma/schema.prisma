@@ -15,6 +15,7 @@ model User {
   password_hash  String
   role           String    @default("user")
   wallet_balance Float     @default(0.00)
+  image_url      String?
   created_at     DateTime  @default(now())
   
   bids           Bid[]
@@ -27,7 +28,9 @@ model Item {
   title          String
   description    String
   image_url      String?
+  images         String[]  @default([])
   category       String    @default("Electronics")
+  is_lub         Boolean   @default(false)
   pool_type      String    @default("open")
   base_price     Float 
   start_time     DateTime

@@ -44,19 +44,29 @@ const Profile = () => {
     const file = e.target.files && e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const result = reader.result;
         setAvatarUrl(result);
         localStorage.setItem(avatarStorageKey, result);
+        try {
+          await axios.put('/api/users/profile-image', { image_url: result });
+        } catch (err) {
+          console.error('Failed to sync avatar with server:', err);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleRemoveAvatar = (e) => {
+  const handleRemoveAvatar = async (e) => {
     e.stopPropagation();
     setAvatarUrl(null);
     localStorage.removeItem(avatarStorageKey);
+    try {
+      await axios.put('/api/users/profile-image', { image_url: '' });
+    } catch (err) {
+      console.error('Failed to remove avatar on server:', err);
+    }
   };
 
   // Notification toggles
@@ -72,6 +82,10 @@ const Profile = () => {
       try {
         const res = await axios.get('/api/users/profile');
         setProfileData(res.data);
+        if (res.data.image_url) {
+          setAvatarUrl(res.data.image_url);
+          localStorage.setItem(avatarStorageKey, res.data.image_url);
+        }
       } catch (err) {
         console.error('Failed to load profile data:', err);
       } finally {

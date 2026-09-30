@@ -1,5 +1,39 @@
 const prisma = require('../prismaClient');
 
+const buildRealDailyTrend = (bidsArray, daysCount = 7) => {
+  const result = [];
+  const now = new Date();
+  
+  for (let i = daysCount - 1; i >= 0; i--) {
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() - i);
+    
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
+    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+    
+    const dateLabel = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    
+    // Filter real bids placed on this calendar day
+    const bidsOnDay = bidsArray.filter(b => {
+      const bDate = new Date(b.created_at);
+      return bDate >= startOfDay && bDate <= endOfDay;
+    });
+
+    const uniqueBidsOnDay = bidsOnDay.filter(b => b.is_unique);
+
+    result.push({
+      date: dateLabel,
+      fullDate: startOfDay.toISOString().split('T')[0],
+      bids: bidsOnDay.length,
+      uniqueBids: uniqueBidsOnDay.length,
+      duplicatedBids: bidsOnDay.length - uniqueBidsOnDay.length,
+      revenue: bidsOnDay.length * 1.0 // 1 ETB per bid
+    });
+  }
+  
+  return result;
+};
+
 exports.getDashboardStats = async (req, res) => {
   try {
     // 1. Basic counts
@@ -16,28 +50,38 @@ exports.getDashboardStats = async (req, res) => {
     const totalBidFeeRevenue = totalBids * 1.0; // 1 ETB per bid
     const totalRevenue = totalBidFeeRevenue + totalWalletBalances;
 
-    // 3. Fetch all items with their bid counts, unique bids, and winner info
+    // 3. Fetch all items with their bid counts, unique bids, user details, and winner info
     const items = await prisma.item.findMany({
       include: {
         winner: {
-          select: { id: true, name: true, phone_number: true, email: true }
+          select: { id: true, name: true, phone_number: true, email: true, image_url: true }
         },
         bids: {
-          select: { id: true, amount: true, is_unique: true, created_at: true, user_id: true }
+          include: {
+            user: {
+              select: { id: true, name: true, phone_number: true, email: true, image_url: true }
+            }
+          },
+          orderBy: { created_at: 'desc' }
         }
       },
       orderBy: { created_at: 'desc' }
     });
+
+    const allBids = items.flatMap(item => item.bids || []);
 
     const productStats = items.map(item => {
       const itemBids = item.bids || [];
       const totalItemBids = itemBids.length;
       const uniqueBids = itemBids.filter(b => b.is_unique);
       
-      // Calculate Lowest Unique Bid
+      // Calculate Lowest Unique Bid & Bidder
       let lubAmount = null;
+      let lubBidder = null;
       if (uniqueBids.length > 0) {
-        lubAmount = Math.min(...uniqueBids.map(b => b.amount));
+        const sortedUnique = [...uniqueBids].sort((a, b) => a.amount - b.amount);
+        lubAmount = sortedUnique[0].amount;
+        lubBidder = sortedUnique[0].user;
       }
 
       // Calculate Highest Bid
@@ -52,7 +96,8 @@ exports.getDashboardStats = async (req, res) => {
         description: item.description,
         image_url: item.image_url,
         category: item.category,
-        pool_type: item.pool_type,
+        is_lub: item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium',
+        pool_type: (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium') ? 'lub' : 'open',
         base_price: item.base_price,
         start_time: item.start_time,
         end_time: item.end_time,
@@ -63,23 +108,27 @@ exports.getDashboardStats = async (req, res) => {
         uniqueBidsCount: uniqueBids.length,
         duplicatedBidsCount: totalItemBids - uniqueBids.length,
         lowestUniqueBid: lubAmount,
-        highestBid: highestBid
+        lowestUniqueBidder: lubBidder,
+        highestBid: highestBid,
+        dailyTrend7: buildRealDailyTrend(itemBids, 7),
+        dailyTrend30: buildRealDailyTrend(itemBids, 30),
+        bids: itemBids.map(b => ({
+          id: b.id,
+          amount: b.amount,
+          is_unique: b.is_unique,
+          created_at: b.created_at,
+          user_id: b.user_id,
+          user_name: b.user ? b.user.name : 'Anonymous User',
+          user_phone: b.user ? b.user.phone_number : 'N/A',
+          user_email: b.user ? b.user.email : 'N/A',
+          user_image: b.user ? b.user.image_url : null
+        }))
       };
     });
 
-    // 4. Time series growth / bidding trend graph data (Past 7 days/intervals)
-    const now = new Date();
-    const daysArr = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      daysArr.push({
-        date: dayLabel,
-        bids: Math.floor(Math.random() * 25) + (7 - i) * 15 + totalBids, // dynamic graph points
-        revenue: Math.floor(Math.random() * 150) + (7 - i) * 120 + Math.floor(totalRevenue)
-      });
-    }
+    // 4. Combined real system-wide bidding trends (7d and 30d)
+    const biddingTrend7 = buildRealDailyTrend(allBids, 7);
+    const biddingTrend30 = buildRealDailyTrend(allBids, 30);
 
     // 5. Users List with activity counts
     const users = await prisma.user.findMany({
@@ -90,6 +139,7 @@ exports.getDashboardStats = async (req, res) => {
         email: true,
         role: true,
         wallet_balance: true,
+        image_url: true,
         created_at: true,
         _count: {
           select: { bids: true, won_items: true }
@@ -105,6 +155,7 @@ exports.getDashboardStats = async (req, res) => {
       email: u.email,
       role: u.role,
       wallet_balance: u.wallet_balance,
+      image_url: u.image_url || null,
       created_at: u.created_at,
       totalBids: u._count.bids,
       itemsWon: u._count.won_items
@@ -122,6 +173,7 @@ exports.getDashboardStats = async (req, res) => {
           winnerId: i.winner.id,
           winnerName: i.winner.name,
           winnerPhone: i.winner.phone_number,
+          winnerImage: i.winner.image_url || null,
           winningBid: winningBid ? winningBid.amount : i.base_price,
           endedAt: i.end_time
         };
@@ -137,7 +189,9 @@ exports.getDashboardStats = async (req, res) => {
         totalWinners: winnersList.length
       },
       productStats,
-      biddingTrend: daysArr,
+      biddingTrend: biddingTrend7,
+      biddingTrend7,
+      biddingTrend30,
       users: formattedUsers,
       winners: winnersList
     });
@@ -162,15 +216,18 @@ exports.endAuction = async (req, res) => {
     // Calculate winner: Lowest Unique Bid
     const uniqueBids = item.bids.filter(b => b.is_unique);
     let winnerId = null;
+    let winningAmount = null;
 
     if (uniqueBids.length > 0) {
       // Find bid with smallest amount
       uniqueBids.sort((a, b) => a.amount - b.amount);
       winnerId = uniqueBids[0].user_id;
+      winningAmount = uniqueBids[0].amount;
     } else if (item.bids.length > 0) {
       // Fallback to highest bid if no unique bid exists
       const sortedBids = [...item.bids].sort((a, b) => b.amount - a.amount);
       winnerId = sortedBids[0].user_id;
+      winningAmount = sortedBids[0].amount;
     }
 
     const updated = await prisma.item.update({
@@ -179,24 +236,50 @@ exports.endAuction = async (req, res) => {
         status: 'closed',
         winner_id: winnerId
       },
-      include: { winner: true }
+      include: { 
+        winner: { select: { id: true, name: true, phone_number: true, email: true, image_url: true } }
+      }
     });
 
     if (winnerId) {
-      const message = `Congratulations! You won the auction for "${item.title}"!`;
+      const winnerMessage = `🎉 Congratulations! You won the auction for "${item.title}" with a winning bid of ${winningAmount || item.base_price} ETB!`;
       await prisma.notification.create({
         data: {
           user_id: winnerId,
-          message
+          message: winnerMessage
         }
       });
       if (io) {
         io.to(`user_${winnerId}`).emit('auction_won', {
           itemId: item.id,
           itemTitle: item.title,
-          message
+          message: winnerMessage
         });
       }
+
+      // Notify other participants that auction has concluded
+      const otherUserIds = [...new Set(item.bids.map(b => b.user_id).filter(id => id !== winnerId))];
+      for (const otherId of otherUserIds) {
+        const participantMessage = `The auction for "${item.title}" has concluded. Winner: ${updated.winner?.name || 'Declared Winner'} (${winningAmount || item.base_price} ETB).`;
+        await prisma.notification.create({
+          data: {
+            user_id: otherId,
+            message: participantMessage
+          }
+        });
+        if (io) {
+          io.to(`user_${otherId}`).emit('auction_ended', {
+            itemId: item.id,
+            itemTitle: item.title,
+            message: participantMessage
+          });
+        }
+      }
+    }
+
+    // Broadcast global update to update clients
+    if (io) {
+      io.emit('bid_update', { item_id: itemId, status: 'closed', winner: updated.winner });
     }
 
     res.json({ message: 'Auction closed successfully', item: updated });

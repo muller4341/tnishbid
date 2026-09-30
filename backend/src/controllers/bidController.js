@@ -98,7 +98,11 @@ exports.getUserBids = async (req, res) => {
     const userBids = await prisma.bid.findMany({
       where: { user_id },
       include: {
-        item: true
+        item: {
+          include: {
+            bids: true
+          }
+        }
       },
       orderBy: { created_at: 'desc' }
     });

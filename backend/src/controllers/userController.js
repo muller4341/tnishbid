@@ -4,7 +4,7 @@ exports.getProfile = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, name: true, phone_number: true, email: true, wallet_balance: true, role: true, created_at: true }
+      select: { id: true, name: true, phone_number: true, email: true, wallet_balance: true, role: true, image_url: true, created_at: true }
     });
 
     if (!user) {
@@ -27,6 +27,31 @@ exports.getProfile = async (req, res) => {
       auctionsWon,
       activePools: activeBids.length
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateAvatar = async (req, res) => {
+  try {
+    let image_url = req.body.image_url;
+    
+    if (req.file) {
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      image_url = `data:${req.file.mimetype};base64,${b64}`;
+    }
+
+    if (!image_url) {
+      return res.status(400).json({ error: 'No image provided' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { image_url },
+      select: { id: true, name: true, phone_number: true, email: true, image_url: true, wallet_balance: true }
+    });
+
+    res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

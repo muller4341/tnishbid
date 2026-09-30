@@ -2,91 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { Signal, Wifi, Battery, Clock, ArrowRight, Trophy, AlertCircle } from 'lucide-react';
-
-// Default mock bids matching exact screenshot layout if user has not placed real bids yet
-const MOCK_BIDS = [
-  {
-    id: 101,
-    title: 'Cartier Santos Green',
-    userBid: '12,450 Birr',
-    latestHighest: '12,450 Birr',
-    status: 'WINNING', // WINNING | OUTBID | ENDED
-    timeRemaining: '01:14:02',
-    poolType: 'open', // lub | open
-    bidStatus: 'active', // active | won | ended
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300'
-  },
-  {
-    id: 102,
-    title: 'Premium Sedan',
-    userBid: '25,000 Birr',
-    latestHighest: '25,100 Birr',
-    status: 'OUTBID',
-    timeRemaining: '00:45:12',
-    poolType: 'open',
-    bidStatus: 'active',
-    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=300'
-  },
-  {
-    id: 103,
-    title: 'Smart TV OLED',
-    userBid: '17,000 Birr',
-    latestHighest: '17,000 Birr',
-    status: 'ENDED',
-    timeRemaining: 'Aug 24, 2026',
-    poolType: 'open',
-    bidStatus: 'ended',
-    image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&q=80&w=300'
-  },
-  {
-    id: 104,
-    title: 'iPhone 15 Pro Max Gold',
-    userBid: '4,200 Birr',
-    latestHighest: '4,200 Birr',
-    status: 'WINNING',
-    timeRemaining: '03:22:15',
-    poolType: 'lub',
-    bidStatus: 'active',
-    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=300'
-  },
-  {
-    id: 105,
-    title: 'PlayStation 5 Digital',
-    userBid: '1,800 Birr',
-    latestHighest: '1,800 Birr',
-    status: 'WINNING',
-    timeRemaining: 'Ended',
-    poolType: 'lub',
-    bidStatus: 'won',
-    image: 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&q=80&w=300'
-  }
-];
+import { Signal, Wifi, Battery, Clock, ArrowLeft, ArrowRight, Trophy, AlertCircle } from 'lucide-react';
 
 const MyBids = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [poolType, setPoolType] = useState('open'); // 'lub' | 'open'
+  const [poolType, setPoolType] = useState('lub'); // 'lub' | 'open'
   const [statusFilter, setStatusFilter] = useState('active'); // 'active' | 'won' | 'ended'
-  const [bids, setBids] = useState(MOCK_BIDS);
-  const [loading, setLoading] = useState(false);
+  const [bids, setBids] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserBids = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const res = await axios.get('/api/bids/my-bids');
-        if (res.data && res.data.length > 0) {
-          // Transform backend bids to list format
+        if (res.data && Array.isArray(res.data)) {
+          // Transform backend bids strictly for this user
           const formatted = res.data.map(b => {
             const isWon = b.item.winner_id === user.id;
             const isEnded = b.item.status === 'closed' || new Date(b.item.end_time) <= new Date();
-            let status = 'OUTBID';
-            if (isWon) status = 'WINNING';
-            else if (isEnded) status = 'ENDED';
-            else if (b.is_unique) status = 'WINNING';
+            const isLUB = b.item.is_lub || b.item.pool_type === 'lub' || b.item.pool_type === 'premium';
+            
+            let status = 'PLACED';
+            if (isWon) {
+              status = 'WINNER';
+            } else if (isEnded) {
+              status = 'ENDED';
+            } else {
+              if (isLUB) {
+                status = b.is_unique ? 'UNIQUE' : 'DUPLICATED';
+              } else {
+                const itemBids = b.item.bids || [];
+                const maxBid = itemBids.length > 0 ? Math.max(...itemBids.map(x => x.amount)) : b.item.base_price;
+                status = b.amount >= maxBid ? 'WINNING' : 'OUTBID';
+              }
+            }
 
             const now = new Date().getTime();
             const end = new Date(b.item.end_time).getTime();
@@ -103,24 +59,30 @@ const MyBids = () => {
               timeStr = new Date(b.item.end_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             }
 
+            const itemBids = b.item.bids || [];
+            const maxBid = itemBids.length > 0 ? Math.max(...itemBids.map(x => x.amount)) : b.item.base_price;
+
             return {
-              id: b.item.id,
+              id: b.id,
+              itemId: b.item.id,
               title: b.item.title,
               userBid: `${b.amount.toLocaleString()} Birr`,
-              latestHighest: `${b.item.base_price.toLocaleString()} Birr`,
+              latestHighest: `${maxBid.toLocaleString()} Birr`,
               status,
               timeRemaining: timeStr,
-              poolType: b.item.pool_type || 'open',
+              poolType: isLUB ? 'lub' : 'open',
               bidStatus: isWon ? 'won' : (isEnded ? 'ended' : 'active'),
               image: b.item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300'
             };
           });
 
-          // Combine real user bids with mock bids to ensure visual richness
-          setBids([...formatted, ...MOCK_BIDS]);
+          setBids(formatted);
+        } else {
+          setBids([]);
         }
       } catch (err) {
         console.error('Failed to fetch user bids:', err);
+        setBids([]);
       } finally {
         setLoading(false);
       }
@@ -143,13 +105,20 @@ const MyBids = () => {
 
   return (
     <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased">
-      {/* Phone Status Bar Header */}
-      
-
-      {/* Main Title */}
-      <h1 className="text-3xl font-black text-white tracking-tight mb-4 font-serif">
-        My Bids
-      </h1>
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer shadow-md shrink-0"
+          aria-label="Go Back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight font-serif">
+          My Bids
+        </h1>
+      </div>
 
       {/* Primary Segmented Control (LUB Bids vs Open Bids) */}
       <div className="bg-[#141519] border border-zinc-800/80 p-1.5 rounded-2xl flex font-bold text-sm mb-4 shadow-inner">
@@ -249,16 +218,31 @@ const MyBids = () => {
                       {bid.title}
                     </h3>
                     <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                      Your Bid: <span className="text-zinc-300 font-semibold">{bid.userBid}</span>
+                      Your Bid: <span className="text-amber-400 font-bold">{bid.userBid}</span>
                     </p>
                   </div>
                 </div>
 
                 {/* Status Badge */}
                 <div>
+                  {bid.status === 'WINNER' && (
+                    <span className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
+                      WINNER 🎉
+                    </span>
+                  )}
                   {bid.status === 'WINNING' && (
                     <span className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
-                      WINNING
+                      HIGHEST BID
+                    </span>
+                  )}
+                  {bid.status === 'UNIQUE' && (
+                    <span className="bg-amber-950/80 border border-amber-500/40 text-amber-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
+                      UNIQUE BID
+                    </span>
+                  )}
+                  {bid.status === 'DUPLICATED' && (
+                    <span className="bg-rose-950/80 border border-rose-500/40 text-rose-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
+                      DUPLICATED
                     </span>
                   )}
                   {bid.status === 'OUTBID' && (
@@ -282,7 +266,7 @@ const MyBids = () => {
                 {/* LATEST HIGHEST */}
                 <div>
                   <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-                    LATEST HIGHEST
+                    {bid.poolType === 'lub' ? 'BASE PRICE' : 'LATEST HIGHEST'}
                   </p>
                   <p className="text-sm md:text-base font-black text-amber-400 mt-0.5 tracking-tight">
                     {bid.latestHighest}
@@ -296,9 +280,9 @@ const MyBids = () => {
                   </p>
                   <p
                     className={`text-sm md:text-base font-bold mt-0.5 ${
-                      bid.status === 'WINNING'
+                      bid.status === 'WINNING' || bid.status === 'WINNER' || bid.status === 'UNIQUE'
                         ? 'text-emerald-400 font-mono'
-                        : bid.status === 'OUTBID'
+                        : bid.status === 'OUTBID' || bid.status === 'DUPLICATED'
                         ? 'text-rose-400 font-mono'
                         : 'text-zinc-300 font-sans'
                     }`}
@@ -310,7 +294,7 @@ const MyBids = () => {
                 {/* View Action Button */}
                 <button
                   type="button"
-                  onClick={() => navigate(`/item/${bid.id}`)}
+                  onClick={() => navigate(`/item/${bid.itemId}`)}
                   className="bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                 >
                   View
