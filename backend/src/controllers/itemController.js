@@ -3,7 +3,12 @@ const prisma = require('../prismaClient');
 exports.getItems = async (req, res) => {
   try {
     const items = await prisma.item.findMany({
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      include: {
+        _count: {
+          select: { bids: true }
+        }
+      }
     });
     res.json(items);
   } catch (err) {
@@ -16,6 +21,9 @@ exports.getItemById = async (req, res) => {
     const item = await prisma.item.findUnique({
       where: { id: parseInt(req.params.id) },
       include: {
+        winner: {
+          select: { id: true, name: true, phone_number: true }
+        },
         bids: {
           include: {
             user: {

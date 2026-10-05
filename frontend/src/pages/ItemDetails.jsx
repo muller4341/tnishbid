@@ -21,7 +21,8 @@ import {
   Info,
   TrendingDown,
   Lock,
-  User
+  User,
+  Trophy
 } from 'lucide-react';
 
 const BidderAvatar = ({ src, alt }) => {
@@ -169,34 +170,243 @@ const ProductGalleryCarousel = ({ item, badgeText, badgeColorClass }) => {
             />
           ))}
         </div>
+
+       
       </div>
 
       {/* Interactive Thumbnail Gallery Row */}
-      <div className="flex items-center justify-center gap-2.5 px-1 overflow-x-auto pb-1 scrollbar-none">
-        {images.map((img, idx) => {
-          const isActive = currentIndex === idx;
-          return (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSelect(idx)}
-              className={`relative rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${
-                isActive 
-                  ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20' 
-                  : 'border-zinc-800/90 opacity-60 hover:opacity-100 hover:border-zinc-600'
-              }`}
-            >
-              <img 
-                src={img} 
-                alt={`Thumbnail ${idx + 1}`} 
-                className="w-12 h-12 md:w-14 md:h-14 object-cover"
-              />
-              {isActive && (
-                <span className="absolute inset-0 bg-amber-400/10 pointer-events-none"></span>
-              )}
-            </button>
-          );
-        })}
+      <div className="flex items-center justify-between gap-2.5 px-1">
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none ml-10">
+          {images.map((img, idx) => {
+            const isActive = currentIndex === idx;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelect(idx)}
+                className={`relative rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${
+                  isActive 
+                    ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20' 
+                    : 'border-zinc-800/90 opacity-60 hover:opacity-100 hover:border-zinc-600'
+                }`}
+              >
+                <img 
+                  src={img} 
+                  alt={`Thumbnail ${idx + 1}`} 
+                  className="w-12 h-12 md:w-14 md:h-14 object-cover"
+                />
+                {isActive && (
+                  <span className="absolute inset-0 bg-amber-400/10 pointer-events-none"></span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Share Button (Right Side) */}
+        <button 
+          type="button"
+          onClick={() => {
+            if (navigator.share) {
+              navigator.share({ title: title, url: window.location.href }).catch(() => {});
+            } else {
+              navigator.clipboard.writeText(window.location.href);
+            }
+          }}
+          className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors shrink-0 cursor-pointer shadow-md"
+          aria-label="Share"
+        >
+          <Share2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Mask Phone Number Helper Function (e.g. 0978xxxx90)
+const maskPhoneNumber = (phone) => {
+  if (!phone) return '0978xxxx90';
+  let str = String(phone).replace(/\D/g, '');
+  if (str.startsWith('251')) {
+    str = '0' + str.slice(3);
+  }
+  if (str.startsWith('0') && str.length >= 10) {
+    const prefix = str.slice(0, 4); // First 2 digits after 09 -> e.g. "0978"
+    const suffix = str.slice(-2);   // Last 2 digits -> e.g. "90"
+    return `${prefix}xxxx${suffix}`;
+  }
+  if (str.length >= 8) {
+    const prefix = '09' + str.slice(0, 2);
+    const suffix = str.slice(-2);
+    return `${prefix}xxxx${suffix}`;
+  }
+  return '0978xxxx90';
+};
+
+// Expired / Settled Auction Component
+const ExpiredAuctionView = ({ item, user }) => {
+  const allBids = useMemo(() => {
+    if (!item?.bids || !Array.isArray(item.bids)) return [];
+    return [...item.bids].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }, [item]);
+
+  const winningBid = useMemo(() => {
+    if (allBids.length === 0) return null;
+    if (item?.winner_id) {
+      const found = allBids.find(b => b.user_id === item.winner_id);
+      if (found) return found;
+    }
+    if (item?.pool_type === 'lub' || item?.pool_type === 'premium') {
+      const uniqueBids = allBids.filter(b => b.is_unique);
+      if (uniqueBids.length > 0) {
+        return [...uniqueBids].sort((a, b) => a.amount - b.amount)[0];
+      }
+    }
+    return [...allBids].sort((a, b) => b.amount - a.amount)[0];
+  }, [allBids, item]);
+
+  const winnerUser = item?.winner || winningBid?.user;
+  const winnerName = winnerUser?.name || (winningBid ? `Bidder #${winningBid.user_id}` : 'Declared Winner');
+  const winnerPhone = maskPhoneNumber(winnerUser?.phone_number || winningBid?.user?.phone_number);
+  const winningAmount = winningBid ? winningBid.amount : (item?.base_price || 0);
+  const isCurrentUserWinner = user && (user.id === item?.winner_id || user.id === winnerUser?.id);
+
+  return (
+    <div className="space-y-4">
+      {/* Winner Announcement Card */}
+      <div className="bg-gradient-to-b from-[#1C1D24] to-[#141519] border border-amber-500/40 rounded-3xl p-5 md:p-6 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-300 text-black flex items-center justify-center font-black shadow-lg shadow-amber-500/30">
+            <Trophy size={32} />
+          </div>
+
+          <div className="space-y-1">
+            <span className="inline-block px-3 py-1 bg-amber-500/15 border border-amber-500/30 rounded-full text-[10px] font-black uppercase text-amber-400 tracking-wider">
+              AUCTION EXPIRED & SETTLED
+            </span>
+            
+            {isCurrentUserWinner ? (
+              <h2 className="text-xl md:text-2xl font-black text-white pt-1">
+                🎉 Congratulations! You Won This Auction!
+              </h2>
+            ) : (
+              <h2 className="text-xl md:text-2xl font-black text-white pt-1">
+                Winner: <span className="text-amber-400">{winnerName}</span>
+              </h2>
+            )}
+          </div>
+
+          {/* Winner Details Card */}
+          <div className="w-full bg-[#0E0F12] border border-zinc-800 rounded-2xl p-4 grid grid-cols-2 gap-3 text-left shadow-inner">
+            <div>
+              <p className="text-[10px] font-extrabold text-zinc-500 uppercase">Winner Name</p>
+              <p className="text-xs font-black text-white truncate">{winnerName}</p>
+              <p className="text-[11px] font-mono font-bold text-amber-400 tracking-wide mt-0.5">
+                {winnerPhone}
+              </p>
+            </div>
+            
+            <div className="text-right">
+              <p className="text-[10px] font-extrabold text-zinc-500 uppercase">Winning Bid</p>
+              <p className="text-sm font-mono font-black text-emerald-400">
+                {winningAmount.toFixed(2)} Birr
+              </p>
+              <span className="inline-block text-[9px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded mt-0.5">
+                {item?.pool_type === 'open' ? 'Highest Bid' : 'Lowest Unique'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* All Bidders Record Section (Vertical Scroll for large dataset) */}
+      <div className="bg-[#141519] border border-zinc-800/90 rounded-3xl p-4 md:p-5 shadow-2xl space-y-3">
+        <div className="flex justify-between items-center px-1 pb-1 border-b border-zinc-800/80">
+          <div className="flex items-center gap-2">
+            <User size={16} className="text-amber-400" />
+            <h3 className="text-xs font-black uppercase text-white tracking-wider">
+              ALL BIDDERS RECORD ({allBids.length})
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold text-zinc-400">
+            Vertical Scroll
+          </span>
+        </div>
+
+        {allBids.length === 0 ? (
+          <div className="p-6 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl text-center text-xs text-zinc-500">
+            No bids were placed on this item.
+          </div>
+        ) : (
+          <div className="max-h-96 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+            {allBids.map((bid, idx) => {
+              const isWinner = winningBid && winningBid.id === bid.id;
+              const isUser = user && user.id === bid.user_id;
+              const bidderName = bid.user?.name || `Bidder #${bid.user_id || idx + 1}`;
+              const bidderPhone = maskPhoneNumber(bid.user?.phone_number);
+
+              return (
+                <div
+                  key={bid.id || idx}
+                  className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                    isWinner
+                      ? 'bg-amber-500/10 border-amber-500/60 shadow-lg shadow-amber-500/5'
+                      : isUser
+                      ? 'bg-emerald-950/30 border-emerald-500/40'
+                      : 'bg-[#0E0F12] border-zinc-800/80 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                      isWinner 
+                        ? 'bg-amber-400 text-black shadow-md' 
+                        : 'bg-zinc-800 text-zinc-300'
+                    }`}>
+                      {isWinner ? <Trophy size={16} /> : (idx + 1)}
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-xs text-white truncate max-w-[130px] sm:max-w-[180px]">
+                          {bidderName}
+                        </p>
+                        {isUser && (
+                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-emerald-500 text-black rounded uppercase">
+                            YOU
+                          </span>
+                        )}
+                        {isWinner && (
+                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-amber-400 text-black rounded uppercase">
+                            WINNER
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                        {bidderPhone}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-mono font-black text-xs text-amber-400">
+                      {bid.amount.toFixed(2)} Birr
+                    </p>
+                    {item?.pool_type !== 'open' && (
+                      <span className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded mt-0.5 uppercase ${
+                        bid.is_unique ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-zinc-400'
+                      }`}>
+                        {bid.is_unique ? 'UNIQUE' : 'DUPLICATE'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -326,6 +536,7 @@ const ItemDetails = () => {
   }, [item]);
 
   const isOpenPool = item?.pool_type === 'open';
+  const isExpired = item?.status === 'closed' || timeLeft === 'EXPIRED' || (item?.end_time && new Date(item.end_time).getTime() <= Date.now());
 
   // Highest Bid Calculation for Open Pool
   const currentHighestBid = useMemo(() => {
@@ -453,9 +664,7 @@ const ItemDetails = () => {
                 <h1 className="font-serif font-black text-xl text-white tracking-tight">
                   Auction Detail
                 </h1>
-                <button className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors">
-                  <Share2 size={16} />
-                </button>
+                <div className="w-9 h-9" />
               </div>
 
               {/* Hero Image Box - Multi Image Animated Carousel */}
@@ -485,103 +694,107 @@ const ItemDetails = () => {
               )}
 
               {/* Main Detail Card Container */}
-              <div className="bg-[#141519] border border-zinc-800/90 rounded-3xl p-5 shadow-2xl space-y-4">
-                {/* CURRENT HIGHEST BID */}
-                <div className="text-center py-2 space-y-1">
-                  <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
-                    CURRENT HIGHEST BID
-                  </p>
-                  <h2 className="font-serif font-black text-3xl md:text-4xl text-amber-400 tracking-tight">
-                    {currentHighestBid.toLocaleString()} Birr
-                  </h2>
-                  <p className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1">
-                    <span>{leadingBidderName}</span>
-                  </p>
-                </div>
-
-                {/* LIVE BID STREAM */}
-                <div className="space-y-2.5">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">
-                    LIVE BID STREAM
-                  </p>
-
-                  <div className="space-y-2.5">
-                    {recentBidsStream.length === 0 ? (
-                      <div className="p-4 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl text-center text-xs text-zinc-500">
-                        No bids placed yet. Be the first to place an open bid!
-                      </div>
-                    ) : (
-                      recentBidsStream.slice(0, 3).map((bidder) => (
-                        <div 
-                          key={bidder.id}
-                          className={`p-3 rounded-2xl flex items-center justify-between transition-all shadow-md ${
-                            bidder.isUser 
-                              ? 'bg-emerald-950/30 border border-emerald-500/50 shadow-emerald-950/20' 
-                              : 'bg-[#0E0F12] border border-zinc-800/80'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <BidderAvatar src={bidder.avatar} alt={bidder.name} />
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <p className="font-bold text-sm text-white">{bidder.name}</p>
-                                {bidder.badge && (
-                                  <span className="bg-emerald-500 text-black text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase">
-                                    {bidder.badge}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-zinc-400 font-medium">
-                                {bidder.timeAgo} • {bidder.amount.toLocaleString()} Birr
-                              </p>
-                            </div>
-                          </div>
-
-                          <span className="text-emerald-400 font-extrabold text-sm tracking-tight">
-                            {bidder.increment}
-                          </span>
-                        </div>
-                      ))
-                    )}
+              {isExpired ? (
+                <ExpiredAuctionView item={item} user={user} />
+              ) : (
+                <div className="bg-[#141519] border border-zinc-800/90 rounded-3xl p-5 shadow-2xl space-y-4">
+                  {/* CURRENT HIGHEST BID */}
+                  <div className="text-center py-2 space-y-1">
+                    <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                      CURRENT HIGHEST BID
+                    </p>
+                    <h2 className="font-serif font-black text-3xl md:text-4xl text-amber-400 tracking-tight">
+                      {currentHighestBid.toLocaleString()} Birr
+                    </h2>
+                    <p className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1">
+                      <span>{leadingBidderName}</span>
+                    </p>
                   </div>
+
+                  {/* LIVE BID STREAM */}
+                  <div className="space-y-2.5">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">
+                      LIVE BID STREAM
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {recentBidsStream.length === 0 ? (
+                        <div className="p-4 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl text-center text-xs text-zinc-500">
+                          No bids placed yet. Be the first to place an open bid!
+                        </div>
+                      ) : (
+                        recentBidsStream.slice(0, 3).map((bidder) => (
+                          <div 
+                            key={bidder.id}
+                            className={`p-3 rounded-2xl flex items-center justify-between transition-all shadow-md ${
+                              bidder.isUser 
+                                ? 'bg-emerald-950/30 border border-emerald-500/50 shadow-emerald-950/20' 
+                                : 'bg-[#0E0F12] border border-zinc-800/80'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <BidderAvatar src={bidder.avatar} alt={bidder.name} />
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-bold text-sm text-white">{bidder.name}</p>
+                                  {bidder.badge && (
+                                    <span className="bg-emerald-500 text-black text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase">
+                                      {bidder.badge}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-zinc-400 font-medium">
+                                  {bidder.timeAgo} • {bidder.amount.toLocaleString()} Birr
+                                </p>
+                              </div>
+                            </div>
+
+                            <span className="text-emerald-400 font-extrabold text-sm tracking-tight">
+                              {bidder.increment}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quick Increment Preset Buttons */}
+                  <div className="grid grid-cols-3 gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPlaceBid(50)}
+                      className="bg-[#1D1E24] hover:bg-amber-400/10 active:bg-amber-400/20 border border-zinc-800 hover:border-amber-400/40 text-amber-400 font-black text-sm py-3 px-2 rounded-2xl transition-all shadow-sm cursor-pointer"
+                    >
+                      +50 Birr
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPlaceBid(100)}
+                      className="bg-[#1D1E24] hover:bg-amber-400/10 active:bg-amber-400/20 border border-zinc-800 hover:border-amber-400/40 text-amber-400 font-black text-sm py-3 px-2 rounded-2xl transition-all shadow-sm cursor-pointer"
+                    >
+                      +100 Birr
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPlaceBid(250)}
+                      className="bg-[#1D1E24] hover:bg-amber-400/10 active:bg-amber-400/20 border border-zinc-800 hover:border-amber-400/40 text-amber-400 font-black text-sm py-3 px-2 rounded-2xl transition-all shadow-sm cursor-pointer"
+                    >
+                      +250 Birr
+                    </button>
+                  </div>
+
+                  {/* Primary Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPlaceBid(selectedIncrement)}
+                    className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 active:scale-95 text-black font-black text-base py-4 rounded-2xl shadow-xl shadow-amber-500/20 transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  >
+                    <span>BID NOW (+{selectedIncrement})</span>
+                  </button>
                 </div>
-
-                {/* Quick Increment Preset Buttons */}
-                <div className="grid grid-cols-3 gap-2.5 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenPlaceBid(50)}
-                    className="bg-[#1D1E24] hover:bg-amber-400/10 active:bg-amber-400/20 border border-zinc-800 hover:border-amber-400/40 text-amber-400 font-black text-sm py-3 px-2 rounded-2xl transition-all shadow-sm cursor-pointer"
-                  >
-                    +50 Birr
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenPlaceBid(100)}
-                    className="bg-[#1D1E24] hover:bg-amber-400/10 active:bg-amber-400/20 border border-zinc-800 hover:border-amber-400/40 text-amber-400 font-black text-sm py-3 px-2 rounded-2xl transition-all shadow-sm cursor-pointer"
-                  >
-                    +100 Birr
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenPlaceBid(250)}
-                    className="bg-[#1D1E24] hover:bg-amber-400/10 active:bg-amber-400/20 border border-zinc-800 hover:border-amber-400/40 text-amber-400 font-black text-sm py-3 px-2 rounded-2xl transition-all shadow-sm cursor-pointer"
-                  >
-                    +250 Birr
-                  </button>
-                </div>
-
-                {/* Primary Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleOpenPlaceBid(selectedIncrement)}
-                  className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 active:scale-95 text-black font-black text-base py-4 rounded-2xl shadow-xl shadow-amber-500/20 transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer mt-2"
-                >
-                  <span>BID NOW (+{selectedIncrement})</span>
-                </button>
-              </div>
+              )}
             </div>
           )}
 
@@ -730,9 +943,7 @@ const ItemDetails = () => {
             <h1 className="font-serif font-black text-xl text-white tracking-tight">
               Premium LUB Pool
             </h1>
-            <button className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors">
-              <Share2 size={16} />
-            </button>
+            <div className="w-9 h-9" />
           </div>
 
           {/* Hero Image - Multi Image Animated Carousel */}
@@ -743,29 +954,9 @@ const ItemDetails = () => {
           />
 
           {/* Bidding Panel */}
-          {/* Closed Auction Winner Announcement Box OR Active Bidding Form */}
-          {item.status === 'closed' ? (
-            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border border-amber-500/40 rounded-3xl p-6 text-center space-y-4 shadow-xl">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-black flex items-center justify-center font-black mx-auto shadow-lg shadow-amber-500/20">
-                <Trophy size={28} />
-              </div>
-              
-              <div className="space-y-1">
-                <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded-full">
-                  Auction Closed
-                </span>
-                <h3 className="text-xl font-black text-white pt-2">
-                  {item.winner_id === user?.id 
-                    ? '🎉 Congratulations! You Won This Auction!' 
-                    : `Winner Announced: ${item.winner?.name || 'Declared Winner'}`}
-                </h3>
-                <p className="text-xs text-zinc-300 font-mono">
-                  {item.winner_id === user?.id 
-                    ? 'Your unique bid was declared the winning Lowest Unique Bid by the admin!' 
-                    : 'The admin has officially settled this auction and declared the winner.'}
-                </p>
-              </div>
-            </div>
+          {/* Expired Auction View OR Active Bidding Form */}
+          {isExpired ? (
+            <ExpiredAuctionView item={item} user={user} />
           ) : (
             <div className="bg-[#16161A] rounded-3xl border border-zinc-800 p-5 md:p-6 space-y-5 shadow-xl">
               {/* Timer Banner */}

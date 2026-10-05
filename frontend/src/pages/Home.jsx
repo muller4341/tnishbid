@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { Search, Tag, Clock, ChevronLeft, ChevronRight, Flame, Trophy, Package, Sparkles } from 'lucide-react';
 
@@ -79,6 +80,8 @@ const FeaturedItemsCarousel = ({ items }) => {
     }
   };
 
+  const currentItem = items[currentIndex] || items[0];
+
   return (
     <div
       onMouseEnter={() => setIsPaused(true)}
@@ -87,14 +90,14 @@ const FeaturedItemsCarousel = ({ items }) => {
       onTouchEnd={() => setIsPaused(false)}
       className="bg-[#16161A] rounded-3xl overflow-hidden border border-zinc-800/90 p-3 md:p-4 shadow-2xl relative space-y-4 transition-all duration-500"
     >
-      {/* Sliding Track Viewport */}
+      {/* Sliding Track Viewport (Only for Images) */}
       <div className="overflow-hidden rounded-2xl relative">
         <div
           className="flex transition-transform duration-700 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
           {items.map((item, idx) => (
-            <div key={item.id} className="w-full shrink-0 space-y-4">
+            <div key={item.id} className="w-full shrink-0">
               {/* Top Banner Image with Overlay */}
               <div className="aspect-[16/9] md:aspect-[21/9] bg-zinc-900 rounded-2xl relative overflow-hidden group">
                 {item.image_url ? (
@@ -109,10 +112,11 @@ const FeaturedItemsCarousel = ({ items }) => {
                   </div>
                 )}
 
-                {/* Featured Badge */}
-                <div className="absolute top-3 left-3 bg-[#111113]/90 backdrop-blur-md text-amber-400 border border-amber-400/40 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg flex items-center gap-1.5 z-10">
-                  <Sparkles size={12} className="text-amber-400 animate-pulse" />
-                  FEATURED ITEM ({idx + 1}/{items.length})
+                {/* Category & Starting Bid Overlay (Top Left) */}
+                <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 shadow-lg z-10">
+                  <p className="text-xs text-zinc-400 font-medium">
+                    Category: <span className="text-amber-400 font-bold">{item.category || currentItem.category || 'General'}</span> 
+                  </p>
                 </div>
 
                 {/* Time Remaining Pill overlay */}
@@ -121,52 +125,13 @@ const FeaturedItemsCarousel = ({ items }) => {
                   {formatCountdown(item.end_time)}
                 </div>
               </div>
-
-              {/* Item Details */}
-              <div className="px-2 space-y-3">
-                <div>
-                  <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-snug">
-                    {item.title}
-                  </h2>
-                  <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                    Category: <span className="text-amber-400 font-bold">{item.category || 'General'}</span> • Starting Bid: 1 Birr
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 py-2 border-y border-zinc-800/60">
-                  <div>
-                    <p className="text-[11px] text-zinc-400 font-semibold">Current Lowest Unique</p>
-                    <p className="text-lg md:text-xl font-black text-amber-400 font-mono">
-                      {item.base_price.toFixed(2)} Birr
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] text-zinc-400 font-semibold">Registration Pool</p>
-                    <span className={`inline-block mt-0.5 px-2.5 py-0.5 text-[10px] font-black rounded-full uppercase ${
-                      item.pool_type === 'premium'
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                    }`}>
-                      {item.pool_type === 'premium' ? 'PREMIUM POOL' : 'OPEN BID'}
-                    </span>
-                  </div>
-                </div>
-
-                <Link
-                  to={`/item/${item.id}`}
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/10 flex justify-center items-center transition-all active:scale-[0.98]"
-                >
-                  PLACE BID (1 Birr Fee)
-                </Link>
-              </div>
             </div>
           ))}
         </div>
 
         {/* Carousel Prev / Next Controls Overlay */}
         {items.length > 1 && (
-          <div className="absolute top-[28%] md:top-[30%] inset-x-2 flex justify-between items-center pointer-events-none z-20">
+          <div className="absolute top-1/2 -translate-y-1/2 inset-x-2 flex justify-between items-center pointer-events-none z-20">
             <button
               onClick={handlePrev}
               className="pointer-events-auto w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 flex items-center justify-center transition-all active:scale-90 shadow-xl"
@@ -185,7 +150,7 @@ const FeaturedItemsCarousel = ({ items }) => {
         )}
 
         {/* Indicator Dots Overlay */}
-        {items.length > 1 && (
+        {/* {items.length > 1 && (
           <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 z-20">
             {items.map((_, idx) => (
               <button
@@ -197,7 +162,44 @@ const FeaturedItemsCarousel = ({ items }) => {
               />
             ))}
           </div>
-        )}
+        )} */}
+      </div>
+
+      {/* Item Details (Static, updates content when index changes without horizontal slide motion) */}
+      <div className="px-2 space-y-3">
+        <div>
+          <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-snug">
+            {currentItem.title}
+          </h2>
+          
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 py-2 border-y border-zinc-800/60">
+          <div>
+            <p className="text-[11px] text-zinc-400 font-semibold">Base Price</p>
+            <p className="text-lg md:text-xl font-black text-amber-400 font-mono">
+              {(currentItem.base_price || 0).toFixed(2)} Birr
+            </p>
+          </div>
+
+          {/* <div>
+            <p className="text-[11px] text-zinc-400 font-semibold">Registration Pool</p>
+            <span className={`inline-block mt-0.5 px-2.5 py-0.5 text-[10px] font-black rounded-full uppercase ${
+              currentItem.pool_type === 'premium'
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+            }`}>
+              {currentItem.pool_type === 'premium' ? 'PREMIUM POOL' : 'OPEN BID'}
+            </span>
+          </div> */}
+        </div>
+
+        <Link
+          to={`/item/${currentItem.id}`}
+          className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/10 flex justify-center items-center transition-all active:scale-[0.98]"
+        >
+          place bid now <Sparkles size={16} className="ml-2" />
+        </Link>
       </div>
     </div>
   );
@@ -232,48 +234,57 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
         className="overflow-x-auto py-1.5 px-0.5 no-scrollbar rounded-2xl flex gap-3.5 md:gap-4 scroll-smooth"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
       >
-        {items.map((item) => (
-          <div key={item.id} className="w-[240px] sm:w-[270px] md:w-[280px] shrink-0">
-            <Link
-              to={`/item/${item.id}`}
-              className="bg-[#16161A] hover:bg-[#1C1C22] rounded-2xl p-3 border border-zinc-800/90 hover:border-amber-500/60 shadow-xl hover:shadow-amber-500/10 hover:scale-[1.02] transition-all duration-300 group flex flex-col justify-between space-y-3 h-full block"
-            >
-              <div className="aspect-[4/3] bg-zinc-900 rounded-xl overflow-hidden relative border border-zinc-800/60">
-                {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                    <Tag size={32} />
+        {items.map((item) => {
+          const bidCount = item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0;
+          return (
+            <div key={item.id} className="w-[240px] sm:w-[270px] md:w-[280px] shrink-0">
+              <Link
+                to={`/item/${item.id}`}
+                className="bg-[#16161A] hover:bg-[#1C1C22] rounded-2xl p-3 border border-zinc-800/90 hover:border-amber-500/60 shadow-xl hover:shadow-amber-500/10 hover:scale-[1.02] transition-all duration-300 group flex flex-col justify-between space-y-3 h-full block"
+              >
+                <div className="aspect-[4/3] bg-zinc-900 rounded-xl overflow-hidden relative border border-zinc-800/60">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                      <Tag size={32} />
+                    </div>
+                  )}
+
+                  {/* Bid Counter Overlay (Top Left) */}
+                  <div className="absolute top-2 left-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] font-bold text-green-400 border border-white/10 flex items-center gap-1 shadow-md z-10">
+                    <span><p className="text-amber-400 font-bold"> No. of Bids: </p></span>
+                    <span>{bidCount} </span>
                   </div>
-                )}
 
-                <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold text-emerald-400 border border-white/10 flex items-center gap-1 shadow-md">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {formatCountdown(item.end_time)}
+                  <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold text-emerald-400 border border-white/10 flex items-center gap-1 shadow-md">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {formatCountdown(item.end_time)}
+                  </div>
                 </div>
-              </div>
 
-              <div className="px-1 space-y-1">
-                <h4 className="font-bold text-white text-xs md:text-sm line-clamp-1 group-hover:text-amber-400 transition-colors">
-                  {item.title}
-                </h4>
+                <div className="px-1 space-y-1">
+                  <h4 className="font-bold text-white text-xs md:text-sm line-clamp-1 group-hover:text-amber-400 transition-colors">
+                    {item.title}
+                  </h4>
 
-                <div className="flex justify-between items-baseline pt-1 border-t border-zinc-800/60">
-                  <span className="text-[10px] text-zinc-400 font-medium">
-                    {isFeeMode ? 'Bid Fee' : 'Lowest Unique'}
-                  </span>
-                  <span className="text-xs md:text-sm font-black text-amber-400 font-mono">
-                    {isFeeMode ? `Fee: ${item.base_price.toFixed(0)} Birr` : `${item.base_price.toFixed(2)} Birr`}
-                  </span>
+                  <div className="flex justify-between items-baseline pt-1 border-t border-zinc-800/60">
+                    <span className="text-[10px] text-zinc-400 font-medium">
+                      {isFeeMode ? 'Base Price' : 'Starting Bid'}
+                    </span>
+                    <span className="text-xs md:text-sm font-black text-amber-400 font-mono">
+                      {isFeeMode ? `${item.base_price.toFixed(0)} Birr` : `${item.base_price.toFixed(2)} Birr`}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </div>
-        ))}
+              </Link>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -284,7 +295,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [nowTime, setNowTime] = useState(Date.now());
-  const { user } = useAuth();
+  const { user, socket } = useAuth();
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -299,6 +310,46 @@ const Home = () => {
     };
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    let activeSocket = socket;
+    let createdSocket = null;
+    if (!activeSocket) {
+      createdSocket = io();
+      activeSocket = createdSocket;
+    }
+
+    const handleBidUpdate = (data) => {
+      if (data && data.item_id) {
+        setItems((prevItems) =>
+          prevItems.map((item) => {
+            if (item.id === data.item_id) {
+              const currentBids = item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0;
+              const nextCount = currentBids + 1;
+              return {
+                ...item,
+                bid_count: nextCount,
+                _count: {
+                  ...item._count,
+                  bids: nextCount
+                }
+              };
+            }
+            return item;
+          })
+        );
+      }
+    };
+
+    activeSocket.on('bid_update', handleBidUpdate);
+
+    return () => {
+      activeSocket.off('bid_update', handleBidUpdate);
+      if (createdSocket) {
+        createdSocket.close();
+      }
+    };
+  }, [socket]);
 
   useEffect(() => {
     const interval = setInterval(() => {

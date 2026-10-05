@@ -22,7 +22,7 @@ const Register = () => {
 
     const cleanPhone = phoneNumber.trim();
     if (!PHONE_REGEX.test(cleanPhone)) {
-      setError('Phone number must start with 09 or 07 and be 10 digits (e.g. 0912345678 or 0712345678)');
+      setError('Phone number must start with 09 and be 10 digits (e.g. 0912345678 or 0712345678)');
       return;
     }
 
@@ -90,12 +90,12 @@ const Register = () => {
                 required
                 maxLength={10}
                 className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm font-mono font-bold text-white transition-all"
-                placeholder="0912345678 or 0712345678"
+                placeholder="09xxxxxxxx"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />
             </div>
-            <p className="mt-1 text-[10px] text-zinc-500">Must start with 09 or 07 (10 digits total)</p>
+            <p className="mt-1 text-[10px] text-zinc-500">Must start with 09  (10 digits total)</p>
           </div>
           
           <div>
