@@ -41,6 +41,11 @@ model Item {
   
   winner         User?     @relation("Winner", fields: [winner_id], references: [id])
   bids           Bid[]
+
+  @@index([status])
+  @@index([end_time])
+  @@index([created_at])
+  @@index([pool_type])
 }
 
 model Bid {
@@ -54,6 +59,11 @@ model Bid {
   
   user_id        Int
   user           User      @relation(fields: [user_id], references: [id])
+
+  @@index([item_id])
+  @@index([user_id])
+  @@index([item_id, amount])
+  @@index([created_at])
 }
 
 model Notification {
@@ -64,4 +74,8 @@ model Notification {
   
   user_id        Int
   user           User      @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([created_at])
 }
+

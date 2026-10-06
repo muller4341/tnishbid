@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { SlidersHorizontal, Tag, Search, ArrowLeft } from 'lucide-react';
+import { getCachedItems, setCachedItems } from '../utils/cache';
+
 
 const formatCountdownShort = (endTime) => {
   if (!endTime) return '00h 00m';
@@ -37,16 +39,18 @@ const Discover = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPool = searchParams.get('pool') === 'premium' ? 'premium' : 'open';
   
+  const cached = getCachedItems();
   const [activePool, setActivePool] = useState(initialPool); // 'premium' | 'open'
   const [activeCategory, setActiveCategory] = useState('All');
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState(cached || []);
+  const [loading, setLoading] = useState(!cached);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchItems = async () => {
       try {
         const res = await axios.get('/api/items');
+        setCachedItems(res.data);
         setItems(res.data);
       } catch (err) {
         console.error('Error fetching discover items:', err);
@@ -205,6 +209,8 @@ const Discover = () => {
                     <img
                       src={item.image_url}
                       alt={item.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (

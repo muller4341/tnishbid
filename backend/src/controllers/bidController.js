@@ -100,7 +100,9 @@ exports.getUserBids = async (req, res) => {
       include: {
         item: {
           include: {
-            bids: true
+            bids: {
+              select: { amount: true }
+            }
           }
         }
       },

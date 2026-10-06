@@ -4,6 +4,8 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { Search, Tag, Clock, ChevronLeft, ChevronRight, Flame, Trophy, Package, Sparkles } from 'lucide-react';
+import { getCachedItems, setCachedItems } from '../utils/cache';
+
 
 const formatCountdown = (endTime) => {
   if (!endTime) return '00h : 00m : 00s';
@@ -104,6 +106,8 @@ const FeaturedItemsCarousel = ({ items }) => {
                   <img
                     src={item.image_url}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   />
                 ) : (
@@ -115,12 +119,19 @@ const FeaturedItemsCarousel = ({ items }) => {
                 {/* Category & Starting Bid Overlay (Top Left) */}
                 <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 shadow-lg z-10">
                   <p className="text-xs text-zinc-400 font-medium">
-                    Category: <span className="text-amber-400 font-bold">{item.category || currentItem.category || 'General'}</span> 
+                     <span className={`inline-block  px-2.5 py-0.5 text-[10px] font-black  uppercase ${
+              currentItem.pool_type === 'premium'
+                ? 'bg-amber-500/20 text-amber-400 '
+                : 'bg-indigo-500/20 text-indigo-300 '
+            }`}>
+              {currentItem.pool_type === 'premium' ? 'PREMIUM POOL' : 'OPEN BID'}
+            </span>
+             <span className="text-amber-400 font-bold">{item.category || currentItem.category || 'General'}</span> 
                   </p>
                 </div>
 
                 {/* Time Remaining Pill overlay */}
-                <div className="absolute bottom-3 right-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl text-xs font-mono font-bold text-emerald-400 border border-white/10 flex items-center gap-1.5 shadow-lg z-10">
+                <div className="absolute bottom-3 right-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl text-lg font-mono font-bold text-emerald-400 border border-white/10 flex items-center gap-1.5 shadow-lg z-10">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   {formatCountdown(item.end_time)}
                 </div>
@@ -176,22 +187,23 @@ const FeaturedItemsCarousel = ({ items }) => {
 
         <div className="grid grid-cols-2 gap-4 py-2 border-y border-zinc-800/60">
           <div>
-            <p className="text-[11px] text-zinc-400 font-semibold">Base Price</p>
+            <p className="text-[11px] text-zinc-400 font-semibold">Bid fee</p>
             <p className="text-lg md:text-xl font-black text-amber-400 font-mono">
               {(currentItem.base_price || 0).toFixed(2)} Birr
             </p>
           </div>
 
-          {/* <div>
-            <p className="text-[11px] text-zinc-400 font-semibold">Registration Pool</p>
-            <span className={`inline-block mt-0.5 px-2.5 py-0.5 text-[10px] font-black rounded-full uppercase ${
-              currentItem.pool_type === 'premium'
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-            }`}>
-              {currentItem.pool_type === 'premium' ? 'PREMIUM POOL' : 'OPEN BID'}
+          <div className='flex items-center justify-center'> 
+           
+            <span className={`block w-full text-center font-bold text-[18px] ${
+                (currentItem.pool_type === 'premium' || currentItem.pool_type === 'lub') ? 'text-amber-400 font-mono' : 'text-amber-400 font-mono'
+              }`}>
+              {currentItem.pool_type === 'premium'
+                ? `PREMIUM POOL • ${currentItem._count?.bids ?? currentItem.bids?.length ?? 0} Bids`
+                : `${currentItem._count?.bids ?? currentItem.bids?.length ?? 0} Bids`}
             </span>
-          </div> */}
+            
+          </div> 
         </div>
 
         <Link
@@ -217,7 +229,7 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
       <div className="flex justify-between items-center px-1">
         <h3 className="text-base md:text-lg font-black text-white tracking-tight flex items-center gap-2">
           {Icon ? <Icon size={20} className="text-amber-400" /> : <Package size={20} className="text-amber-400" />}
-          {title} ({items.length})
+          {title} 
         </h3>
 
         <Link
@@ -247,6 +259,8 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
                     <img
                       src={item.image_url}
                       alt={item.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
@@ -257,8 +271,8 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
 
                   {/* Bid Counter Overlay (Top Left) */}
                   <div className="absolute top-2 left-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] font-bold text-green-400 border border-white/10 flex items-center gap-1 shadow-md z-10">
-                    <span><p className="text-amber-400 font-bold"> No. of Bids: </p></span>
-                    <span>{bidCount} </span>
+                    
+                    <span>{bidCount} </span> <span><p className="text-amber-400 font-bold">  Bids</p></span>
                   </div>
 
                   <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold text-emerald-400 border border-white/10 flex items-center gap-1 shadow-md">
@@ -291,8 +305,9 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
 };
 
 const Home = () => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedItems();
+  const [items, setItems] = useState(cached || []);
+  const [loading, setLoading] = useState(!cached);
   const [searchQuery, setSearchQuery] = useState('');
   const [nowTime, setNowTime] = useState(Date.now());
   const { user, socket } = useAuth();
@@ -301,6 +316,7 @@ const Home = () => {
     const fetchItems = async () => {
       try {
         const res = await axios.get('/api/items');
+        setCachedItems(res.data);
         setItems(res.data);
       } catch (err) {
         console.error('Error fetching items:', err);
@@ -396,7 +412,7 @@ const Home = () => {
 
       {/* Active Premium Pools (Static Horizontal Carousel with "See All") */}
       <StaticItemCarousel
-        title="Active Premium Pools"
+        title="Lowest Unique Bids"
         items={premiumPools}
         icon={Flame}
         isFeeMode={true}

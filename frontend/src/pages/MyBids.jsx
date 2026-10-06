@@ -211,6 +211,8 @@ const MyBids = () => {
                   <img
                     src={bid.image}
                     alt={bid.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-14 h-14 object-cover rounded-xl border border-zinc-800 bg-zinc-900 shadow-sm"
                   />
                   <div>

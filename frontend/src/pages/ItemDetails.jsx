@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, lazy } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -25,7 +25,7 @@ import {
   Trophy
 } from 'lucide-react';
 
-const BidderAvatar = ({ src, alt }) => {
+const BidderAvatar = React.memo(({ src, alt }) => {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -44,14 +44,16 @@ const BidderAvatar = ({ src, alt }) => {
     <img 
       src={src} 
       alt={alt}
+      loading="lazy"
+      decoding="async"
       className="w-10 h-10 rounded-full object-cover border border-zinc-800 bg-zinc-900 shrink-0"
       onError={() => setHasError(true)}
     />
   );
-};
+});
 
 // Animated Multi-Image Carousel Component
-const ProductGalleryCarousel = ({ item, badgeText, badgeColorClass }) => {
+const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
   const primaryImage = item?.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=600';
   const categoryLabel = (item?.category || 'ELECTRONICS').toUpperCase();
   const title = item?.title || 'Auction Item';
@@ -87,30 +89,30 @@ const ProductGalleryCarousel = ({ item, badgeText, badgeColorClass }) => {
     return () => clearInterval(timer);
   }, [images.length]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setIsTransitioning(true);
     setTimeout(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
       setIsTransitioning(false);
     }, 150);
-  };
+  }, [images.length]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     setIsTransitioning(true);
     setTimeout(() => {
       setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
       setIsTransitioning(false);
     }, 150);
-  };
+  }, [images.length]);
 
-  const handleSelect = (idx) => {
+  const handleSelect = useCallback((idx) => {
     if (idx === currentIndex) return;
     setIsTransitioning(true);
     setTimeout(() => {
       setCurrentIndex(idx);
       setIsTransitioning(false);
     }, 150);
-  };
+  }, [currentIndex, images.length]);
 
   return (
     <div className="space-y-3">
@@ -119,6 +121,8 @@ const ProductGalleryCarousel = ({ item, badgeText, badgeColorClass }) => {
         <img 
           src={images[currentIndex]} 
           alt={`${title} - Angle ${currentIndex + 1}`}
+          loading="lazy"
+          decoding="async"
           className={`w-full h-64 md:h-72 object-cover object-center transition-all duration-500 transform ${
             isTransitioning ? 'opacity-40 scale-95 blur-xs' : 'opacity-100 scale-100'
           }`}
@@ -193,6 +197,8 @@ const ProductGalleryCarousel = ({ item, badgeText, badgeColorClass }) => {
                 <img 
                   src={img} 
                   alt={`Thumbnail ${idx + 1}`} 
+                  loading="lazy"
+                  decoding="async"
                   className="w-12 h-12 md:w-14 md:h-14 object-cover"
                 />
                 {isActive && (
@@ -221,7 +227,7 @@ const ProductGalleryCarousel = ({ item, badgeText, badgeColorClass }) => {
       </div>
     </div>
   );
-};
+});
 
 // Mask Phone Number Helper Function (e.g. 0978xxxx90)
 const maskPhoneNumber = (phone) => {
@@ -412,7 +418,7 @@ const ExpiredAuctionView = ({ item, user }) => {
   );
 };
 
-const ItemDetails = () => {
+const ItemDetails = memo(() => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, socket, setUser } = useAuth();
@@ -500,14 +506,54 @@ const ItemDetails = () => {
   useEffect(() => {
     if (socket) {
       const handleUpdate = (data) => {
-        if (data.item_id === parseInt(id)) {
-          fetchItemDetails();
+        if (data.item_id === parseInt(id) && data.bid) {
+          // Update item state with new bid
+          setItem(prev => {
+            if (!prev) return prev;
+            const updatedBids = [data.bid, ...(prev.bids || [])];
+            return { ...prev, bids: updatedBids };
+          });
+          // Update recent LUB bids
+          setRecentLUBBids(prev => [data.bid, ...prev]);
+          // Update recent bids stream (top 3)
+          setRecentBidsStream(prev => {
+            const combined = [data.bid, ...prev];
+            const formatted = combined.slice(0, 3).map((b, idx) => {
+              const isCurrUser = user?.id === b.user_id;
+              const rawName = b.user?.name || `User ${b.user_id}`;
+              const parts = rawName.split(' ');
+              const uName = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
+              const now = new Date().getTime();
+              const bidTime = new Date(b.created_at).getTime();
+              const diffSec = Math.max(1, Math.floor((now - bidTime) / 1000));
+              let timeAgo = `${diffSec}s ago`;
+              if (diffSec >= 60) {
+                timeAgo = `${Math.floor(diffSec / 60)}m ago`;
+              }
+              const prevBid = combined[idx + 1];
+              const diffVal = prevBid ? (b.amount - prevBid.amount) : (b.amount - (item?.base_price || 0));
+              const incStr = diffVal > 0 ? `+${diffVal.toLocaleString()} Birr` : `+${b.amount.toLocaleString()} Birr`;
+              const localAvatar = localStorage.getItem(`user_avatar_${b.user_id}`);
+              const userAvatar = b.user?.avatar || (isCurrUser ? user?.avatar : null) || localAvatar || null;
+              return {
+                id: b.id,
+                name: isCurrUser ? `${uName} (You)` : uName,
+                timeAgo,
+                amount: b.amount,
+                increment: incStr,
+                isUser: isCurrUser,
+                badge: isCurrUser ? '10X' : null,
+                avatar: userAvatar
+              };
+            });
+            return formatted;
+          });
         }
       };
       socket.on('bid_update', handleUpdate);
       return () => socket.off('bid_update', handleUpdate);
     }
-  }, [socket, id]);
+  }, [socket, id, user, item]);
 
   // Countdown timer calculation
   useEffect(() => {
@@ -960,32 +1006,35 @@ const ItemDetails = () => {
           ) : (
             <div className="bg-[#16161A] rounded-3xl border border-zinc-800 p-5 md:p-6 space-y-5 shadow-xl">
               {/* Timer Banner */}
-              <div className="flex flex-col items-center justify-center py-4 bg-[#111113] text-white rounded-2xl border border-zinc-800 shadow-inner">
+              {/* <div className="flex flex-col items-center justify-center py-4 bg-[#111113] text-white rounded-2xl border border-zinc-800 shadow-inner">
                 <Clock className="text-amber-400 mb-1" size={22} />
                 <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
                 <p className={`text-xl font-black font-mono tracking-tight ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
                   {timeLeft || 'Calculating...'}
                 </p>
-              </div>
+              </div> */}
 
               {/* Price Stats */}
               <div className="flex justify-between items-center bg-[#111113] p-3.5 rounded-2xl border border-zinc-800">
                 <div>
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase">Lowest Unique Base</p>
+                  <p className="text-[10px] text-zinc-400 font-bold ">Bid fee</p>
                   <p className="text-lg font-black text-amber-400">{item.base_price ? item.base_price.toFixed(2) : '0.00'} Birr</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase">Bid Fee</p>
-                  <p className="text-xs font-bold text-zinc-300">1.00 Birr</p>
+
+                  <div>
+                    <p className="text-[10px] text-zinc-400 font-bold ">Bids</p>
+                  <p className="text-lg font-black text-amber-400">1,212</p>
+                 
+                </div>
+                  
+                 
                 </div>
               </div>
 
               {/* Action Form or Phone Login Prompt */}
               <div>
-                <h3 className="text-xs font-bold text-zinc-300 mb-3 flex items-center gap-2">
-                  <TrendingDown size={16} className="text-amber-400" />
-                  Place Phone Unique Bid
-                </h3>
+                
 
                 {!user ? (
                   <div className="p-4 bg-[#111113] border border-zinc-800 rounded-2xl text-center space-y-3">
@@ -1022,7 +1071,7 @@ const ItemDetails = () => {
                       </div>
                     )}
 
-                    {/* Quick Decimal Increment Preset Buttons */}
+                    {/* Quick Decimal Increment Preset Buttons
                     <div className="space-y-1.5">
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Quick Increment:</span>
                       <div className="grid grid-cols-4 gap-1.5">
@@ -1038,7 +1087,7 @@ const ItemDetails = () => {
                           </button>
                         ))}
                       </div>
-                    </div>
+                    </div> */}
 
                     <form 
                       onSubmit={(e) => {
@@ -1074,6 +1123,15 @@ const ItemDetails = () => {
                       <Info size={14} className="shrink-0 mt-0.5 text-amber-400" />
                       <p>Bids require 2 decimal places. Only lowest unique bids win!</p>
                     </div>
+
+                    {/* Timer Banner */}
+              <div className="flex flex-col items-center justify-center py-4 bg-[#111113] text-white rounded-2xl border border-zinc-800 shadow-inner">
+                <Clock className="text-amber-400 mb-1" size={22} />
+                <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
+                <p className={`text-xl font-black font-mono tracking-tight ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {timeLeft || 'Calculating...'}
+                </p>
+              </div>
                   </div>
                 )}
               </div>
@@ -1103,6 +1161,6 @@ const ItemDetails = () => {
       )}
     </div>
   );
-};
+});
 
 export default ItemDetails;

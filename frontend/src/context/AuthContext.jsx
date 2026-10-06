@@ -12,30 +12,32 @@ export const AuthProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Set default axios header
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [token]);
+  // Synchronously ensure axios header matches token state
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete axios.defaults.headers.common['Authorization'];
+  }
 
   // Load user on mount
   useEffect(() => {
+    let isMounted = true;
     const fetchUser = async () => {
       if (token) {
         try {
-          const res = await axios.get('/api/users/profile');
-          setUser(res.data);
+          const res = await axios.get('/api/users/profile', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (isMounted) setUser(res.data);
         } catch (err) {
           console.error(err);
           logout();
         }
       }
-      setLoading(false);
+      if (isMounted) setLoading(false);
     };
     fetchUser();
+    return () => { isMounted = false; };
   }, [token]);
 
   // Initialize socket when user logs in

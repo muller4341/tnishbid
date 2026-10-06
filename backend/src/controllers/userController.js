@@ -2,24 +2,25 @@ const prisma = require('../prismaClient');
 
 exports.getProfile = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: { id: true, name: true, phone_number: true, email: true, wallet_balance: true, role: true, image_url: true, created_at: true }
-    });
+    const [user, totalBids, auctionsWon, activeBids] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { id: true, name: true, phone_number: true, email: true, wallet_balance: true, role: true, image_url: true, created_at: true }
+      }),
+      prisma.bid.count({ where: { user_id: req.user.id } }),
+      prisma.item.count({ where: { winner_id: req.user.id } }),
+      prisma.bid.groupBy({
+        by: ['item_id'],
+        where: { 
+          user_id: req.user.id,
+          item: { status: 'active' }
+        }
+      })
+    ]);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-
-    const totalBids = await prisma.bid.count({ where: { user_id: req.user.id } });
-    const auctionsWon = await prisma.item.count({ where: { winner_id: req.user.id } });
-    const activeBids = await prisma.bid.groupBy({
-      by: ['item_id'],
-      where: { 
-        user_id: req.user.id,
-        item: { status: 'active' }
-      }
-    });
 
     res.json({
       ...user,
