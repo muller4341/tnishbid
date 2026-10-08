@@ -27,6 +27,24 @@ const formatCountdown = (endTime) => {
   return `${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`;
 };
 
+const getCountdownStyle = (endTime) => {
+  if (!endTime) return { text: 'text-red-500', dot: 'bg-red-500' };
+  const now = new Date().getTime();
+  const end = new Date(endTime).getTime();
+  const distance = end - now;
+
+  if (distance <= 0) {
+    return { text: 'text-red-500', dot: 'bg-red-500' };
+  }
+
+  const days = distance / (1000 * 60 * 60 * 24);
+  if (days <= 5) {
+    return { text: 'text-yellow-400', dot: 'bg-yellow-400' };
+  }
+
+  return { text: 'text-emerald-400', dot: 'bg-emerald-400' };
+};
+
 // Animated Ping-Pong 4-Second Sliding Featured Carousel Component
 const FeaturedItemsCarousel = ({ items }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -118,23 +136,28 @@ const FeaturedItemsCarousel = ({ items }) => {
 
                 {/* Category & Starting Bid Overlay (Top Left) */}
                 <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 shadow-lg z-10">
-                  <p className="text-xs text-zinc-400 font-medium">
-                     <span className={`inline-block  px-2.5 py-0.5 text-[10px] font-black  uppercase ${
-              currentItem.pool_type === 'premium'
-                ? 'bg-amber-500/20 text-amber-400 '
+                  <p className="text-xs text-zinc-400 font-medium flex items-center gap-2">
+                     <span className={`inline-block px-2.5 py-0.5 text-[10px] font-black rounded-sm ${
+              (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium')
+                ? 'bg-indigo-500/20 text-indigo-300 '
                 : 'bg-indigo-500/20 text-indigo-300 '
             }`}>
-              {currentItem.pool_type === 'premium' ? 'PREMIUM POOL' : 'OPEN BID'}
+              {(item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium') ? 'Lub Bid' : 'Open Bid'}
             </span>
-             <span className="text-amber-400 font-bold">{item.category || currentItem.category || 'General'}</span> 
+             <span className="text-amber-400 font-bold">{item.category || 'General'}</span> 
                   </p>
                 </div>
 
                 {/* Time Remaining Pill overlay */}
-                <div className="absolute bottom-3 right-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl text-lg font-mono font-bold text-emerald-400 border border-white/10 flex items-center gap-1.5 shadow-lg z-10">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {formatCountdown(item.end_time)}
-                </div>
+                {(() => {
+                  const style = getCountdownStyle(item.end_time);
+                  return (
+                    <div className={`absolute bottom-3 right-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl text-md font-mono font-bold ${style.text} border border-white/10 flex items-center gap-1.5 shadow-lg z-10`}>
+                      <span className={`w-2 h-2 rounded-full ${style.dot} animate-pulse`}></span>
+                      {formatCountdown(item.end_time)}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}
@@ -160,20 +183,7 @@ const FeaturedItemsCarousel = ({ items }) => {
           </div>
         )}
 
-        {/* Indicator Dots Overlay */}
-        {/* {items.length > 1 && (
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 z-20">
-            {items.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`h-1.5 rounded-full transition-all ${
-                  idx === currentIndex ? 'w-5 bg-amber-400' : 'w-1.5 bg-zinc-500 hover:bg-zinc-300'
-                }`}
-              />
-            ))}
-          </div>
-        )} */}
+       
       </div>
 
       {/* Item Details (Static, updates content when index changes without horizontal slide motion) */}
@@ -194,15 +204,14 @@ const FeaturedItemsCarousel = ({ items }) => {
           </div>
 
           <div className='flex items-center justify-center'> 
-           
-            <span className={`block w-full text-center font-bold text-[18px] ${
-                (currentItem.pool_type === 'premium' || currentItem.pool_type === 'lub') ? 'text-amber-400 font-mono' : 'text-amber-400 font-mono'
-              }`}>
-              {currentItem.pool_type === 'premium'
-                ? `PREMIUM POOL • ${currentItem._count?.bids ?? currentItem.bids?.length ?? 0} Bids`
-                : `${currentItem._count?.bids ?? currentItem.bids?.length ?? 0} Bids`}
+            <span className="block w-full text-center font-bold text-[18px] font-mono">
+              <span className="text-green-400">
+                {currentItem._count?.bids ?? currentItem.bid_count ?? currentItem.bids?.length ?? 0}
+              </span>{' '}
+              <span className="text-amber-400">
+                Bids
+              </span>
             </span>
-            
           </div> 
         </div>
 
@@ -275,10 +284,15 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
                     <span>{bidCount} </span> <span><p className="text-amber-400 font-bold">  Bids</p></span>
                   </div>
 
-                  <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold text-emerald-400 border border-white/10 flex items-center gap-1 shadow-md">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    {formatCountdown(item.end_time)}
-                  </div>
+                  {(() => {
+                    const style = getCountdownStyle(item.end_time);
+                    return (
+                      <div className={`absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold ${style.text} border border-white/10 flex items-center gap-1 shadow-md`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${style.dot} animate-pulse`}></span>
+                        {formatCountdown(item.end_time)}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="px-1 space-y-1">
@@ -288,7 +302,7 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
 
                   <div className="flex justify-between items-baseline pt-1 border-t border-zinc-800/60">
                     <span className="text-[10px] text-zinc-400 font-medium">
-                      {isFeeMode ? 'Base Price' : 'Starting Bid'}
+                      {isFeeMode ? 'Bid Fee' : 'Starting Bid'}
                     </span>
                     <span className="text-xs md:text-sm font-black text-amber-400 font-mono">
                       {isFeeMode ? `${item.base_price.toFixed(0)} Birr` : `${item.base_price.toFixed(2)} Birr`}
@@ -380,8 +394,8 @@ const Home = () => {
   });
 
   // FILTERING BASED ON ADMIN POOL REGISTRATION (pool_type: "lub" / "premium" vs "open")
-  const premiumPools = filteredItems.filter(item => item.pool_type === 'lub' || item.pool_type === 'premium');
-  const openBids = filteredItems.filter(item => item.pool_type === 'open' || (!item.pool_type || (item.pool_type !== 'lub' && item.pool_type !== 'premium')));
+  const premiumPools = filteredItems.filter(item => item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium');
+  const openBids = filteredItems.filter(item => !item.is_lub && (item.pool_type === 'open' || (!item.pool_type || (item.pool_type !== 'lub' && item.pool_type !== 'premium'))));
 
   if (loading) {
     return (

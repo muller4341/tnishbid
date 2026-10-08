@@ -9,6 +9,7 @@ const Register = () => {
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [agreePolicy, setAgreePolicy] = useState(false);
   const [error, setError] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -23,6 +24,11 @@ const Register = () => {
     const cleanPhone = phoneNumber.trim();
     if (!PHONE_REGEX.test(cleanPhone)) {
       setError('Phone number must start with 09 and be 10 digits (e.g. 0912345678 or 0712345678)');
+      return;
+    }
+
+    if (!agreePolicy) {
+      setError('You must accept the Privacy Policy & Terms of Service to create an account');
       return;
     }
 
@@ -113,6 +119,21 @@ const Register = () => {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+          </div>
+          
+          {/* Privacy Policy & Terms Checkbox */}
+          <div className="flex items-start gap-2.5 pt-1">
+            <input
+              id="privacy-policy-checkbox"
+              type="checkbox"
+              required
+              checked={agreePolicy}
+              onChange={(e) => setAgreePolicy(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-[#111113] text-amber-500 focus:ring-amber-500/40 focus:ring-offset-0 cursor-pointer"
+            />
+            <label htmlFor="privacy-policy-checkbox" className="text-xs text-zinc-400 cursor-pointer select-none leading-snug">
+              I agree to the <span className="text-amber-400 font-bold hover:underline">Privacy Policy</span> & <span className="text-amber-400 font-bold hover:underline">Terms of Service</span>
+            </label>
           </div>
           
           <button

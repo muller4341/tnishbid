@@ -32,7 +32,8 @@ import {
   ArrowUpRight,
   Sparkles,
   Award,
-  Zap
+  Zap,
+  Plus
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -111,6 +112,27 @@ const AdminDashboard = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [formSubmitting, setFormSubmitting] = useState(false);
 
+  // Dynamic Subtitles State
+  const [subtitles, setSubtitles] = useState([
+    { title: '', description: '' }
+  ]);
+
+  const handleAddSubtitle = () => {
+    setSubtitles(prev => [...prev, { title: '', description: '' }]);
+  };
+
+  const handleRemoveSubtitle = (index) => {
+    setSubtitles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubtitleChange = (index, field, value) => {
+    setSubtitles(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
   // Edit Form State
   const [editFormData, setEditFormData] = useState({});
   const [editImageFiles, setEditImageFiles] = useState([]);
@@ -151,7 +173,19 @@ const AdminDashboard = () => {
 
     try {
       const data = new FormData();
-      Object.keys(formData).forEach(key => data.append(key, formData[key]));
+
+      // Filter valid subtitles
+      const validSubtitles = subtitles.filter(s => s.title.trim() || s.description.trim());
+      const finalDescription = validSubtitles.length > 0 
+        ? JSON.stringify(validSubtitles) 
+        : (formData.description || '');
+
+      const payload = {
+        ...formData,
+        description: finalDescription
+      };
+
+      Object.keys(payload).forEach(key => data.append(key, payload[key]));
       
       if (imageFiles.length > 0) {
         imageFiles.forEach(file => {
@@ -173,6 +207,7 @@ const AdminDashboard = () => {
         start_time: toLocalISO(new Date()),
         end_time: toLocalISO(new Date(Date.now() + 86400000))
       });
+      setSubtitles([{ title: '', description: '' }]);
       setImageFiles([]);
       setImagePreviews([]);
       fetchDashboardData();
@@ -1057,15 +1092,62 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              <div>
-                <label className="font-bold text-zinc-300 block mb-1">Description</label>
-                <textarea 
-                  rows="3"
-                  placeholder="Detailed specifications and auction conditions..."
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-[#0E0F12] border border-zinc-800 focus:border-amber-400 rounded-xl p-3 text-sm text-white focus:outline-none"
-                ></textarea>
+              {/* Sub-Titles & Descriptions Dynamic Builder */}
+              <div className="space-y-3 bg-[#0A0B0E]/60 p-3.5 rounded-2xl border border-zinc-800/80">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-zinc-300 text-xs flex items-center gap-1.5">
+                    <Layers size={14} className="text-amber-400" />
+                    Sub-Titles & Descriptions
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddSubtitle}
+                    className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Plus size={12} />
+                    Add Sub-Title
+                  </button>
+                </div>
+
+                {subtitles.map((sub, idx) => (
+                  <div key={idx} className="bg-[#141519] p-3 rounded-xl border border-zinc-800 space-y-2 relative">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                        Sub-Title Section #{idx + 1}
+                      </span>
+                      {subtitles.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubtitle(idx)}
+                          className="text-rose-400 hover:text-rose-300 text-[11px] font-semibold flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    <div>
+                      <input
+                        type="text"
+                        placeholder={`Sub-Title (e.g. ${idx === 0 ? 'Specifications' : idx === 1 ? 'Condition & Warranty' : 'Included Accessories'})`}
+                        value={sub.title}
+                        onChange={(e) => handleSubtitleChange(idx, 'title', e.target.value)}
+                        className="w-full bg-[#0E0F12] border border-zinc-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white focus:outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <textarea
+                        rows="2"
+                        placeholder="Description for this sub-title section..."
+                        value={sub.description}
+                        onChange={(e) => handleSubtitleChange(idx, 'description', e.target.value)}
+                        className="w-full bg-[#0E0F12] border border-zinc-800 focus:border-amber-400 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                      ></textarea>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

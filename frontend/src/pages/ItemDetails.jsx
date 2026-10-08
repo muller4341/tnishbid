@@ -22,7 +22,9 @@ import {
   TrendingDown,
   Lock,
   User,
-  Trophy
+  Trophy,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const BidderAvatar = React.memo(({ src, alt }) => {
@@ -49,6 +51,54 @@ const BidderAvatar = React.memo(({ src, alt }) => {
       className="w-10 h-10 rounded-full object-cover border border-zinc-800 bg-zinc-900 shrink-0"
       onError={() => setHasError(true)}
     />
+  );
+});
+
+// Component to Render Dynamic Sub-Titles & Descriptions
+const RenderDescriptionSections = memo(({ description }) => {
+  if (!description) return null;
+
+  let sections = [];
+  try {
+    const parsed = JSON.parse(description);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      sections = parsed;
+    } else {
+      sections = [{ title: 'Overview', description: description }];
+    }
+  } catch {
+    sections = [{ title: 'Overview', description: description }];
+  }
+
+  const validSections = sections.filter(s => (s.title && s.title.trim()) || (s.description && s.description.trim()));
+  if (validSections.length === 0) return null;
+
+  return (
+    <div className="bg-[#141519] border border-zinc-800/90 rounded-3xl p-5 shadow-xl space-y-4 mt-4">
+      <h3 className="font-serif font-black text-base text-white tracking-tight flex items-center justify-center gap-2 border-b border-zinc-800 pb-3">
+        <Info className="text-amber-400" size={18} />
+        Product Specifications & Details
+      </h3>
+
+      {/* Single Unified Container for all Sub-Titles & Descriptions */}
+      <div className="bg-[#0E0F12] rounded-2xl border border-zinc-800/70 divide-y divide-zinc-800/60 text-xs overflow-hidden">
+        {validSections.map((sec, idx) => (
+          <div key={idx} className="flex flex-row items-center justify-between p-3.5 gap-3">
+            {/* Subtitle - Centered Vertically and Horizontally */}
+            <div className="w-1/3 min-w-[100px] font-bold text-amber-400 text-xs flex items-center justify-center text-center shrink-0 self-center">
+              <span>{sec.title || 'Detail'}</span>
+            </div>
+
+            {/* Description - Centered Container with Left-Aligned Line Starting Position */}
+            <div className="flex-1 flex justify-center items-start text-xs text-zinc-200">
+              <div className="text-left font-medium leading-relaxed whitespace-pre-line">
+                {sec.description || 'N/A'}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 });
 
@@ -249,6 +299,144 @@ const maskPhoneNumber = (phone) => {
   return '0978xxxx90';
 };
 
+// Falling Confetti & Sparkles Celebration Component
+const ConfettiCelebration = memo(() => {
+  const particles = useMemo(() => {
+    const colors = ['#F59E0B', '#10B981', '#6366F1', '#EC4899', '#3B82F6', '#FBBF24', '#F43F5E', '#8B5CF6'];
+    return Array.from({ length: 45 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      color: colors[i % colors.length],
+      width: Math.random() * 8 + 6,
+      height: Math.random() * 14 + 8,
+      duration: Math.random() * 3 + 2.5,
+      delay: Math.random() * 3,
+      rotate: Math.random() * 360,
+    }));
+  }, []);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+      <style>{`
+        @keyframes confettiFlyDown {
+          0% {
+            transform: translateY(-20px) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(105vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-sm shadow-sm"
+          style={{
+            left: `${p.left}%`,
+            top: `-20px`,
+            width: `${p.width}px`,
+            height: `${p.height}px`,
+            backgroundColor: p.color,
+            animation: `confettiFlyDown ${p.duration}s linear infinite`,
+            animationDelay: `${p.delay}s`,
+            transform: `rotate(${p.rotate}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+});
+
+// Component for a single Bid Amount Group Row with green "show more" text link
+const BidGroupRow = ({ group, winningBidId, currentUserId }) => {
+  const [expanded, setExpanded] = useState(false);
+  const INITIAL_SHOW = 3;
+  const totalCount = group.bids.length;
+  const isUnique = totalCount === 1;
+  const displayedBids = expanded ? group.bids : group.bids.slice(0, INITIAL_SHOW);
+
+  return (
+    <div className="bg-[#0E0F12] border border-zinc-800/80 rounded-2xl p-3.5 flex flex-row items-start justify-between gap-4 shadow-md">
+      {/* Column 1 (Left): Bid Amount & Unique/Duplicate Badge */}
+      <div className="w-1/3 min-w-[110px] space-y-1.5 shrink-0 pt-0.5">
+        <p className="font-mono font-black text-sm md:text-base text-amber-400">
+          {group.amount.toFixed(2)} Birr
+        </p>
+        <div>
+          <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+            isUnique 
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+              : 'bg-zinc-800 text-zinc-400'
+          }`}>
+            {isUnique ? 'UNIQUE' : `${totalCount} BIDS`}
+          </span>
+        </div>
+      </div>
+
+      {/* Column 2 (Right): Side-by-Side Phone Numbers List & Green "show more" Link */}
+      <div className="flex-1 space-y-1.5">
+        <div className={`space-y-1.5 ${expanded ? 'max-h-60 overflow-y-auto pr-1 no-scrollbar' : ''}`}>
+          {displayedBids.map((b, i) => {
+            const isWinner = winningBidId && winningBidId === b.id;
+            const isUser = currentUserId && currentUserId === b.user_id;
+            const phoneStr = maskPhoneNumber(b.user?.phone_number);
+
+            return (
+              <div 
+                key={b.id || i}
+                className={`flex items-center justify-between text-xs px-3 py-1.5 rounded-xl transition-all ${
+                  isWinner 
+                    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold shadow-sm' 
+                    : isUser
+                    ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold'
+                    : 'bg-[#141519] border border-zinc-800/60 text-zinc-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold tracking-wider">{phoneStr}</span>
+                  {isUser && (
+                    <span className="text-[8px] font-black px-1.5 py-0.2 bg-emerald-500 text-black rounded uppercase">
+                      YOU
+                    </span>
+                  )}
+                  {isWinner && (
+                    <span className="text-[8px] font-black px-1.5 py-0.2 bg-amber-400 text-black rounded uppercase flex items-center gap-0.5">
+                      <Trophy size={10} /> WINNER
+                    </span>
+                  )}
+                </div>
+
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  {b.created_at ? new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Green Text Link under the last bidder phone */}
+        {totalCount > INITIAL_SHOW && (
+          <div className="pt-0.5 text-left">
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="text-emerald-400 hover:text-emerald-300 text-xs font-bold cursor-pointer transition-colors flex items-center gap-1 active:scale-95"
+            >
+              {expanded ? (
+                <>show less <ChevronUp size={12} /></>
+              ) : (
+                <>show more ({totalCount - INITIAL_SHOW} more) <ChevronDown size={12} /></>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Expired / Settled Auction Component
 const ExpiredAuctionView = ({ item, user }) => {
   const allBids = useMemo(() => {
@@ -272,64 +460,101 @@ const ExpiredAuctionView = ({ item, user }) => {
   }, [allBids, item]);
 
   const winnerUser = item?.winner || winningBid?.user;
-  const winnerName = winnerUser?.name || (winningBid ? `Bidder #${winningBid.user_id}` : 'Declared Winner');
   const winnerPhone = maskPhoneNumber(winnerUser?.phone_number || winningBid?.user?.phone_number);
   const winningAmount = winningBid ? winningBid.amount : (item?.base_price || 0);
   const isCurrentUserWinner = user && (user.id === item?.winner_id || user.id === winnerUser?.id);
 
+  // Group bids by exact amount
+  const groupedBids = useMemo(() => {
+    if (!allBids || allBids.length === 0) return [];
+
+    const map = new Map();
+    allBids.forEach(bid => {
+      const key = parseFloat(bid.amount).toFixed(2);
+      if (!map.has(key)) {
+        map.set(key, {
+          amount: parseFloat(key),
+          bids: []
+        });
+      }
+      map.get(key).bids.push(bid);
+    });
+
+    const groups = Array.from(map.values());
+    if (item?.pool_type === 'lub' || item?.pool_type === 'premium') {
+      return groups.sort((a, b) => a.amount - b.amount);
+    }
+    return groups.sort((a, b) => b.amount - a.amount);
+  }, [allBids, item]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* Falling Confetti Celebration Animation Overlay */}
+      {(winnerUser || winningBid) && <ConfettiCelebration />}
+
       {/* Winner Announcement Card */}
-      <div className="bg-gradient-to-b from-[#1C1D24] to-[#141519] border border-amber-500/40 rounded-3xl p-5 md:p-6 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-[#16161A] border border-zinc-800/90 rounded-3xl p-6 md:p-7 shadow-2xl relative overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
         
-        <div className="flex flex-col items-center text-center space-y-3">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-300 text-black flex items-center justify-center font-black shadow-lg shadow-amber-500/30">
-            <Trophy size={32} />
+        <div className="flex flex-col items-center text-center space-y-4 relative z-10">
+          {/* Glowing Animated Trophy Badge */}
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 blur-md opacity-70 animate-pulse" />
+            <div className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 text-black flex items-center justify-center shadow-xl font-black">
+              <Trophy size={34} />
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <span className="inline-block px-3 py-1 bg-amber-500/15 border border-amber-500/30 rounded-full text-[10px] font-black uppercase text-amber-400 tracking-wider">
-              AUCTION EXPIRED & SETTLED
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 border border-amber-400/40 rounded-full text-[10px] font-black uppercase text-amber-300 tracking-wider shadow-sm">
+              <Sparkles size={12} className="text-amber-400" />
+              AUCTION CLOSED & WINNER DECLARED
             </span>
             
             {isCurrentUserWinner ? (
-              <h2 className="text-xl md:text-2xl font-black text-white pt-1">
+              <h2 className="text-2xl md:text-3xl font-serif font-black bg-gradient-to-r from-yellow-100 via-amber-300 to-yellow-400 bg-clip-text text-transparent pt-1 tracking-tight">
                 🎉 Congratulations! You Won This Auction!
               </h2>
             ) : (
-              <h2 className="text-xl md:text-2xl font-black text-white pt-1">
-                Winner: <span className="text-amber-400">{winnerName}</span>
+              <h2 className="text-xl md:text-2xl font-serif font-black text-white pt-1 tracking-tight">
+                Auction Winner: <span className="text-amber-400 font-mono">{winnerPhone}</span>
               </h2>
             )}
           </div>
 
-          {/* Winner Details Card */}
-          <div className="w-full bg-[#0E0F12] border border-zinc-800 rounded-2xl p-4 grid grid-cols-2 gap-3 text-left shadow-inner">
-            <div>
-              <p className="text-[10px] font-extrabold text-zinc-500 uppercase">Winner Name</p>
-              <p className="text-xs font-black text-white truncate">{winnerName}</p>
-              <p className="text-[11px] font-mono font-bold text-amber-400 tracking-wide mt-0.5">
+          {/* Winner Details Glassmorphism Card */}
+          <div className="w-full bg-[#0A0B0E]/90 border border-zinc-800/90 rounded-2xl p-4 md:p-5 grid grid-cols-2 gap-4 text-left shadow-2xl backdrop-blur-md relative overflow-hidden">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Smartphone size={13} className="text-amber-400" />
+                <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Winner Phone</p>
+              </div>
+              <p className="text-sm md:text-base font-mono font-black text-amber-400 tracking-wider bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl inline-block shadow-sm">
                 {winnerPhone}
               </p>
             </div>
             
-            <div className="text-right">
-              <p className="text-[10px] font-extrabold text-zinc-500 uppercase">Winning Bid</p>
-              <p className="text-sm font-mono font-black text-emerald-400">
+            <div className="text-right space-y-1">
+              <div className="flex items-center justify-end gap-1.5">
+                <Trophy size={13} className="text-emerald-400" />
+                <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Winning Bid</p>
+              </div>
+              <p className="text-base md:text-lg font-mono font-black text-emerald-400 tracking-tight drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]">
                 {winningAmount.toFixed(2)} Birr
               </p>
-              <span className="inline-block text-[9px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded mt-0.5">
-                {item?.pool_type === 'open' ? 'Highest Bid' : 'Lowest Unique'}
+              <span className="inline-block text-[9.5px] font-bold text-amber-300 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/30 px-2.5 py-0.5 rounded-md shadow-sm">
+                {item?.pool_type === 'open' ? 'Highest Bid' : 'Lowest Unique Bid'}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* All Bidders Record Section (Vertical Scroll for large dataset) */}
+      {/* All Bidders Record Section (2-Column Format: Bid Amount & User Phone) */}
       <div className="bg-[#141519] border border-zinc-800/90 rounded-3xl p-4 md:p-5 shadow-2xl space-y-3">
-        <div className="flex justify-between items-center px-1 pb-1 border-b border-zinc-800/80">
+        <div className="flex justify-between items-center px-1 pb-2 border-b border-zinc-800/80">
           <div className="flex items-center gap-2">
             <User size={16} className="text-amber-400" />
             <h3 className="text-xs font-black uppercase text-white tracking-wider">
@@ -337,80 +562,24 @@ const ExpiredAuctionView = ({ item, user }) => {
             </h3>
           </div>
           <span className="text-[10px] font-bold text-zinc-400">
-            Vertical Scroll
+            {groupedBids.length} Bid Amounts
           </span>
         </div>
 
-        {allBids.length === 0 ? (
+        {groupedBids.length === 0 ? (
           <div className="p-6 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl text-center text-xs text-zinc-500">
             No bids were placed on this item.
           </div>
         ) : (
-          <div className="max-h-96 overflow-y-auto space-y-2 pr-1 no-scrollbar">
-            {allBids.map((bid, idx) => {
-              const isWinner = winningBid && winningBid.id === bid.id;
-              const isUser = user && user.id === bid.user_id;
-              const bidderName = bid.user?.name || `Bidder #${bid.user_id || idx + 1}`;
-              const bidderPhone = maskPhoneNumber(bid.user?.phone_number);
-
-              return (
-                <div
-                  key={bid.id || idx}
-                  className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
-                    isWinner
-                      ? 'bg-amber-500/10 border-amber-500/60 shadow-lg shadow-amber-500/5'
-                      : isUser
-                      ? 'bg-emerald-950/30 border-emerald-500/40'
-                      : 'bg-[#0E0F12] border-zinc-800/80 hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                      isWinner 
-                        ? 'bg-amber-400 text-black shadow-md' 
-                        : 'bg-zinc-800 text-zinc-300'
-                    }`}>
-                      {isWinner ? <Trophy size={16} /> : (idx + 1)}
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-xs text-white truncate max-w-[130px] sm:max-w-[180px]">
-                          {bidderName}
-                        </p>
-                        {isUser && (
-                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-emerald-500 text-black rounded uppercase">
-                            YOU
-                          </span>
-                        )}
-                        {isWinner && (
-                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-amber-400 text-black rounded uppercase">
-                            WINNER
-                          </span>
-                        )}
-                      </div>
-                      
-                      <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                        {bidderPhone}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="font-mono font-black text-xs text-amber-400">
-                      {bid.amount.toFixed(2)} Birr
-                    </p>
-                    {item?.pool_type !== 'open' && (
-                      <span className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded mt-0.5 uppercase ${
-                        bid.is_unique ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-zinc-400'
-                      }`}>
-                        {bid.is_unique ? 'UNIQUE' : 'DUPLICATE'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="max-h-[500px] overflow-y-auto space-y-3 pr-1 no-scrollbar">
+            {groupedBids.map((group, idx) => (
+              <BidGroupRow 
+                key={idx} 
+                group={group} 
+                winningBidId={winningBid?.id} 
+                currentUserId={user?.id} 
+              />
+            ))}
           </div>
         )}
       </div>
@@ -444,6 +613,7 @@ const ItemDetails = memo(() => {
   const [recentLUBBids, setRecentLUBBids] = useState([]);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchItemDetails();
   }, [id]);
 
@@ -841,6 +1011,9 @@ const ItemDetails = memo(() => {
                   </button>
                 </div>
               )}
+
+              {/* Specifications & Sub-Titles Section */}
+              <RenderDescriptionSections description={item?.description} />
             </div>
           )}
 
@@ -1005,14 +1178,7 @@ const ItemDetails = memo(() => {
             <ExpiredAuctionView item={item} user={user} />
           ) : (
             <div className="bg-[#16161A] rounded-3xl border border-zinc-800 p-5 md:p-6 space-y-5 shadow-xl">
-              {/* Timer Banner */}
-              {/* <div className="flex flex-col items-center justify-center py-4 bg-[#111113] text-white rounded-2xl border border-zinc-800 shadow-inner">
-                <Clock className="text-amber-400 mb-1" size={22} />
-                <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
-                <p className={`text-xl font-black font-mono tracking-tight ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {timeLeft || 'Calculating...'}
-                </p>
-              </div> */}
+              
 
               {/* Price Stats */}
               <div className="flex justify-between items-center bg-[#111113] p-3.5 rounded-2xl border border-zinc-800">
@@ -1023,10 +1189,11 @@ const ItemDetails = memo(() => {
                 <div className="text-right">
 
                   <div>
-                    <p className="text-[10px] text-zinc-400 font-bold ">Bids</p>
-                  <p className="text-lg font-black text-amber-400">1,212</p>
-                 
-                </div>
+                    <p className="text-[10px] text-zinc-400 font-bold">Bids</p>
+                    <p className="text-lg font-black text-amber-400">
+                      {(item?._count?.bids ?? item?.bid_count ?? item?.bids?.length ?? recentLUBBids?.length ?? 0).toLocaleString()}
+                    </p>
+                  </div>
                   
                  
                 </div>
@@ -1137,6 +1304,9 @@ const ItemDetails = memo(() => {
               </div>
             </div>
           )}
+
+          {/* Specifications & Sub-Titles Section */}
+          <RenderDescriptionSections description={item?.description} />
 
           {/* User's Placed Bids Notification Card */}
           {user && userBidsOnThisItem.length > 0 && (

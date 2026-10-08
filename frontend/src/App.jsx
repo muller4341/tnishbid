@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -12,6 +12,16 @@ import MyBids from './pages/MyBids';
 import Navbar from './components/Navbar';
 import MobileNav from './components/MobileNav';
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth();
   return user ? children : <Navigate to="/login" />;
@@ -20,6 +30,7 @@ const PrivateRoute = ({ children }) => {
 const AppContent = () => {
   return (
     <div className="min-h-screen bg-[#0A0B0D] text-slate-100 flex flex-col antialiased selection:bg-amber-500 selection:text-black">
+      <ScrollToTop />
       <Navbar />
       <main className="flex-grow container mx-auto px-4 pt-4 pb-20 md:pb-12 max-w-7xl">
         <Routes>
