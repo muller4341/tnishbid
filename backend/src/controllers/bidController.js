@@ -3,7 +3,7 @@ const prisma = require('../prismaClient');
 const BID_FEE = 1.00;
 
 exports.placeBid = async (req, res) => {
-  const { item_id, amount } = req.body;
+  const { item_id, amount, payment_method } = req.body;
   const user_id = req.user.id;
   const io = req.io;
 
@@ -13,21 +13,39 @@ exports.placeBid = async (req, res) => {
       const item = await tx.item.findUnique({ where: { id: item_id } });
       if (!item) throw new Error('Item not found');
       if (item.status !== 'active') throw new Error('Auction is not active');
-      if (amount <= item.base_price) throw new Error('Bid must be higher than base price');
+
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('Bid amount must be at least 0.01 Birr');
+      }
+
+      // Participation / service fee is item.base_price (or 1.00 if unset)
+      const bidFee = item.base_price != null ? item.base_price : 1.00;
 
       // 2. Check user wallet
       const user = await tx.user.findUnique({ where: { id: user_id } });
-      if (user.wallet_balance < BID_FEE) throw new Error('Insufficient wallet balance');
+      if (!user) throw new Error('User not found');
 
-      // 3. Deduct fee
-      await tx.user.update({
-        where: { id: user_id },
-        data: { wallet_balance: user.wallet_balance - BID_FEE }
-      });
+      if (!payment_method || payment_method === 'wallet') {
+        if (user.wallet_balance < bidFee) {
+          throw new Error(`Insufficient wallet balance. Participation fee is ${bidFee.toFixed(2)} Birr.`);
+        }
+        await tx.user.update({
+          where: { id: user_id },
+          data: { wallet_balance: user.wallet_balance - bidFee }
+        });
+      } else if (payment_method === 'telebirr' || payment_method === 'cbe') {
+        if (user.wallet_balance >= bidFee) {
+          await tx.user.update({
+            where: { id: user_id },
+            data: { wallet_balance: user.wallet_balance - bidFee }
+          });
+        }
+      }
 
-      // 4. Check uniqueness
+      // 3. Check uniqueness
       const existingBids = await tx.bid.findMany({
-        where: { item_id, amount }
+        where: { item_id, amount: parsedAmount }
       });
 
       let is_unique = true;
@@ -49,19 +67,19 @@ exports.placeBid = async (req, res) => {
         }
       }
 
-      // 5. Create new bid
+      // 4. Create new bid
       const newBid = await tx.bid.create({
         data: {
-          amount,
+          amount: parsedAmount,
           is_unique,
           item_id,
           user_id
         }
       });
 
-      // 6. Create Notifications for duplicated users
+      // 5. Create Notifications for duplicated users
       for (const dUserId of duplicatedUsers) {
-        const message = `Your bid of ${amount} ETB for item "${item.title}" has been duplicated. Place a new unique bid to stay in the lead!`;
+        const message = `Your bid of ${parsedAmount} ETB for item "${item.title}" has been duplicated. Place a new unique bid to stay in the lead!`;
         await tx.notification.create({
           data: {
             user_id: dUserId,
@@ -71,7 +89,7 @@ exports.placeBid = async (req, res) => {
         // Emit personal socket event
         io.to(`user_${dUserId}`).emit('bid_duplicated', {
           item_id,
-          amount,
+          amount: parsedAmount,
           message
         });
       }

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, memo, lazy } from 're
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import telebirrLogo from '../assets/telebirr.png';
+import cbeLogo from '../assets/cbe.png';
 import { 
   ArrowLeft, 
   Share2, 
@@ -24,7 +26,13 @@ import {
   User,
   Trophy,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X,
+  Gavel,
+  Package,
+  Receipt,
+  DollarSign,
+  Wallet
 } from 'lucide-react';
 
 const BidderAvatar = React.memo(({ src, alt }) => {
@@ -85,13 +93,21 @@ const RenderDescriptionSections = memo(({ description }) => {
         {validSections.map((sec, idx) => (
           <div key={idx} className="flex flex-row items-center justify-between p-3.5 gap-3">
             {/* Subtitle - Centered Vertically and Horizontally */}
-            <div className="w-1/3 min-w-[100px] font-bold text-amber-400 text-xs flex items-center justify-center text-center shrink-0 self-center">
+            <div className="w-1/3 min-w-[100px] font-bold text-amber-400 text-xs flex items-center justify-start text-center shrink-0 self-center">
               <span>{sec.title || 'Detail'}</span>
             </div>
 
-            {/* Description - Centered Container with Left-Aligned Line Starting Position */}
-            <div className="flex-1 flex justify-center items-start text-xs text-zinc-200">
-              <div className="text-left font-medium leading-relaxed whitespace-pre-line">
+            {/* Description - Full justified alignment so all line endings align except the last line */}
+            <div 
+              className="flex-1 text-xs text-zinc-200 min-w-0"
+              style={{ 
+                textAlign: 'justify', 
+                textJustify: 'inter-word', 
+                textAlignLast: 'left',
+                WebkitTextAlignLast: 'left'
+              }}
+            >
+              <div className="font-medium leading-relaxed whitespace-pre-line break-words">
                 {sec.description || 'N/A'}
               </div>
             </div>
@@ -587,6 +603,238 @@ const ExpiredAuctionView = ({ item, user }) => {
   );
 };
 
+// Payment Option Selection Component (Telebirr, CBE, Wallet) - Compact
+const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBalance }) => {
+  return (
+    <div className="space-y-1 text-left animate-in fade-in slide-in-from-top-1 duration-200 mt-2">
+      <label className="text-[9.5px] font-bold text-zinc-400 uppercase tracking-wider flex items-center justify-between px-0.5">
+        <span>Payment Method</span>
+        <span className="text-[8.5px] text-zinc-500 font-normal">Choose option to pay bid fee</span>
+      </label>
+
+      <div className="grid grid-cols-3 gap-1.5">
+        {/* 1. Telebirr */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSelectPayment('telebirr')}
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+            selectedPayment === 'telebirr'
+              ? 'bg-sky-950/70 border-sky-400 ring-1 ring-sky-400/40 shadow-sm'
+              : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
+          }`}
+        >
+          {selectedPayment === 'telebirr' && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+          )}
+          <img src={telebirrLogo} alt="Telebirr" className="h-5.5 max-w-[72px] object-contain rounded-xs shrink-0" />
+          <span className="text-[10px] font-bold text-white tracking-wide">Telebirr</span>
+        </button>
+
+        {/* 2. CBE */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSelectPayment('cbe')}
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+            selectedPayment === 'cbe'
+              ? 'bg-purple-950/70 border-purple-400 ring-1 ring-purple-400/40 shadow-sm'
+              : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
+          }`}
+        >
+          {selectedPayment === 'cbe' && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+          )}
+          <img src={cbeLogo} alt="CBE" className="h-5.5 max-w-[72px] object-contain rounded-xs shrink-0" />
+          <span className="text-[10px] font-bold text-white tracking-wide">CBE</span>
+        </button>
+
+        {/* 3. Wallet */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSelectPayment('wallet')}
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+            selectedPayment === 'wallet'
+              ? 'bg-amber-950/70 border-amber-400 ring-1 ring-amber-400/40 shadow-sm'
+              : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
+          }`}
+        >
+          {selectedPayment === 'wallet' && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          )}
+          <div className="w-5 h-5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
+            <Wallet size={13} />
+          </div>
+          <span className="text-[10px] font-bold text-white tracking-wide">Wallet</span>
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// Pop-up Confirmation Modal (Matches exact screenshot layout)
+const ConfirmBidModal = memo(({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  itemTitle, 
+  bidAmount, 
+  bidFee, 
+  selectedPayment,
+  isSubmitting 
+}) => {
+  const [agreed, setAgreed] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setAgreed(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-[#18191E] border border-zinc-700/80 rounded-3xl max-w-md w-full p-5 md:p-6 shadow-2xl relative text-left text-zinc-100 space-y-4 animate-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-zinc-800/90 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400 shadow-sm">
+              <Gavel size={20} />
+            </div>
+            <h2 className="font-serif font-black text-lg md:text-xl text-white tracking-tight">
+              Confirm Your Bid
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Details List */}
+        <div className="space-y-3 text-xs">
+          {/* Your Bid Item */}
+          <div className="flex items-start gap-3 bg-[#111216] border border-zinc-800/80 p-3.5 rounded-2xl">
+            <Package size={18} className="text-zinc-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5 flex-1 min-w-0">
+              <p className="text-[11px] font-bold text-zinc-400">Your Bid Item:</p>
+              <p className="font-bold text-sky-400 text-xs md:text-sm leading-snug">
+                {itemTitle || 'Auction Item'}
+              </p>
+            </div>
+          </div>
+
+          {/* Your Bid Amount */}
+          <div className="flex items-center justify-between bg-[#111216] border border-zinc-800/80 p-3.5 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <DollarSign size={18} className="text-zinc-400 shrink-0" />
+              <span className="font-bold text-zinc-400">Your Bid Amount:</span>
+            </div>
+            <span className="font-mono font-black text-white text-sm md:text-base">
+              {parseFloat(bidAmount || 0).toFixed(2)} Br
+            </span>
+          </div>
+
+          {/* Bid Service Fee */}
+          <div className="flex items-center justify-between bg-[#111216] border border-zinc-800/80 p-3.5 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <Receipt size={18} className="text-zinc-400 shrink-0" />
+              <span className="font-bold text-zinc-400">Bid Service Fee:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-black text-rose-400 text-sm md:text-base">
+                {parseFloat(bidFee || 0).toFixed(2)} Br
+              </span>
+              <span className="bg-rose-500/15 border border-rose-500/30 text-rose-400 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                Non-refundable
+              </span>
+            </div>
+          </div>
+
+          {/* Selected Payment Option Badge */}
+          <div className="flex items-center justify-between px-3 py-2 bg-[#111216]/60 border border-zinc-800/60 rounded-xl text-[11px]">
+            <span className="text-zinc-400 font-medium">Payment Option:</span>
+            <div className="flex items-center gap-2">
+              {selectedPayment === 'telebirr' && (
+                <span className="font-bold text-sky-400 flex items-center gap-1.5">
+                  <img src={telebirrLogo} alt="Telebirr" className="h-4 w-auto object-contain" />
+                  Telebirr
+                </span>
+              )}
+              {selectedPayment === 'cbe' && (
+                <span className="font-bold text-purple-400 flex items-center gap-1.5">
+                  <img src={cbeLogo} alt="CBE" className="h-4 w-auto object-contain" />
+                  CBE
+                </span>
+              )}
+              {selectedPayment === 'wallet' && (
+                <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                  <Wallet size={14} /> Wallet
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Explanation Card (Matches exact screenshot text) */}
+        <div className="bg-[#111317] border border-zinc-800/90 rounded-2xl p-4 flex items-start gap-3 shadow-inner">
+          <Info size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-zinc-300 leading-relaxed font-normal">
+            The bid service fee is non-refundable and is paid to participate in the auction. The amount submitted as a bid is not charged at the time of placing the bid. In this auction, winners are determined based on the lowest unique bid submitted among all participants. Only participants who win the auction will be required to pay the amount of their winning bid, in addition to the participation fee.
+          </p>
+        </div>
+
+        {/* Agreement Checkbox */}
+        <div 
+          onClick={() => setAgreed(!agreed)}
+          className="flex items-center gap-3 py-1 cursor-pointer select-none group"
+        >
+          <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+            agreed 
+              ? 'bg-amber-500 border-amber-400 text-black' 
+              : 'bg-zinc-900 border-zinc-700 text-transparent'
+          }`}>
+            <CheckCircle2 size={14} className={agreed ? 'text-black' : 'opacity-0'} />
+          </div>
+          <span className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors">
+            I agree to continue
+          </span>
+        </div>
+
+        {/* Confirm & Continue Action Button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (agreed) onConfirm();
+          }}
+          disabled={!agreed || isSubmitting}
+          className={`w-full font-black text-sm py-4 rounded-2xl shadow-xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${
+            agreed && !isSubmitting
+              ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black cursor-pointer active:scale-95 shadow-amber-500/20'
+              : 'bg-gradient-to-r from-amber-500/70 via-amber-500/70 to-amber-600/70 text-black/80 cursor-not-allowed opacity-75 shadow-none'
+          }`}
+        >
+          {isSubmitting ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent" />
+          ) : (
+            <>
+              <CheckCircle2 size={18} />
+              <span>Confirm & Continue</span>
+            </>
+          )}
+        </button>
+
+      </div>
+    </div>
+  );
+});
+
 const ItemDetails = memo(() => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -607,6 +855,18 @@ const ItemDetails = memo(() => {
 
   // Premium LUB Decimal Bid Amount
   const [lubBidAmount, setLubBidAmount] = useState('');
+
+  // Payment method selection ('telebirr' | 'cbe' | 'wallet')
+  const [selectedPayment, setSelectedPayment] = useState('telebirr');
+
+  // Input focus tracking states for showing payment selector on focus
+  const [isOpenInputFocused, setIsOpenInputFocused] = useState(false);
+  const [isLubInputFocused, setIsLubInputFocused] = useState(false);
+
+  // Confirmation Modal Pop-up state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingBidAmount, setPendingBidAmount] = useState(null);
+  const [isSubmittingBid, setIsSubmittingBid] = useState(false);
 
   // Bids streams
   const [recentBidsStream, setRecentBidsStream] = useState([]);
@@ -785,8 +1045,8 @@ const ItemDetails = memo(() => {
     return currentHighestBid + selectedIncrement;
   }, [currentHighestBid, selectedIncrement, customBidInput]);
 
-  const bidFee = 5.00;
-  const totalCost = targetBidAmount + bidFee;
+  const actualBidFee = item?.base_price ?? 50.00;
+  const totalCost = targetBidAmount + actualBidFee;
 
   const handleOpenPlaceBid = (inc = 50) => {
     setSelectedIncrement(inc);
@@ -800,8 +1060,8 @@ const ItemDetails = memo(() => {
     setLubBidAmount(newAmount);
   };
 
-  // Place Bid Handler (Supports Open & LUB Bids)
-  const handleBidSubmit = async (bidAmountToPlace) => {
+  // 1. Initiate Bid (Opens Pop-up Modal)
+  const handleInitiateBid = (bidAmountToPlace) => {
     setError('');
     setSuccess('');
 
@@ -816,24 +1076,38 @@ const ItemDetails = memo(() => {
     }
 
     const amount = parseFloat(bidAmountToPlace);
-    if (!amount || amount <= (item?.base_price || 0)) {
-      setError(`Bid amount must be greater than base price (${item?.base_price || 0} Birr)`);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Bid amount must be at least 0.01 Birr');
       return;
     }
+
+    setPendingBidAmount(amount);
+    setShowConfirmModal(true);
+  };
+
+  // 2. Confirm and Place Bid after Modal Confirmation
+  const handleConfirmAndPlaceBid = async () => {
+    if (!pendingBidAmount) return;
+    setIsSubmittingBid(true);
+    setError('');
+    setSuccess('');
 
     try {
       await axios.post('/api/bids/place', {
         item_id: parseInt(id),
-        amount
+        amount: pendingBidAmount,
+        payment_method: selectedPayment
       });
 
-      setSuccess(`Bid of ${amount.toLocaleString()} Birr placed successfully!`);
+      const actualFee = item?.base_price ?? 1.00;
+      setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Birr placed successfully!`);
       setLubBidAmount('');
       
-      if (user && setUser) {
-        setUser({ ...user, wallet_balance: Math.max(0, user.wallet_balance - 1.0) });
+      if (user && setUser && selectedPayment === 'wallet') {
+        setUser({ ...user, wallet_balance: Math.max(0, user.wallet_balance - actualFee) });
       }
 
+      setShowConfirmModal(false);
       fetchItemDetails();
       setTimeout(() => {
         setSuccess('');
@@ -841,6 +1115,9 @@ const ItemDetails = memo(() => {
       }, 2500);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to place bid. Please try again.');
+      setShowConfirmModal(false);
+    } finally {
+      setIsSubmittingBid(false);
     }
   };
 
@@ -1090,15 +1367,27 @@ const ItemDetails = memo(() => {
                 <div className="relative bg-[#0E0F12] border-2 border-amber-400 rounded-2xl p-4 flex justify-between items-center shadow-lg">
                   <input 
                     type="number"
-                    step="50"
-                    min={currentHighestBid + 1}
+                    step="0.01"
+                    min="0.01"
                     value={customBidInput}
+                    onFocus={() => setIsOpenInputFocused(true)}
+                    onBlur={() => setTimeout(() => setIsOpenInputFocused(false), 200)}
                     onChange={(e) => setCustomBidInput(e.target.value)}
                     className="w-full bg-transparent font-mono font-black text-2xl md:text-3xl text-white focus:outline-none"
+                    placeholder="e.g. 0.01 or 50.00"
                   />
                   <span className="text-zinc-400 font-bold text-base pl-2">Birr</span>
                 </div>
               </div>
+
+              {/* Payment Method Selector (Displays when input is focused) */}
+              {isOpenInputFocused && (
+                <PaymentMethodSelector 
+                  selectedPayment={selectedPayment}
+                  onSelectPayment={setSelectedPayment}
+                  walletBalance={user?.wallet_balance}
+                />
+              )}
 
               <div className="bg-[#141519] border border-zinc-800/90 rounded-2xl p-4 space-y-2.5 shadow-lg text-xs">
                 <div className="flex justify-between items-center text-zinc-300">
@@ -1108,7 +1397,7 @@ const ItemDetails = memo(() => {
 
                 <div className="flex justify-between items-center text-zinc-300">
                   <span>Auction Bid Fee</span>
-                  <span className="font-mono font-bold text-zinc-300">{bidFee.toFixed(2)} Birr</span>
+                  <span className="font-mono font-bold text-zinc-300">{actualBidFee.toFixed(2)} Birr</span>
                 </div>
 
                 <div className="border-t border-zinc-800 pt-2 flex justify-between items-center font-bold text-sm">
@@ -1139,7 +1428,7 @@ const ItemDetails = memo(() => {
 
               <button
                 type="button"
-                onClick={() => handleBidSubmit(targetBidAmount)}
+                onClick={() => handleInitiateBid(targetBidAmount)}
                 className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 active:scale-95 text-black font-black text-base py-4 rounded-2xl shadow-xl shadow-amber-500/20 transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>CONFIRM & PLACE BID</span>
@@ -1256,10 +1545,13 @@ const ItemDetails = memo(() => {
                       </div>
                     </div> */}
 
+                    {/* Payment Method Selector (Telebirr, CBE, Wallet) */}
+                   
+
                     <form 
                       onSubmit={(e) => {
                         e.preventDefault();
-                        handleBidSubmit(lubBidAmount);
+                        handleInitiateBid(lubBidAmount);
                       }} 
                       className="flex gap-2"
                     >
@@ -1268,11 +1560,13 @@ const ItemDetails = memo(() => {
                         <input
                           type="number"
                           step="0.01"
-                          min={(item.base_price || 0) + 0.01}
+                          min="0.01"
                           required
                           disabled={timeLeft === 'EXPIRED'}
+                          onFocus={() => setIsLubInputFocused(true)}
+                          onBlur={() => setTimeout(() => setIsLubInputFocused(false), 200)}
                           className="w-full pl-12 pr-3 py-3 bg-[#111113] border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-mono font-bold text-sm text-white transition-all"
-                          placeholder="e.g. 15.20"
+                          placeholder="e.g. 0.01 or 15.20"
                           value={lubBidAmount}
                           onChange={(e) => setLubBidAmount(e.target.value)}
                         />
@@ -1280,11 +1574,20 @@ const ItemDetails = memo(() => {
                       <button
                         type="submit"
                         disabled={timeLeft === 'EXPIRED'}
-                        className="px-5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-xl font-black text-xs uppercase shadow-md transition-all active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600"
+                        className="px-5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-xl font-black text-xs uppercase shadow-md transition-all active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600 cursor-pointer"
                       >
                         Bid LUB
                       </button>
                     </form>
+
+                    {/* Payment Method Selector (Displays when input is focused) */}
+                    {isLubInputFocused && (
+                      <PaymentMethodSelector 
+                        selectedPayment={selectedPayment}
+                        onSelectPayment={setSelectedPayment}
+                        walletBalance={user?.wallet_balance}
+                      />
+                    )}
 
                     <div className="flex items-start gap-1.5 text-[10px] text-zinc-400 pt-1">
                       <Info size={14} className="shrink-0 mt-0.5 text-amber-400" />
@@ -1329,6 +1632,18 @@ const ItemDetails = memo(() => {
           )}
         </div>
       )}
+
+      {/* Confirm Your Bid Modal Popup (Matches user screenshot) */}
+      <ConfirmBidModal 
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmAndPlaceBid}
+        itemTitle={productTitle}
+        bidAmount={pendingBidAmount}
+        bidFee={item?.base_price ?? 50.00}
+        selectedPayment={selectedPayment}
+        isSubmitting={isSubmittingBid}
+      />
     </div>
   );
 });

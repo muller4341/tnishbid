@@ -135,24 +135,23 @@ const FeaturedItemsCarousel = ({ items }) => {
                 )}
 
                 {/* Category & Starting Bid Overlay (Top Left) */}
-                <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 shadow-lg z-10">
-                  <p className="text-xs text-zinc-400 font-medium flex items-center gap-2">
-                     <span className={`inline-block px-2.5 py-0.5 text-[10px] font-black rounded-sm ${
-              (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium')
-                ? 'bg-indigo-500/20 text-indigo-300 '
-                : 'bg-indigo-500/20 text-indigo-300 '
-            }`}>
-              {(item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium') ? 'Lub Bid' : 'Open Bid'}
-            </span>
-             <span className="text-amber-400 font-bold">{item.category || 'General'}</span> 
-                  </p>
+                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 shadow-xl z-10 flex items-center gap-1">
+                  <span className={`text-[10px] font-black uppercase tracking-wider ${
+                    (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium')
+                      ? 'text-purple-300 drop-shadow-[0_0_6px_rgba(192,132,252,0.4)]'
+                      : 'text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]'
+                  }`}>
+                    {(item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium') ? 'Lub Bid' : 'Open Bid'}
+                  </span>
+                  <span className="h-2.5 w-[1.5px] bg-zinc-400 shrink-0"></span>
+                  <span className="text-amber-400 font-bold text-xs">{item.category || 'General'}</span> 
                 </div>
 
                 {/* Time Remaining Pill overlay */}
                 {(() => {
                   const style = getCountdownStyle(item.end_time);
                   return (
-                    <div className={`absolute bottom-3 right-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-xl text-md font-mono font-bold ${style.text} border border-white/10 flex items-center gap-1.5 shadow-lg z-10`}>
+                    <div className={`absolute bottom-3 right-3 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs md:text-sm font-mono font-bold ${style.text}  flex items-center gap-1.5 shadow-xl z-10`}>
                       <span className={`w-2 h-2 rounded-full ${style.dot} animate-pulse`}></span>
                       {formatCountdown(item.end_time)}
                     </div>
@@ -168,14 +167,14 @@ const FeaturedItemsCarousel = ({ items }) => {
           <div className="absolute top-1/2 -translate-y-1/2 inset-x-2 flex justify-between items-center pointer-events-none z-20">
             <button
               onClick={handlePrev}
-              className="pointer-events-auto w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 flex items-center justify-center transition-all active:scale-90 shadow-xl"
+              className="pointer-events-auto w-9 h-9 rounded-full bg-black/40 hover:bg-amber-500/80 text-white hover:text-black backdrop-blur-md border border-white/20 flex items-center justify-center transition-all active:scale-90 shadow-2xl"
               aria-label="Previous Featured Item"
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={handleNext}
-              className="pointer-events-auto w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 flex items-center justify-center transition-all active:scale-90 shadow-xl"
+              className="pointer-events-auto w-9 h-9 rounded-full bg-black/40 hover:bg-amber-500/80 text-white hover:text-black backdrop-blur-md border border-white/20 flex items-center justify-center transition-all active:scale-90 shadow-2xl"
               aria-label="Next Featured Item"
             >
               <ChevronRight size={20} />
@@ -203,13 +202,13 @@ const FeaturedItemsCarousel = ({ items }) => {
             </p>
           </div>
 
-          <div className='flex items-center justify-center'> 
-            <span className="block w-full text-center font-bold text-[18px] font-mono">
-              <span className="text-green-400">
+          <div className="flex items-center justify-center"> 
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 font-bold text-sm md:text-base font-mono shadow-inner">
+              <span className="text-emerald-400 font-black">
                 {currentItem._count?.bids ?? currentItem.bid_count ?? currentItem.bids?.length ?? 0}
               </span>{' '}
-              <span className="text-amber-400">
-                Bids
+              <span className="text-amber-400 font-extrabold">
+                bids
               </span>
             </span>
           </div> 
@@ -217,7 +216,7 @@ const FeaturedItemsCarousel = ({ items }) => {
 
         <Link
           to={`/item/${currentItem.id}`}
-          className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/10 flex justify-center items-center transition-all active:scale-[0.98]"
+          className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex justify-center items-center transition-all active:scale-[0.98] border border-amber-300/30"
         >
           place bid now <Sparkles size={16} className="ml-2" />
         </Link>
@@ -279,15 +278,14 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
                   )}
 
                   {/* Bid Counter Overlay (Top Left) */}
-                  <div className="absolute top-2 left-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] font-bold text-green-400 border border-white/10 flex items-center gap-1 shadow-md z-10">
-                    
-                    <span>{bidCount} </span> <span><p className="text-amber-400 font-bold">  Bids</p></span>
+                  <div className="absolute top-2 left-2 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-400  flex items-center gap-1 shadow-lg z-10">
+                    <span>{bidCount}</span> <span className="text-amber-400 font-bold">bids</span>
                   </div>
 
                   {(() => {
                     const style = getCountdownStyle(item.end_time);
                     return (
-                      <div className={`absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold ${style.text} border border-white/10 flex items-center gap-1 shadow-md`}>
+                      <div className={`absolute bottom-2 right-2 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-lg text-[9.5px] font-mono font-bold ${style.text}  flex items-center gap-1 shadow-lg`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${style.dot} animate-pulse`}></span>
                         {formatCountdown(item.end_time)}
                       </div>
