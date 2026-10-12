@@ -4,17 +4,17 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import telebirrLogo from '../assets/telebirr.png';
 import cbeLogo from '../assets/cbe.png';
-import { 
-  ArrowLeft, 
-  Share2, 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  Tag, 
-  Smartphone, 
-  Plus, 
+import {
+  ArrowLeft,
+  Share2,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Tag,
+  Smartphone,
+  Plus,
   ChevronLeft,
-  ChevronRight, 
+  ChevronRight,
   Sparkles,
   Wifi,
   Signal,
@@ -51,8 +51,8 @@ const BidderAvatar = React.memo(({ src, alt }) => {
   }
 
   return (
-    <img 
-      src={src} 
+    <img
+      src={src}
       alt={alt}
       loading="lazy"
       decoding="async"
@@ -98,11 +98,11 @@ const RenderDescriptionSections = memo(({ description }) => {
             </div>
 
             {/* Description - Full justified alignment so all line endings align except the last line */}
-            <div 
+            <div
               className="flex-1 text-xs text-zinc-200 min-w-0"
-              style={{ 
-                textAlign: 'justify', 
-                textJustify: 'inter-word', 
+              style={{
+                textAlign: 'justify',
+                textJustify: 'inter-word',
                 textAlignLast: 'left',
                 WebkitTextAlignLast: 'left'
               }}
@@ -184,14 +184,13 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
     <div className="space-y-3">
       {/* Main Image Frame with Smooth Fade & Scale Animation */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#16171D] to-[#0A0B0E] border border-zinc-800/80 shadow-2xl group select-none">
-        <img 
-          src={images[currentIndex]} 
+        <img
+          src={images[currentIndex]}
           alt={`${title} - Angle ${currentIndex + 1}`}
           loading="lazy"
           decoding="async"
-          className={`w-full h-64 md:h-72 object-cover object-center transition-all duration-500 transform ${
-            isTransitioning ? 'opacity-40 scale-95 blur-xs' : 'opacity-100 scale-100'
-          }`}
+          className={`w-full h-64 md:h-72 object-cover object-center transition-all duration-500 transform ${isTransitioning ? 'opacity-40 scale-95 blur-xs' : 'opacity-100 scale-100'
+            }`}
         />
 
         {/* Category Pill Tag */}
@@ -231,17 +230,16 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
               key={idx}
               type="button"
               onClick={() => handleSelect(idx)}
-              className={`transition-all duration-300 rounded-full cursor-pointer ${
-                currentIndex === idx 
-                  ? 'w-5 h-2 bg-amber-400 shadow-sm' 
+              className={`transition-all duration-300 rounded-full cursor-pointer ${currentIndex === idx
+                  ? 'w-5 h-2 bg-amber-400 shadow-sm'
                   : 'w-2 h-2 bg-zinc-600 hover:bg-zinc-400'
-              }`}
+                }`}
               aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
         </div>
 
-       
+
       </div>
 
       {/* Interactive Thumbnail Gallery Row */}
@@ -254,15 +252,14 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
                 key={idx}
                 type="button"
                 onClick={() => handleSelect(idx)}
-                className={`relative rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${
-                  isActive 
-                    ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20' 
+                className={`relative rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${isActive
+                    ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20'
                     : 'border-zinc-800/90 opacity-60 hover:opacity-100 hover:border-zinc-600'
-                }`}
+                  }`}
               >
-                <img 
-                  src={img} 
-                  alt={`Thumbnail ${idx + 1}`} 
+                <img
+                  src={img}
+                  alt={`Thumbnail ${idx + 1}`}
                   loading="lazy"
                   decoding="async"
                   className="w-12 h-12 md:w-14 md:h-14 object-cover"
@@ -276,11 +273,11 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
         </div>
 
         {/* Share Button (Right Side) */}
-        <button 
+        <button
           type="button"
           onClick={() => {
             if (navigator.share) {
-              navigator.share({ title: title, url: window.location.href }).catch(() => {});
+              navigator.share({ title: title, url: window.location.href }).catch(() => { });
             } else {
               navigator.clipboard.writeText(window.location.href);
             }
@@ -381,11 +378,10 @@ const BidGroupRow = ({ group, winningBidId, currentUserId }) => {
           {group.amount.toFixed(2)} Birr
         </p>
         <div>
-          <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-            isUnique 
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+          <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase ${isUnique
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
               : 'bg-zinc-800 text-zinc-400'
-          }`}>
+            }`}>
             {isUnique ? 'UNIQUE' : `${totalCount} BIDS`}
           </span>
         </div>
@@ -400,15 +396,14 @@ const BidGroupRow = ({ group, winningBidId, currentUserId }) => {
             const phoneStr = maskPhoneNumber(b.user?.phone_number);
 
             return (
-              <div 
+              <div
                 key={b.id || i}
-                className={`flex items-center justify-between text-xs px-3 py-1.5 rounded-xl transition-all ${
-                  isWinner 
-                    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold shadow-sm' 
+                className={`flex items-center justify-between text-xs px-3 py-1.5 rounded-xl transition-all ${isWinner
+                    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold shadow-sm'
                     : isUser
-                    ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold'
-                    : 'bg-[#141519] border border-zinc-800/60 text-zinc-300'
-                }`}
+                      ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold'
+                      : 'bg-[#141519] border border-zinc-800/60 text-zinc-300'
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold tracking-wider">{phoneStr}</span>
@@ -513,7 +508,7 @@ const ExpiredAuctionView = ({ item, user }) => {
         {/* Glow Effects */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-        
+
         <div className="flex flex-col items-center text-center space-y-4 relative z-10">
           {/* Glowing Animated Trophy Badge */}
           <div className="relative">
@@ -528,7 +523,7 @@ const ExpiredAuctionView = ({ item, user }) => {
               <Sparkles size={12} className="text-amber-400" />
               AUCTION CLOSED & WINNER DECLARED
             </span>
-            
+
             {isCurrentUserWinner ? (
               <h2 className="text-2xl md:text-3xl font-serif font-black bg-gradient-to-r from-yellow-100 via-amber-300 to-yellow-400 bg-clip-text text-transparent pt-1 tracking-tight">
                 🎉 Congratulations! You Won This Auction!
@@ -551,7 +546,7 @@ const ExpiredAuctionView = ({ item, user }) => {
                 {winnerPhone}
               </p>
             </div>
-            
+
             <div className="text-right space-y-1">
               <div className="flex items-center justify-end gap-1.5">
                 <Trophy size={13} className="text-emerald-400" />
@@ -589,11 +584,11 @@ const ExpiredAuctionView = ({ item, user }) => {
         ) : (
           <div className="max-h-[500px] overflow-y-auto space-y-3 pr-1 no-scrollbar">
             {groupedBids.map((group, idx) => (
-              <BidGroupRow 
-                key={idx} 
-                group={group} 
-                winningBidId={winningBid?.id} 
-                currentUserId={user?.id} 
+              <BidGroupRow
+                key={idx}
+                group={group}
+                winningBidId={winningBid?.id}
+                currentUserId={user?.id}
               />
             ))}
           </div>
@@ -618,11 +613,10 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('telebirr')}
-          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
-            selectedPayment === 'telebirr'
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${selectedPayment === 'telebirr'
               ? 'bg-sky-950/70 border-sky-400 ring-1 ring-sky-400/40 shadow-sm'
               : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
-          }`}
+            }`}
         >
           {selectedPayment === 'telebirr' && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky-400"></span>
@@ -636,11 +630,10 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('cbe')}
-          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
-            selectedPayment === 'cbe'
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${selectedPayment === 'cbe'
               ? 'bg-purple-950/70 border-purple-400 ring-1 ring-purple-400/40 shadow-sm'
               : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
-          }`}
+            }`}
         >
           {selectedPayment === 'cbe' && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-400"></span>
@@ -654,11 +647,10 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('wallet')}
-          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
-            selectedPayment === 'wallet'
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${selectedPayment === 'wallet'
               ? 'bg-amber-950/70 border-amber-400 ring-1 ring-amber-400/40 shadow-sm'
               : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
-          }`}
+            }`}
         >
           {selectedPayment === 'wallet' && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400"></span>
@@ -674,15 +666,15 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
 });
 
 // Pop-up Confirmation Modal (Matches exact screenshot layout)
-const ConfirmBidModal = memo(({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  itemTitle, 
-  bidAmount, 
-  bidFee, 
+const ConfirmBidModal = memo(({
+  isOpen,
+  onClose,
+  onConfirm,
+  itemTitle,
+  bidAmount,
+  bidFee,
   selectedPayment,
-  isSubmitting 
+  isSubmitting
 }) => {
   const [agreed, setAgreed] = useState(false);
 
@@ -697,7 +689,7 @@ const ConfirmBidModal = memo(({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-[#18191E] border border-zinc-700/80 rounded-3xl max-w-md w-full p-5 md:p-6 shadow-2xl relative text-left text-zinc-100 space-y-4 animate-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-800/90 pb-3">
           <div className="flex items-center gap-2.5">
@@ -791,15 +783,14 @@ const ConfirmBidModal = memo(({
         </div>
 
         {/* Agreement Checkbox */}
-        <div 
+        <div
           onClick={() => setAgreed(!agreed)}
           className="flex items-center gap-3 py-1 cursor-pointer select-none group"
         >
-          <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-            agreed 
-              ? 'bg-amber-500 border-amber-400 text-black' 
+          <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${agreed
+              ? 'bg-amber-500 border-amber-400 text-black'
               : 'bg-zinc-900 border-zinc-700 text-transparent'
-          }`}>
+            }`}>
             <CheckCircle2 size={14} className={agreed ? 'text-black' : 'opacity-0'} />
           </div>
           <span className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors">
@@ -814,11 +805,10 @@ const ConfirmBidModal = memo(({
             if (agreed) onConfirm();
           }}
           disabled={!agreed || isSubmitting}
-          className={`w-full font-black text-sm py-4 rounded-2xl shadow-xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${
-            agreed && !isSubmitting
+          className={`w-full font-black text-sm py-4 rounded-2xl shadow-xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting
               ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black cursor-pointer active:scale-95 shadow-amber-500/20'
               : 'bg-gradient-to-r from-amber-500/70 via-amber-500/70 to-amber-600/70 text-black/80 cursor-not-allowed opacity-75 shadow-none'
-          }`}
+            }`}
         >
           {isSubmitting ? (
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent" />
@@ -893,7 +883,7 @@ const ItemDetails = memo(() => {
           const rawName = b.user?.name || `User ${b.user_id}`;
           const parts = rawName.split(' ');
           const uName = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
-          
+
           const now = new Date().getTime();
           const bidTime = new Date(b.created_at).getTime();
           const diffSec = Math.max(1, Math.floor((now - bidTime) / 1000));
@@ -988,7 +978,7 @@ const ItemDetails = memo(() => {
   // Countdown timer calculation
   useEffect(() => {
     if (!item) return;
-    
+
     const interval = setInterval(() => {
       const now = new Date().getTime();
       const end = new Date(item.end_time).getTime();
@@ -1102,7 +1092,7 @@ const ItemDetails = memo(() => {
       const actualFee = item?.base_price ?? 1.00;
       setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Birr placed successfully!`);
       setLubBidAmount('');
-      
+
       if (user && setUser && selectedPayment === 'wallet') {
         setUser({ ...user, wallet_balance: Math.max(0, user.wallet_balance - actualFee) });
       }
@@ -1137,7 +1127,7 @@ const ItemDetails = memo(() => {
   return (
     <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased">
       {/* Phone Status Header */}
-      
+
 
       {/* ========================================================================= */}
       {/* 1. OPEN BID POOL LAYOUT (Matches New Screenshots)                       */}
@@ -1148,7 +1138,7 @@ const ItemDetails = memo(() => {
           {viewMode === 'detail' && (
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 px-1">
-                <button 
+                <button
                   onClick={() => navigate(-1)}
                   className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
                 >
@@ -1161,10 +1151,10 @@ const ItemDetails = memo(() => {
               </div>
 
               {/* Hero Image Box - Multi Image Animated Carousel */}
-              <ProductGalleryCarousel 
-                item={item} 
-                badgeText="OPEN BID" 
-                badgeColorClass="bg-emerald-950/80 text-emerald-400 border-emerald-500/40" 
+              <ProductGalleryCarousel
+                item={item}
+                badgeText="OPEN BID"
+                badgeColorClass="bg-emerald-950/80 text-emerald-400 border-emerald-500/40"
               />
 
               {/* Notifications Alert */}
@@ -1217,13 +1207,12 @@ const ItemDetails = memo(() => {
                         </div>
                       ) : (
                         recentBidsStream.slice(0, 3).map((bidder) => (
-                          <div 
+                          <div
                             key={bidder.id}
-                            className={`p-3 rounded-2xl flex items-center justify-between transition-all shadow-md ${
-                              bidder.isUser 
-                                ? 'bg-emerald-950/30 border border-emerald-500/50 shadow-emerald-950/20' 
+                            className={`p-3 rounded-2xl flex items-center justify-between transition-all shadow-md ${bidder.isUser
+                                ? 'bg-emerald-950/30 border border-emerald-500/50 shadow-emerald-950/20'
                                 : 'bg-[#0E0F12] border border-zinc-800/80'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-3">
                               <BidderAvatar src={bidder.avatar} alt={bidder.name} />
@@ -1298,7 +1287,7 @@ const ItemDetails = memo(() => {
           {viewMode === 'place_bid' && (
             <div className="space-y-5">
               <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80 pb-3">
-                <button 
+                <button
                   onClick={() => setViewMode('detail')}
                   className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
                 >
@@ -1319,9 +1308,9 @@ const ItemDetails = memo(() => {
               </div>
 
               <div className="bg-[#141519] border border-zinc-800/90 p-4 rounded-2xl flex items-center gap-3.5 shadow-lg">
-                <img 
-                  src={productImage} 
-                  alt={productTitle} 
+                <img
+                  src={productImage}
+                  alt={productTitle}
                   className="w-16 h-16 object-cover rounded-xl border border-zinc-800 bg-zinc-900"
                 />
                 <div>
@@ -1347,11 +1336,10 @@ const ItemDetails = memo(() => {
                           setSelectedIncrement(inc);
                           setCustomBidInput((currentHighestBid + inc).toFixed(2));
                         }}
-                        className={`py-3 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-md ${
-                          isSelected
+                        className={`py-3 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-md ${isSelected
                             ? 'bg-amber-500 text-black font-black shadow-amber-500/20'
                             : 'bg-[#141519] border border-zinc-800 text-zinc-300 hover:text-white'
-                        }`}
+                          }`}
                       >
                         +{inc}
                       </button>
@@ -1365,7 +1353,7 @@ const ItemDetails = memo(() => {
                   ENTER CUSTOM BID AMOUNT
                 </p>
                 <div className="relative bg-[#0E0F12] border-2 border-amber-400 rounded-2xl p-4 flex justify-between items-center shadow-lg">
-                  <input 
+                  <input
                     type="number"
                     step="0.01"
                     min="0.01"
@@ -1382,7 +1370,7 @@ const ItemDetails = memo(() => {
 
               {/* Payment Method Selector (Displays when input is focused) */}
               {isOpenInputFocused && (
-                <PaymentMethodSelector 
+                <PaymentMethodSelector
                   selectedPayment={selectedPayment}
                   onSelectPayment={setSelectedPayment}
                   walletBalance={user?.wallet_balance}
@@ -1442,7 +1430,7 @@ const ItemDetails = memo(() => {
         /* ========================================================================= */
         <div className="space-y-6">
           <div className="flex justify-between items-center py-2 px-1">
-            <button 
+            <button
               onClick={() => navigate(-1)}
               className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
             >
@@ -1455,10 +1443,10 @@ const ItemDetails = memo(() => {
           </div>
 
           {/* Hero Image - Multi Image Animated Carousel */}
-          <ProductGalleryCarousel 
-            item={item} 
-            badgeText="PREMIUM LUB POOL" 
-            badgeColorClass="bg-purple-950/80 text-purple-400 border-purple-500/40" 
+          <ProductGalleryCarousel
+            item={item}
+            badgeText="PREMIUM LUB POOL"
+            badgeColorClass="bg-purple-950/80 text-purple-400 border-purple-500/40"
           />
 
           {/* Bidding Panel */}
@@ -1467,7 +1455,7 @@ const ItemDetails = memo(() => {
             <ExpiredAuctionView item={item} user={user} />
           ) : (
             <div className="bg-[#16161A] rounded-3xl border border-zinc-800 p-5 md:p-6 space-y-5 shadow-xl">
-              
+
 
               {/* Price Stats */}
               <div className="flex justify-between items-center bg-[#111113] p-3.5 rounded-2xl border border-zinc-800">
@@ -1483,14 +1471,14 @@ const ItemDetails = memo(() => {
                       {(item?._count?.bids ?? item?.bid_count ?? item?.bids?.length ?? recentLUBBids?.length ?? 0).toLocaleString()}
                     </p>
                   </div>
-                  
-                 
+
+
                 </div>
               </div>
 
               {/* Action Form or Phone Login Prompt */}
               <div>
-                
+
 
                 {!user ? (
                   <div className="p-4 bg-[#111113] border border-zinc-800 rounded-2xl text-center space-y-3">
@@ -1546,13 +1534,13 @@ const ItemDetails = memo(() => {
                     </div> */}
 
                     {/* Payment Method Selector (Telebirr, CBE, Wallet) */}
-                   
 
-                    <form 
+
+                    <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         handleInitiateBid(lubBidAmount);
-                      }} 
+                      }}
                       className="flex gap-2"
                     >
                       <div className="relative flex-grow">
@@ -1582,7 +1570,7 @@ const ItemDetails = memo(() => {
 
                     {/* Payment Method Selector (Displays when input is focused) */}
                     {isLubInputFocused && (
-                      <PaymentMethodSelector 
+                      <PaymentMethodSelector
                         selectedPayment={selectedPayment}
                         onSelectPayment={setSelectedPayment}
                         walletBalance={user?.wallet_balance}
@@ -1595,21 +1583,20 @@ const ItemDetails = memo(() => {
                     </div>
 
                     {/* Timer Banner */}
-              <div className="flex flex-col items-center justify-center py-4 bg-[#111113] text-white rounded-2xl border border-zinc-800 shadow-inner">
-                <Clock className="text-amber-400 mb-1" size={22} />
-                <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
-                <p className={`text-xl font-black font-mono tracking-tight ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {timeLeft || 'Calculating...'}
-                </p>
-              </div>
+                    <div className="flex flex-col items-center justify-center py-4 bg-[#111113] text-white rounded-2xl border border-zinc-800 shadow-inner">
+                      <Clock className="text-amber-400 mb-1" size={22} />
+                      <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
+                      <p className={`text-xl font-black font-mono tracking-tight ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
+                        {timeLeft || 'Calculating...'}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Specifications & Sub-Titles Section */}
-          <RenderDescriptionSections description={item?.description} />
+
 
           {/* User's Placed Bids Notification Card */}
           {user && userBidsOnThisItem.length > 0 && (
@@ -1630,11 +1617,13 @@ const ItemDetails = memo(() => {
               </span>
             </div>
           )}
+          {/* Specifications & Sub-Titles Section */}
+          <RenderDescriptionSections description={item?.description} />
         </div>
       )}
 
       {/* Confirm Your Bid Modal Popup (Matches user screenshot) */}
-      <ConfirmBidModal 
+      <ConfirmBidModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleConfirmAndPlaceBid}

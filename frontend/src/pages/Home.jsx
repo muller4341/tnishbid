@@ -136,15 +136,14 @@ const FeaturedItemsCarousel = ({ items }) => {
 
                 {/* Category & Starting Bid Overlay (Top Left) */}
                 <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 shadow-xl z-10 flex items-center gap-1">
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${
-                    (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium')
+                  <span className={`text-[10px] font-black uppercase tracking-wider ${(item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium')
                       ? 'text-purple-300 drop-shadow-[0_0_6px_rgba(192,132,252,0.4)]'
                       : 'text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]'
-                  }`}>
+                    }`}>
                     {(item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium') ? 'Lub Bid' : 'Open Bid'}
                   </span>
                   <span className="h-2.5 w-[1.5px] bg-zinc-400 shrink-0"></span>
-                  <span className="text-amber-400 font-bold text-xs">{item.category || 'General'}</span> 
+                  <span className="text-amber-400 font-bold text-xs">{item.category || 'General'}</span>
                 </div>
 
                 {/* Time Remaining Pill overlay */}
@@ -182,7 +181,7 @@ const FeaturedItemsCarousel = ({ items }) => {
           </div>
         )}
 
-       
+
       </div>
 
       {/* Item Details (Static, updates content when index changes without horizontal slide motion) */}
@@ -191,7 +190,7 @@ const FeaturedItemsCarousel = ({ items }) => {
           <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-snug">
             {currentItem.title}
           </h2>
-          
+
         </div>
 
         <div className="grid grid-cols-2 gap-4 py-2 border-y border-zinc-800/60">
@@ -202,7 +201,7 @@ const FeaturedItemsCarousel = ({ items }) => {
             </p>
           </div>
 
-          <div className="flex items-center justify-center"> 
+          <div className="flex items-center justify-center">
             <span className="inline-flex items-center gap-1.5 px-4 py-1.5 font-bold text-sm md:text-base font-mono shadow-inner">
               <span className="text-emerald-400 font-black">
                 {currentItem._count?.bids ?? currentItem.bid_count ?? currentItem.bids?.length ?? 0}
@@ -211,7 +210,7 @@ const FeaturedItemsCarousel = ({ items }) => {
                 bids
               </span>
             </span>
-          </div> 
+          </div>
         </div>
 
         <Link
@@ -237,7 +236,7 @@ const StaticItemCarousel = ({ title, items, icon: Icon, isFeeMode = false, poolT
       <div className="flex justify-between items-center px-1">
         <h3 className="text-base md:text-lg font-black text-white tracking-tight flex items-center gap-2">
           {Icon ? <Icon size={20} className="text-amber-400" /> : <Package size={20} className="text-amber-400" />}
-          {title} 
+          {title}
         </h3>
 
         <Link
@@ -388,7 +387,7 @@ const Home = () => {
 
   const filteredItems = items.filter(item => {
     return item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           item.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   // FILTERING BASED ON ADMIN POOL REGISTRATION (pool_type: "lub" / "premium" vs "open")

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Bell, Wallet, LogOut, Crown, Smartphone, ShieldCheck } from 'lucide-react';
@@ -9,6 +9,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const notificationRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -32,6 +33,32 @@ const Navbar = () => {
       return () => socket.off('bid_duplicated', handleDup);
     }
   }, [socket]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showDropdown]);
 
   const handleLogout = () => {
     logout();
@@ -87,7 +114,7 @@ const Navbar = () => {
               </div> */}
               
               {/* Dark Styled Notifications Bell */}
-              <div className="relative">
+              <div className="relative" ref={notificationRef}>
                 <button 
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-[#222228] text-zinc-300 hover:text-white rounded-full border border-zinc-800 transition-colors relative"
