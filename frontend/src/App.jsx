@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -9,6 +10,7 @@ import Discover from './pages/Discover';
 import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import MyBids from './pages/MyBids';
+import PaymentResult from './pages/PaymentResult';
 import Navbar from './components/Navbar';
 import MobileNav from './components/MobileNav';
 
@@ -46,6 +48,7 @@ const AppContent = () => {
           />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/payment-result" element={<PaymentResult />} />
           <Route path="/item/:id" element={<ItemDetails />} />
           <Route 
             path="/profile" 
@@ -73,11 +76,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

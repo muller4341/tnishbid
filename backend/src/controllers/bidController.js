@@ -2,14 +2,68 @@ const prisma = require('../prismaClient');
 
 const BID_FEE = 1.00;
 
+const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
+  const item = await tx.item.findUnique({ where: { id: itemId } });
+  if (!item) throw new Error('Item not found');
+  if (item.status !== 'active') throw new Error('Auction is not active');
+
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    throw new Error('Bid amount must be at least 0.01 Birr');
+  }
+
+  const existingBids = await tx.bid.findMany({
+    where: { item_id: itemId, amount: parsedAmount }
+  });
+
+  let is_unique = true;
+  let duplicatedUsers = [];
+
+  if (existingBids.length > 0) {
+    is_unique = false;
+    const uniqueExisting = existingBids.filter((bid) => bid.is_unique);
+    if (uniqueExisting.length > 0) {
+      await tx.bid.updateMany({
+        where: { id: { in: uniqueExisting.map((bid) => bid.id) } },
+        data: { is_unique: false }
+      });
+      duplicatedUsers = uniqueExisting.map((bid) => bid.user_id).filter((id) => id !== userId);
+    }
+  }
+
+  const newBid = await tx.bid.create({
+    data: { amount: parsedAmount, is_unique, item_id: itemId, user_id: userId }
+  });
+
+  for (const duplicatedUserId of duplicatedUsers) {
+    const message = `Your bid of ${parsedAmount} ETB for item "${item.title}" has been duplicated. Place a new unique bid to stay in the lead!`;
+    await tx.notification.create({
+      data: { user_id: duplicatedUserId, message }
+    });
+    io.to(`user_${duplicatedUserId}`).emit('bid_duplicated', {
+      item_id: itemId,
+      amount: parsedAmount,
+      message
+    });
+  }
+
+  return newBid;
+};
+
+exports.createBidRecord = createBidRecord;
+
 exports.placeBid = async (req, res) => {
   const { item_id, amount, payment_method } = req.body;
   const user_id = req.user.id;
   const io = req.io;
 
   try {
+    if (payment_method && payment_method !== 'wallet') {
+      throw new Error('Online payments must be completed through Chapa checkout.');
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Check item status
+      // 1. Check item status and bid amount
       const item = await tx.item.findUnique({ where: { id: item_id } });
       if (!item) throw new Error('Item not found');
       if (item.status !== 'active') throw new Error('Auction is not active');
@@ -43,58 +97,8 @@ exports.placeBid = async (req, res) => {
         }
       }
 
-      // 3. Check uniqueness
-      const existingBids = await tx.bid.findMany({
-        where: { item_id, amount: parsedAmount }
-      });
-
-      let is_unique = true;
-      let duplicatedUsers = [];
-
-      if (existingBids.length > 0) {
-        is_unique = false;
-        
-        // Find previous unique bids and make them false
-        const uniqueExisting = existingBids.filter(b => b.is_unique);
-        if (uniqueExisting.length > 0) {
-          const idsToUpdate = uniqueExisting.map(b => b.id);
-          await tx.bid.updateMany({
-            where: { id: { in: idsToUpdate } },
-            data: { is_unique: false }
-          });
-          
-          duplicatedUsers = uniqueExisting.map(b => b.user_id).filter(id => id !== user_id);
-        }
-      }
-
-      // 4. Create new bid
-      const newBid = await tx.bid.create({
-        data: {
-          amount: parsedAmount,
-          is_unique,
-          item_id,
-          user_id
-        }
-      });
-
-      // 5. Create Notifications for duplicated users
-      for (const dUserId of duplicatedUsers) {
-        const message = `Your bid of ${parsedAmount} ETB for item "${item.title}" has been duplicated. Place a new unique bid to stay in the lead!`;
-        await tx.notification.create({
-          data: {
-            user_id: dUserId,
-            message
-          }
-        });
-        // Emit personal socket event
-        io.to(`user_${dUserId}`).emit('bid_duplicated', {
-          item_id,
-          amount: parsedAmount,
-          message
-        });
-      }
-
-      return newBid;
+      // 3. Create the bid after the selected fee source is authorized.
+      return createBidRecord(tx, { itemId: item_id, userId: user_id, amount: parsedAmount, io });
     });
 
     // Broadcast global update

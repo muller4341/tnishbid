@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, Wallet, LogOut, Crown, Smartphone, ShieldCheck } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { Bell, Wallet, LogOut, Crown, Smartphone, ShieldCheck, Sun, Moon } from 'lucide-react';
 import axios from 'axios';
 
 const Navbar = () => {
   const { user, logout, socket } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -68,7 +70,13 @@ const Navbar = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <nav className="bg-[#0D0E11]/90 backdrop-blur-md shadow-md border-b border-zinc-800/80 sticky top-0 z-40">
+    <nav
+      className="backdrop-blur-md shadow-md sticky top-0 z-40 transition-colors duration-300"
+      style={{
+        backgroundColor: theme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(13,14,17,0.90)',
+        borderBottom: theme === 'light' ? '1px solid #D4D5DA' : '1px solid rgba(39,39,42,0.8)',
+      }}
+    >
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Brand Logo & Crown Icon matching Screenshot */}
         <div className="flex items-center gap-2">
@@ -149,6 +157,16 @@ const Navbar = () => {
                 )}
               </div>
               
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 rounded-full border border-zinc-800 transition-colors"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+
               <button 
                 onClick={handleLogout}
                 className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-red-950/40 text-zinc-400 hover:text-red-400 rounded-full border border-zinc-800 transition-colors"
@@ -159,6 +177,15 @@ const Navbar = () => {
             </>
           ) : (
             <div className="flex items-center gap-2">
+              {/* Theme Toggle for logged-out users too */}
+              <button
+                onClick={toggleTheme}
+                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 rounded-full border border-zinc-800 transition-colors"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
               <Link 
                 to="/login" 
                 className="px-3.5 py-1.5 text-xs md:text-sm font-semibold text-zinc-300 hover:text-white transition-colors"

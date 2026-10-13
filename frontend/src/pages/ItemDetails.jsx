@@ -1083,6 +1083,16 @@ const ItemDetails = memo(() => {
     setSuccess('');
 
     try {
+      if (selectedPayment !== 'wallet') {
+        const response = await axios.post('/api/payments/chapa/initialize', {
+          item_id: parseInt(id, 10),
+          amount: pendingBidAmount,
+        });
+        if (!response.data?.checkout_url) throw new Error('Chapa did not return a checkout URL');
+        window.location.assign(response.data.checkout_url);
+        return;
+      }
+
       await axios.post('/api/bids/place', {
         item_id: parseInt(id),
         amount: pendingBidAmount,

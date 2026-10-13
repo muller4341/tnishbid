@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Home, Hourglass, User, LogIn, ShieldCheck } from 'lucide-react';
 
 const MobileNav = () => {
   const location = useLocation();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const currentPath = location.pathname;
 
   const isAdmin = user?.role === 'admin';
@@ -49,7 +51,16 @@ const MobileNav = () => {
       ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0E0F12]/95 backdrop-blur-xl border-t border-zinc-800/80 shadow-[0_-4px_25px_rgba(0,0,0,0.5)] px-4 py-2">
+    <div
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl px-4 py-2 transition-colors duration-300"
+      style={{
+        backgroundColor: theme === 'light' ? 'rgba(255,255,255,0.97)' : 'rgba(14,15,18,0.95)',
+        borderTop: theme === 'light' ? '1px solid #D4D5DA' : '1px solid rgba(39,39,42,0.8)',
+        boxShadow: theme === 'light'
+          ? '0 -4px 25px rgba(0,0,0,0.08)'
+          : '0 -4px 25px rgba(0,0,0,0.5)',
+      }}
+    >
       <div className="flex justify-around items-center">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -64,7 +75,7 @@ const MobileNav = () => {
               className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 relative ${
                 isActive 
                   ? 'text-amber-400 font-bold scale-105' 
-                  : 'text-zinc-500 hover:text-zinc-300'
+                  : theme === 'light' ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
               <div className="relative">
