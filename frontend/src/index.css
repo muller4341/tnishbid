@@ -75,23 +75,14 @@
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 5% 10%, rgba(249, 115, 22, 0.30), transparent 30rem),
-    radial-gradient(ellipse at 95% 80%, rgba(234, 88, 12, 0.22), transparent 26rem),
-    #0A0B0D;
+  background: #0A0B0D;
 }
-.home-toolbar { background: rgba(10, 11, 13, 0.78); border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.home-toolbar { background: #0A0B0D; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
 .home-hero {
   position: relative;
-  background:
-    linear-gradient(135deg,
-      #0f0700   0%,
-      #3d1400  28%,
-      #5c1f00  52%,
-      #3d1400  76%,
-      #0f0700 100%);
-  border: 1.5px solid rgba(249, 115, 22, 0.75);
-  animation: orangeRing 3s ease-in-out infinite;
+  background: #050505;
+  border: 1.5px solid #27272a;
+  animation: none;
   overflow: hidden;
 }
 /* diagonal shimmer sweep */
@@ -99,23 +90,18 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg,
-    transparent 30%,
-    rgba(249,115,22,0.22) 50%,
-    transparent 70%);
-  animation: heroShimmer 4s ease-in-out infinite;
+  background: transparent;
+  animation: none;
   pointer-events: none;
 }
 /* top-right orange glow orb */
 .home-hero-glow { width: 26rem; height: 26rem; border-radius: 999px; filter: blur(70px); }
 .home-hero-glow-amber {
-  background: radial-gradient(circle, rgba(249,115,22,0.75), rgba(234,88,12,0.45) 55%, transparent);
-  animation: heroPulse 3.5s ease-in-out infinite;
+  display: none;
 }
 /* bottom-left ember glow */
 .home-hero-glow-green {
-  background: radial-gradient(circle, rgba(234,88,12,0.55), rgba(180,50,0,0.25) 60%, transparent);
-  animation: heroPulse 3.5s ease-in-out infinite 1.6s;
+  display: none;
 }
 .home-brand-chip { color: #1a0500; background: linear-gradient(90deg,#f97316,#fb923c); box-shadow: 0 4px 18px rgba(249,115,22,0.4); letter-spacing: 0.08em; }
 .home-primary-action {
@@ -131,17 +117,17 @@
   box-shadow: 0 18px 45px rgba(249,115,22,0.55);
 }
 .home-auction-card {
-  background: linear-gradient(145deg, rgba(28, 31, 32, 0.78), rgba(15, 18, 19, 0.92));
+  background: #141519;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(18px);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 .home-auction-card:hover { transform: translateY(-3px); border-color: rgba(251, 191, 36, 0.28); box-shadow: 0 25px 65px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(251, 191, 36, 0.05); }
-.home-card-image { background: linear-gradient(135deg, #18211d, #111827); }
-.home-card-body { background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 42%); }
+.home-card-image { background: #111216; }
+.home-card-body { background: #141519; }
 .home-card-panel,
-.home-bid-input { background: rgba(4, 8, 9, 0.46); border: 1px solid rgba(255, 255, 255, 0.09); box-shadow: inset 0 1px rgba(255, 255, 255, 0.04); }
+.home-bid-input { background: #111216; border: 1px solid rgba(255, 255, 255, 0.09); box-shadow: inset 0 1px rgba(255, 255, 255, 0.04); }
 .home-bid-input:focus-within { border-color: rgba(251, 191, 36, 0.65); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
 /* ── Light mode overrides ── */
 [data-theme="light"] .home-page::before {
