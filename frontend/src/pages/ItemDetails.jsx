@@ -4,6 +4,8 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import telebirrLogo from '../assets/telebirr.png';
 import cbeLogo from '../assets/cbe.png';
+import ChapaPushModal from '../components/ChapaPushModal';
+import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
 import {
   ArrowLeft,
   Share2,
@@ -857,6 +859,8 @@ const ItemDetails = memo(() => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingBidAmount, setPendingBidAmount] = useState(null);
   const [isSubmittingBid, setIsSubmittingBid] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState(null);
+  const [inlinePayment, setInlinePayment] = useState(null);
 
   // Bids streams
   const [recentBidsStream, setRecentBidsStream] = useState([]);
@@ -1084,12 +1088,12 @@ const ItemDetails = memo(() => {
 
     try {
       if (selectedPayment !== 'wallet') {
-        const response = await axios.post('/api/payments/chapa/initialize', {
+        const response = await axios.post('/api/payments/chapa/inline/prepare', {
           item_id: parseInt(id, 10),
           amount: pendingBidAmount,
         });
-        if (!response.data?.checkout_url) throw new Error('Chapa did not return a checkout URL');
-        window.location.assign(response.data.checkout_url);
+        setShowConfirmModal(false);
+        setInlinePayment({ txRef: response.data.tx_ref, amount: response.data.amount });
         return;
       }
 
@@ -1568,6 +1572,24 @@ const ItemDetails = memo(() => {
                           value={lubBidAmount}
                           onChange={(e) => setLubBidAmount(e.target.value)}
                         />
+                        <ChapaPushModal
+                          isOpen={Boolean(inlinePayment)}
+                          amount={inlinePayment?.amount}
+                          txRef={inlinePayment?.txRef}
+                          selectedPayment={selectedPayment}
+                          mobile={user?.phone_number}
+                          onClose={() => setInlinePayment(null)}
+                          onSuccess={async ({ txRef, chapaRef }) => {
+                            await axios.post('/api/payments/chapa/inline/complete', { tx_ref: txRef, chapa_ref: chapaRef });
+                            const actualFee = item?.base_price ?? 1.00;
+                            setInlinePayment(null);
+                            setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Birr placed successfully!`);
+                            setLubBidAmount('');
+                            setShowConfirmModal(false);
+                            fetchItemDetails();
+                            if (user && setUser) setUser({ ...user, wallet_balance: Math.max(0, user.wallet_balance - actualFee) });
+                          }}
+                        />
                       </div>
                       <button
                         type="submit"
@@ -1643,6 +1665,23 @@ const ItemDetails = memo(() => {
         selectedPayment={selectedPayment}
         isSubmitting={isSubmittingBid}
       />
+      {checkoutUrl && (
+        <ChapaEmbeddedModal
+          checkoutUrl={checkoutUrl}
+          onClose={() => setCheckoutUrl(null)}
+          onSuccess={() => {
+            setCheckoutUrl(null);
+            setPendingBidAmount(null);
+            setSuccess('Payment successful. Your bid has been placed!');
+            fetchItemDetails();
+            setTimeout(() => {
+              setSuccess('');
+              setViewMode('detail');
+            }, 2500);
+          }}
+          onFailure={({ message }) => setError(message || 'Payment was not completed.')}
+        />
+      )}
     </div>
   );
 });

@@ -88,13 +88,6 @@ exports.placeBid = async (req, res) => {
           where: { id: user_id },
           data: { wallet_balance: user.wallet_balance - bidFee }
         });
-      } else if (payment_method === 'telebirr' || payment_method === 'cbe') {
-        if (user.wallet_balance >= bidFee) {
-          await tx.user.update({
-            where: { id: user_id },
-            data: { wallet_balance: user.wallet_balance - bidFee }
-          });
-        }
       }
 
       // 3. Create the bid after the selected fee source is authorized.

@@ -126,6 +126,84 @@ exports.initializeBidPayment = async (req, res) => {
   }
 };
 
+exports.prepareInlineBidPayment = async (req, res) => {
+  const { item_id, amount } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const parsedBidAmount = parseFloat(amount);
+    const itemId = parseInt(item_id, 10);
+    if (!Number.isInteger(itemId) || !Number.isFinite(parsedBidAmount) || parsedBidAmount <= 0) {
+      return res.status(400).json({ error: 'A valid item and bid amount are required' });
+    }
+
+    const [item, user] = await Promise.all([
+      prisma.item.findUnique({ where: { id: itemId } }),
+      prisma.user.findUnique({ where: { id: userId } })
+    ]);
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+    if (item.status !== 'active') return res.status(400).json({ error: 'Auction is not active' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const txRef = `tinish-inline-${userId}-${itemId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const bidFee = item.base_price != null ? item.base_price : 1.00;
+    await prisma.chapaPayment.create({
+      data: { tx_ref: txRef, amount: bidFee, bid_amount: parsedBidAmount, status: 'pending', user_id: userId, item_id: itemId }
+    });
+
+    res.json({ tx_ref: txRef, amount: bidFee });
+  } catch (error) {
+    console.error('Inline Chapa preparation error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.completeInlineBidPayment = async (req, res) => {
+  const { tx_ref: txRef, chapa_ref: chapaRef } = req.body;
+  const userId = req.user.id;
+  if (!txRef) return res.status(400).json({ error: 'Missing payment reference' });
+
+  try {
+    const config = getConfig();
+    const payment = await prisma.chapaPayment.findUnique({ where: { tx_ref: txRef } });
+    if (!payment || payment.user_id !== userId) return res.status(404).json({ error: 'Payment record not found' });
+    if (payment.status === 'completed') return res.json({ status: 'success' });
+
+    const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(chapaRef || txRef)}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${config.secretKey}` }
+    });
+    const verifiedStatus = String(verified.data?.status || verified.status || '').toLowerCase();
+    const verifiedAmount = Number(verified.data?.amount);
+    if (verifiedStatus !== 'success' || (Number.isFinite(verifiedAmount) && Math.abs(verifiedAmount - payment.amount) > 0.001)) {
+      return res.status(400).json({ error: 'Chapa payment could not be verified' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const currentPayment = await tx.chapaPayment.findUnique({ where: { tx_ref: txRef } });
+      if (!currentPayment) throw new Error('Payment record not found');
+      if (currentPayment.status === 'completed') return null;
+      const bid = await bidController.createBidRecord(tx, {
+        itemId: currentPayment.item_id,
+        userId: currentPayment.user_id,
+        amount: currentPayment.bid_amount,
+        io: req.io
+      });
+      await tx.chapaPayment.update({
+        where: { tx_ref: txRef },
+        data: { status: 'completed', chapa_ref: chapaRef || null }
+      });
+      return bid;
+    });
+
+    if (result) req.io.emit('bid_update', { item_id: payment.item_id, new_bid_amount: result.amount, is_unique: result.is_unique });
+    res.json({ status: 'success', bid: result });
+  } catch (error) {
+    console.error('Inline Chapa completion error:', error.message);
+    res.status(502).json({ error: error.message });
+  }
+};
+
 exports.handleCallback = async (req, res) => {
   const txRef = req.query.tx_ref || req.query.trx_ref;
   if (!txRef) return redirectToResult(res, 'failed', '', 'Missing Chapa transaction reference');

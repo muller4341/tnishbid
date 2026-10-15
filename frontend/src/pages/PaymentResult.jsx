@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
 const PaymentResult = () => {
   const [searchParams] = useSearchParams();
-  const success = searchParams.get('status') === 'success';
+  const status = searchParams.get('status');
+  const success = status === 'success';
+  const message = searchParams.get('message') || '';
+  const txRef  = searchParams.get('tx_ref') || '';
+
+  /* If we are inside the ChapaEmbeddedModal iframe, notify the parent
+     window so it can close the modal and show the result inline.
+     If we are the top-level window (standalone visit), just render normally. */
+  useEffect(() => {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { type: 'CHAPA_PAYMENT_RESULT', status, tx_ref: txRef, message },
+          window.location.origin
+        );
+      }
+    } catch {
+      // cross-origin guard — ignore silently
+    }
+  }, [status, txRef, message]);
 
   return (
     <div className="max-w-md mx-auto py-16 px-4 text-center">
@@ -19,7 +38,7 @@ const PaymentResult = () => {
       <p className="mt-2 text-sm text-zinc-400">
         {success
           ? 'Your participation fee was received and your bid has been placed.'
-          : searchParams.get('message') || 'Your bid was not placed. You can try again from the auction.'}
+          : message || 'Your bid was not placed. You can try again from the auction.'}
       </p>
       <Link
         to="/"

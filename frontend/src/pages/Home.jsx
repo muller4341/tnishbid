@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { getCachedItems, setCachedItems } from '../utils/cache';
 import { ConfirmBidModal, PaymentMethodSelector } from '../components/BidPaymentModal';
+import ChapaPushModal from '../components/ChapaPushModal';
+import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
 
 /* Translations */
 const TRANSLATIONS = {
@@ -121,29 +123,61 @@ const LanguageSelector = ({ lang, setLang }) => {
 /* Hero / Game Description */
 const HeroSection = ({ t, onScrollToItems }) => (
   <div className="light-theme-hero home-hero relative rounded-[2rem] overflow-hidden mb-6">
+    {/* Glow orbs */}
     <div className="home-hero-glow home-hero-glow-amber absolute -top-16 -right-10 pointer-events-none" />
     <div className="home-hero-glow home-hero-glow-green absolute -bottom-20 -left-10 pointer-events-none" />
 
-    <div className="relative p-5 space-y-4">
-      
+    {/* Decorative corner accent lines */}
+    <div className="absolute top-0 left-0 w-24 h-24 pointer-events-none">
+      <div style={{position:'absolute',top:16,left:16,width:40,height:2,background:'linear-gradient(90deg,#f97316,transparent)'}} />
+      <div style={{position:'absolute',top:16,left:16,width:2,height:40,background:'linear-gradient(180deg,#f97316,transparent)'}} />
+    </div>
+    <div className="absolute bottom-0 right-0 w-24 h-24 pointer-events-none">
+      <div style={{position:'absolute',bottom:16,right:16,width:40,height:2,background:'linear-gradient(270deg,#f97316,transparent)'}} />
+      <div style={{position:'absolute',bottom:16,right:16,width:2,height:40,background:'linear-gradient(0deg,#f97316,transparent)'}} />
+    </div>
 
-      <h1 className="text-2xl md:text-3xl font-black text-white leading-tight tracking-tight">
+    <div className="relative p-5 space-y-4">
+
+      {/* Brand badge */}
+     
+
+      <h1 className="text-2xl md:text-3xl font-black leading-tight tracking-tight"
+        style={{color:'#fff',textShadow:'0 2px 20px rgba(249,115,22,0.4)'}}>
         {t.heroTitle}
       </h1>
 
-      <p className="text-sm text-white/90 leading-relaxed font-medium max-w-lg">
+      <p className="text-sm leading-relaxed font-medium max-w-lg" style={{color:'rgba(255,255,255,0.80)'}}>
         {t.heroDesc}
       </p>
 
+      {/* Stats strip */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { icon: '🏆', label: 'Lowest & Unique', sub: 'bid wins' },
+          { icon: '🔁', label: 'Up to 100', sub: 'bids per item' },
+          { icon: '💰', label: 'Win at a', sub: 'fraction of price' },
+        ].map(({ icon, label, sub }) => (
+          <div key={label}
+            className="hero-stat-tile flex flex-col items-center text-center py-2 px-1 rounded-xl"
+            style={{background:'rgba(249,115,22,0.07)',border:'1px solid rgba(249,115,22,0.18)'}}>
+            <span className="text-lg leading-none mb-0.5">{icon}</span>
+            <span className="hero-stat-label text-[9px] font-black text-orange-300 leading-tight">{label}</span>
+            <span className="hero-stat-sub text-[9px] text-white/50 leading-tight">{sub}</span>
+          </div>
+        ))}
+      </div>
+
       <button
         onClick={onScrollToItems}
-        className="home-primary-action inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all active:scale-95 text-white"
+        className="home-primary-action w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all active:scale-95 text-white"
       >
         {t.startBid} <Sparkles size={16} />
       </button>
     </div>
   </div>
 );
+
 
 /* Single Product Bid Card */
 const ProductBidCard = ({ item, t, user, navigate }) => {
@@ -161,6 +195,8 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmittingBid, setIsSubmittingBid] = useState(false);
   const [pendingBidAmount, setPendingBidAmount] = useState(null);
+    const [inlinePayment, setInlinePayment] = useState(null);
+  const [checkoutUrl, setCheckoutUrl] = useState(null);
 
   const isExpired =
     item.status === 'closed' ||
@@ -205,12 +241,12 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
     setSubmitting(true);
     try {
       if (selectedPayment !== 'wallet') {
-        const response = await axios.post('/api/payments/chapa/initialize', {
+        const response = await axios.post('/api/payments/chapa/inline/prepare', {
           item_id: item.id,
           amount: pendingBidAmount,
         });
-        if (!response.data?.checkout_url) throw new Error('Chapa did not return a checkout URL');
-        window.location.assign(response.data.checkout_url);
+        setShowConfirmModal(false);
+        setInlinePayment({ txRef: response.data.tx_ref, amount: response.data.amount });
         return;
       }
 
@@ -263,19 +299,19 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         </div>
 
         {/* Views */}
-        <div className="absolute top-3 right-12 flex items-center gap-1 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-lg">
+        {/* <div className="absolute top-3 right-12 flex items-center gap-1 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-lg">
           <Eye size={12} className="text-amber-400" />
           {bidCount > 1000 ? (bidCount / 1000).toFixed(1) + 'K' : bidCount}
-        </div>
+        </div> */}
 
-        {/* Wishlist star */}
+        {/* Wishlist star
         <button
           onClick={() => setWished((w) => !w)}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
           aria-label="Wishlist"
         >
           <Star size={15} className={wished ? 'fill-amber-400 text-amber-400' : 'text-zinc-300'} />
-        </button>
+        </button> */}
       </div>
 
       {/* Body */}
@@ -401,6 +437,37 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         bidFee={item.base_price || 0}
         selectedPayment={selectedPayment}
         isSubmitting={isSubmittingBid}
+      />
+      {checkoutUrl && (
+        <ChapaEmbeddedModal
+          checkoutUrl={checkoutUrl}
+          onClose={() => setCheckoutUrl(null)}
+          onSuccess={() => {
+            setCheckoutUrl(null);
+            setBidInput('');
+            setLocalBidCount((count) => count + 1);
+            setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Br placed!`);
+            setPendingBidAmount(null);
+            setTimeout(() => setSuccess(''), 3000);
+          }}
+          onFailure={({ message }) => setError(message || 'Payment was not completed.')}
+        />
+      )}
+      <ChapaPushModal
+        isOpen={Boolean(inlinePayment)}
+        amount={inlinePayment?.amount}
+        txRef={inlinePayment?.txRef}
+        selectedPayment={selectedPayment}
+        mobile={user?.phone_number}
+        onClose={() => setInlinePayment(null)}
+        onSuccess={async ({ txRef, chapaRef }) => {
+          await axios.post('/api/payments/chapa/inline/complete', { tx_ref: txRef, chapa_ref: chapaRef });
+          setInlinePayment(null);
+          setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Br placed!`);
+          setLocalBidCount((c) => c + 1);
+          setBidInput('');
+          setTimeout(() => setSuccess(''), 3000);
+        }}
       />
     </div>
   );
