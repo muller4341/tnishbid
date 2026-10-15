@@ -1,14 +1,77 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Bell, Wallet, LogOut, Crown, Smartphone, ShieldCheck, Sun, Moon } from 'lucide-react';
+import { Bell, Wallet, Crown, Smartphone, ShieldCheck, Sun, Moon, Globe } from 'lucide-react';
 import axios from 'axios';
+import { useLanguage } from '../context/LanguageContext';
+
+const LanguageSwitcher = () => {
+  const { lang, setLang } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const languageRef = useRef(null);
+  const languages = [
+    { code: 'en', label: 'Eng' },
+    { code: 'am', label: '\u12a0\u121b' },
+  ];
+  const current = languages.find((language) => language.code === lang) || languages[0];
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const closeOnOutsideClick = (event) => {
+      if (languageRef.current && !languageRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('touchstart', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('touchstart', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={languageRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-[#18181C] px-3 py-1.5 text-xs font-bold text-amber-400 transition-all hover:bg-amber-500/10"
+        aria-label="Choose language"
+      >
+        <Globe size={13} />
+        <span>{current.flag}</span>
+        <span>{current.label}</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1.5 min-w-[130px] overflow-hidden rounded-xl border border-zinc-700 bg-[#1C1C24] shadow-2xl z-50">
+          {languages.map((language) => (
+            <button
+              type="button"
+              key={language.code}
+              onClick={() => { setLang(language.code); setOpen(false); }}
+              className={`flex w-full items-center gap-2 px-4 py-2.5 text-xs font-bold transition-colors ${lang === language.code ? 'bg-amber-500/20 text-amber-400' : 'text-zinc-300 hover:bg-zinc-800'}`}
+            >
+              <span>{language.flag}</span>{language.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Navbar = () => {
-  const { user, logout, socket } = useAuth();
+  const { user, socket } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const notificationRef = useRef(null);
@@ -61,11 +124,6 @@ const Navbar = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [showDropdown]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -121,7 +179,44 @@ const Navbar = () => {
                 <span>{user.wallet_balance} ETB</span>
               </div> */}
               
-              {/* Dark Styled Notifications Bell */}
+              
+              
+              {/* Theme Toggle */}
+              <LanguageSwitcher />
+              <button
+                onClick={toggleTheme}
+                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 rounded-full border border-zinc-800 transition-colors"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Theme Toggle for logged-out users too */}
+              <LanguageSwitcher />
+              <button
+                onClick={toggleTheme}
+                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 rounded-full border border-zinc-800 transition-colors"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+              <Link
+                to={location.pathname === '/login' ? '/register' : '/login'}
+                className={`px-4 py-1.5 text-xs md:text-sm font-bold rounded-full transition-all active:scale-95 ${location.pathname === '/login' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-md shadow-amber-500/10' : 'text-zinc-300 hover:text-white border border-zinc-800 bg-[#18181C]'}`}
+              >
+                {location.pathname === '/login' ? 'Register' : 'Sign In'}
+              </Link>
+            </div>
+
+            
+          )}
+
+          {/* Dark Styled Notifications Bell */}
               <div className="relative" ref={notificationRef}>
                 <button 
                   onClick={() => setShowDropdown(!showDropdown)}
@@ -156,51 +251,8 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
-              
-              {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 rounded-full border border-zinc-800 transition-colors"
-                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-
-              <button 
-                onClick={handleLogout}
-                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-red-950/40 text-zinc-400 hover:text-red-400 rounded-full border border-zinc-800 transition-colors"
-                title="Sign Out"
-              >
-                <LogOut size={16} />
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              {/* Theme Toggle for logged-out users too */}
-              <button
-                onClick={toggleTheme}
-                className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 rounded-full border border-zinc-800 transition-colors"
-                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-              <Link 
-                to="/login" 
-                className="px-3.5 py-1.5 text-xs md:text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link 
-                to="/register" 
-                className="px-4 py-1.5 text-xs md:text-sm font-bold bg-gradient-to-r from-amber-500 to-amber-600 text-black rounded-full hover:brightness-110 transition-all shadow-md shadow-amber-500/10 active:scale-95"
-              >
-                Register Phone
-              </Link>
-            </div>
-          )}
         </div>
+        
       </div>
     </nav>
   );

@@ -3,10 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Eye, Tag, Gavel, Star, AlertCircle,
-  CheckCircle2, ChevronRight, Globe, Minus, Plus, Info,
-  TrendingDown, Sparkles, Search
+  CheckCircle2, ChevronRight, ChevronDown, Minus, Plus, Info, Clock, DollarSign, Grid3X3, CircleDollarSign, Hash,
+  Trophy, Repeat2, Target,
+  TrendingDown, Sparkles, Search,
+  Coins,
+  Ticket
 } from 'lucide-react';
 import { getCachedItems, setCachedItems } from '../utils/cache';
 import { ConfirmBidModal, PaymentMethodSelector } from '../components/BidPaymentModal';
@@ -18,16 +22,16 @@ const TRANSLATIONS = {
   en: {
     langLabel: 'English',
     heroTitle: 'How to Win \u1275\u1295\u123dBid',
-    heroDesc:
-      '\u1275\u1295\u123dBid is a Lowest Unique Bid Auction — the participant who submits the lowest unique bid wins. ' +
-      'For example, if ETB 1.00 is submitted twice, ETB 2.00 once, ETB 3.00 twice, and ETB 4.00 once, ' +
-      'the lowest unique bid is ETB 2.00, so it wins. Only the lowest AND unique bid wins. ' +
-      'Bidders can submit different amounts up to 100 times for a single auction. ' +
-      'Win premium items at a fraction of their actual price!',
+    heroRules: [
+      { title: 'Lowest unique bid wins', text: 'Submit an amount no other bidder has chosen.', icon: 'target' },
+      { title: 'Every bid costs a small fee', text: 'Pay the bid service fee to participate.', icon: 'gavel' },
+      { title: 'Bid up to 100 times', text: 'Try different amounts to find a unique bid.', icon: 'repeat' },
+      { title: 'Win premium items', text: 'The lowest unique bid takes the prize.', icon: 'trophy' },
+    ],
     startBid: 'START BIDDING NOW',
     searchPlaceholder: 'Search products...',
     live: 'Live',
-    bidFee: 'Bid Service Fee',
+    bidFee: 'Bid Fee',
     auctionCode: 'Auction Code',
     bids: 'bids',
     bidAmount: 'Bid amount',
@@ -40,12 +44,12 @@ const TRANSLATIONS = {
   am: {
     langLabel: '\u12a0\u121b\u122d\u129b',
     heroTitle: '\u1275\u1295\u123dBid \u12a5\u1295\u12f4\u1275 \u121b\u1238\u1290\u134d \u12ed\u127b\u120b\u120d',
-    heroDesc:
-      '\u1275\u1295\u123dBid \u12dd\u1245\u1270\u129b \u120d\u12e9 \u1328\u1228\u1273 \u1235\u122d\u12d3\u1275 \u1290\u12cd ' +
-      '\u2014 \u12dd\u1245\u1270\u129b \u120d\u12e9 \u1328\u1228\u1273 \u12eb\u1240\u1228\u1260 \u1270\u1233\u1273\u134a \u12eb\u1238\u1295\u134b\u120d\u1362 ' +
-      '\u1208\u121d\u1233\u1ac4\u1363 1.00 \u1265\u122d \u1201\u1208\u1274\u1363 2.00 \u1265\u122d \u12a0\u1295\u12f5 \u130a\u12dc\u1363 ' +
-      '3.00 \u1265\u122d \u1201\u1208\u1274 \u1240\u122d\u1265 \u12ab\u1208 \u12dd\u1245\u1270\u129b \u120d\u12e9 \u1328\u1228\u1273 2.00 \u1265\u122d \u1290\u12cd\u1362 ' +
-      '\u1265\u127b \u12dd\u1245\u1270\u129b \u12a5\u1293 \u120d\u12e9 \u1328\u1228\u1273 \u12eb\u1238\u1295\u134b\u120d\u1362 \u1270\u132b\u122b\u127e\u127d \u12a5\u1235\u12a8 100 \u130a\u12dc \u120a\u1240\u122d\u1261 \u12ed\u127d\u120b\u1209\u1362',
+    heroRules: [
+      { title: '\u12dd\u1245\u1270\u129b \u120d\u12e9 \u1328\u1228\u1273', text: '\u120c\u12ab\u1295\u12f5 \u1308\u12e2 \u12eb\u120d\u1270\u1218\u1228\u1290 \u12e8\u1328\u1228\u1273 \u1218\u1320\u1295 \u12ed\u121d\u1228\u1321\u1362', icon: 'target' },
+      { title: '\u12e8\u1328\u1228\u1273 \u12ad\u134d\u12eb', text: '\u1328\u1228\u1273 \u1208\u121b\u12f5\u1228\u130d \u12ed\u1205\u1295 \u12ad\u134d\u12eb \u12ed\u12ab\u120b\u1209\u1362', icon: 'gavel' },
+      { title: '\u12a5\u1235\u12a8 100 \u130a\u12dc \u1328\u1228\u1273', text: '\u120d\u12e9 \u12e8\u1328\u1228\u1273 \u1218\u1320\u1296\u127d\u1295 \u1260\u121b\u1230\u1218\u122d \u12ed\u1239\u1229\u1362', icon: 'repeat' },
+      { title: '\u12a0\u1238\u1293\u134a \u12a5\u1243', text: '\u12dd\u1245\u1270\u129b \u120d\u12e9 \u1328\u1228\u1273 \u12eb\u1238\u1295\u134b\u120d\u1362', icon: 'trophy' },
+    ],
     startBid: '\u12a0\u1201\u1295 \u1328\u1228\u1273 \u1300\u121d\u122d',
     searchPlaceholder: '\u121d\u122d\u1276\u127d\u1295 \u1348\u120d\u130d...',
     live: '\u1240\u1325\u1273',
@@ -85,57 +89,16 @@ const countdownColor = (endTime) => {
   return 'text-emerald-400';
 };
 
-/* Language Selector */
-const LanguageSelector = ({ lang, setLang }) => {
-  const [open, setOpen] = useState(false);
-  const langs = [
-    { code: 'en', label: 'English', flag: '\ud83c\uddec\ud83c\udde7' },
-    { code: 'am', label: '\u12a0\u121b\u122d\u129b', flag: '\ud83c\uddea\ud83c\uddf9' },
-  ];
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1C1C24] border border-amber-500/30 text-xs font-bold text-amber-400 hover:bg-amber-500/10 transition-all"
-      >
-        <Globe size={13} />
-        <span>{langs.find((l) => l.code === lang)?.flag}</span>
-        <span>{langs.find((l) => l.code === lang)?.label}</span>
-      </button>
-      {open && (
-        <div className="absolute right-0 mt-1.5 bg-[#1C1C24] border border-zinc-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[130px]">
-          {langs.map((l) => (
-            <button
-              key={l.code}
-              onClick={() => { setLang(l.code); setOpen(false); }}
-              className={`w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition-colors
-                ${lang === l.code ? 'bg-amber-500/20 text-amber-400' : 'text-zinc-300 hover:bg-zinc-800'}`}
-            >
-              <span>{l.flag}</span> {l.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 /* Hero / Game Description */
+const ruleIcons = { trophy: Trophy, repeat: Repeat2, target: Target, gavel: Gavel };
+
 const HeroSection = ({ t, onScrollToItems }) => (
-  <div className="light-theme-hero home-hero relative rounded-[2rem] overflow-hidden mb-6">
+  <div className="light-theme-hero home-hero relative rounded-[1rem] overflow-hidden mb-6">
     {/* Glow orbs */}
     <div className="home-hero-glow home-hero-glow-amber absolute -top-16 -right-10 pointer-events-none" />
     <div className="home-hero-glow home-hero-glow-green absolute -bottom-20 -left-10 pointer-events-none" />
 
-    {/* Decorative corner accent lines */}
-    <div className="absolute top-0 left-0 w-24 h-24 pointer-events-none">
-      <div style={{position:'absolute',top:16,left:16,width:40,height:2,background:'linear-gradient(90deg,#f97316,transparent)'}} />
-      <div style={{position:'absolute',top:16,left:16,width:2,height:40,background:'linear-gradient(180deg,#f97316,transparent)'}} />
-    </div>
-    <div className="absolute bottom-0 right-0 w-24 h-24 pointer-events-none">
-      <div style={{position:'absolute',bottom:16,right:16,width:40,height:2,background:'linear-gradient(270deg,#f97316,transparent)'}} />
-      <div style={{position:'absolute',bottom:16,right:16,width:2,height:40,background:'linear-gradient(0deg,#f97316,transparent)'}} />
-    </div>
+    
 
     <div className="relative p-5 space-y-4">
 
@@ -147,26 +110,24 @@ const HeroSection = ({ t, onScrollToItems }) => (
         {t.heroTitle}
       </h1>
 
-      <p className="text-sm leading-relaxed font-medium max-w-lg" style={{color:'rgba(255,255,255,0.80)'}}>
-        {t.heroDesc}
-      </p>
-
-      {/* Stats strip */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { icon: '🏆', label: 'Lowest & Unique', sub: 'bid wins' },
-          { icon: '🔁', label: 'Up to 100', sub: 'bids per item' },
-          { icon: '💰', label: 'Win at a', sub: 'fraction of price' },
-        ].map(({ icon, label, sub }) => (
-          <div key={label}
-            className="hero-stat-tile flex flex-col items-center text-center py-2 px-1 rounded-xl"
-            style={{background:'rgba(249,115,22,0.07)',border:'1px solid rgba(249,115,22,0.18)'}}>
-            <span className="text-lg leading-none mb-0.5">{icon}</span>
-            <span className="hero-stat-label text-[9px] font-black text-orange-300 leading-tight">{label}</span>
-            <span className="hero-stat-sub text-[9px] text-white/50 leading-tight">{sub}</span>
-          </div>
-        ))}
+      <div className="grid gap-2">
+        {t.heroRules.map((rule) => {
+          const RuleIcon = ruleIcons[rule.icon];
+          return (
+            <div key={rule.title} className="flex items-start gap-2 rounded-xl px-3 py-1 ">
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
+                <RuleIcon size={15} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-black text-amber-300">{rule.title}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-white/75">{rule.text}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      
 
       <button
         onClick={onScrollToItems}
@@ -271,7 +232,6 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
 
   const cdColor = countdownColor(item.end_time);
   const bidCount = localBidCount;
-  const auctionCode = item.auction_code || item.id;
 
   return (
     <div className="home-auction-card rounded-[1.75rem] overflow-hidden mb-5">
@@ -292,26 +252,13 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           )}
         </Link>
 
-        {/* LIVE badge */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow-lg">
-          {!isExpired && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-          {isExpired ? t.expired : t.live}
+        {/* Category badge */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/75 backdrop-blur-md text-amber-300 text-[10px] font-black px-2.5 py-1 rounded-lg border border-amber-500/60 shadow-lg">
+          
+          {item.category || 'Auction'}
         </div>
 
-        {/* Views */}
-        {/* <div className="absolute top-3 right-12 flex items-center gap-1 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-lg">
-          <Eye size={12} className="text-amber-400" />
-          {bidCount > 1000 ? (bidCount / 1000).toFixed(1) + 'K' : bidCount}
-        </div> */}
-
-        {/* Wishlist star
-        <button
-          onClick={() => setWished((w) => !w)}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
-          aria-label="Wishlist"
-        >
-          <Star size={15} className={wished ? 'fill-amber-400 text-amber-400' : 'text-zinc-300'} />
-        </button> */}
+       
       </div>
 
       {/* Body */}
@@ -322,37 +269,36 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           </h2>
         </Link>
 
-        <div className="border-t border-zinc-800/60" />
+        <div className="text-center">
+          <span className={`text-2xl font-black font-outfit ${cdColor}`}>
+            {isExpired ? t.expired : countdown}
+          </span>
+        </div>
 
-        {/* Bid Fee & Auction Code */}
+        {/* Bid Fee & Bid Count */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="home-card-panel flex items-center gap-2 rounded-xl p-2.5">
-            <Gavel size={15} className="text-emerald-400 shrink-0" />
-            <div>
-              <p className="text-[10px] text-emerald-400 font-bold">{t.bidFee}</p>
+          <div className="home-card-panel flex  gap-2 rounded-xl p-2.5 flex-col">
+            <div className=" flex  gap-1 flex-row">
+            <Coins size={15} className="text-amber-400 shrink-0" />
+             <p className="text-[10px] text-amber-400 ">{t.bidFee}</p>
+             </div>
+            
               <p className="text-sm font-black text-white font-mono">
                 {(item.base_price || 0).toFixed(2)} Br
               </p>
-            </div>
+            
           </div>
 
-          <div className="home-card-panel flex items-center gap-2 rounded-xl p-2.5">
-            <Tag size={15} className="text-amber-400 shrink-0" />
-            <div>
-              <p className="text-[10px] text-amber-400 font-bold">{t.auctionCode}</p>
-              <p className="text-sm font-black text-white font-mono">{auctionCode}</p>
-            </div>
-          </div>
-        </div>
+          <div className="home-card-panel flex  gap-2 rounded-xl p-2.5 flex-col">
 
-        {/* Countdown & bid count */}
-        <div className="flex items-center justify-between px-1">
-          <span className={`text-sm font-black font-mono ${cdColor}`}>
-            {isExpired ? t.expired : countdown}
-          </span>
-          <span className="text-sm font-black text-emerald-400">
-            {bidCount} {t.bids}
-          </span>
+
+            <div className=" flex  gap-1 flex-row">
+            <Ticket size={15} className="text-amber-400 shrink-0" />
+            <p className="text-[10px] text-amber-400 ">{t.bids}</p>
+               
+            </div>
+            <p className="text-sm font-black text-white font-mono">{bidCount}</p>
+          </div>
         </div>
 
         {/* Bid input + submit */}
@@ -475,13 +421,16 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
 
 /* Home Page */
 const Home = () => {
-  const [lang, setLang] = useState('en');
+  const { lang } = useLanguage();
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
   const cached = getCachedItems();
   const [items, setItems] = useState(cached || []);
   const [loading, setLoading] = useState(!cached);
   const [searchQuery, setSearchQuery] = useState('');
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const { user, socket } = useAuth();
   const navigate = useNavigate();
 
@@ -536,11 +485,18 @@ const Home = () => {
     };
   }, [socket]);
 
-  const filteredItems = items.filter(
-    (item) =>
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const categories = [...new Set(items.map((item) => item.category).filter(Boolean))];
+  const filteredItems = items
+    .filter((item) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = item.title.toLowerCase().includes(query) || item.description?.toLowerCase().includes(query);
+      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+      const price = Number(item.base_price || 0);
+      const matchesPrice = priceFilter === 'all' || (priceFilter === 'low' ? price < 100 : priceFilter === 'medium' ? price >= 100 && price < 500 : price >= 500);
+      const remaining = new Date(item.end_time).getTime() - Date.now();
+      const matchesTime = timeFilter === 'all' || (timeFilter === 'ending' && remaining > 0 && remaining <= 24 * 60 * 60 * 1000) || (timeFilter === 'newest' && Date.now() - new Date(item.created_at).getTime() <= 7 * 24 * 60 * 60 * 1000);
+      return matchesSearch && matchesCategory && matchesPrice && matchesTime;
+    });
 
   if (loading) {
     return (
@@ -554,8 +510,11 @@ const Home = () => {
   return (
     <div className="home-page max-w-lg mx-auto pb-8">
 
-      {/* Search + Language */}
-      <div className="home-toolbar flex items-center gap-2 mb-4 sticky top-[56px] z-30 backdrop-blur-md py-2">
+      {/* Hero */}
+      <HeroSection t={t} onScrollToItems={handleScrollToItems} />
+
+      {/* Search */}
+      <div className="home-toolbar flex items-center gap-2 mb-3 sticky top-[56px] z-30 backdrop-blur-md py-2">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
@@ -566,11 +525,35 @@ const Home = () => {
             className="w-full pl-9 pr-4 py-2.5 bg-[#16161A] border border-zinc-800/90 rounded-2xl text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
           />
         </div>
-        <LanguageSelector lang={lang} setLang={setLang} />
       </div>
 
-      {/* Hero */}
-      <HeroSection t={t} onScrollToItems={handleScrollToItems} />
+      {/* Filters */}
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        <label className="relative">
+          <Clock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-8 pr-7 text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500">
+            <option value="all">Time</option>
+            <option value="ending">Ending soon</option>
+            <option value="newest">New this week</option>
+          </select><ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+        </label>
+        <label className="relative">
+          <DollarSign size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <select value={priceFilter} onChange={(event) => setPriceFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-8 pr-7 text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500">
+            <option value="all">Price</option>
+            <option value="low">Under 100</option>
+            <option value="medium">100 - 499</option>
+            <option value="high">500+</option>
+          </select><ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+        </label>
+        <label className="relative">
+          <Grid3X3 size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-8 pr-7 text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500">
+            <option value="all">Category</option>
+            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select><ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+        </label>
+      </div>
 
       {/* Products */}
       <div ref={itemsRef}>
