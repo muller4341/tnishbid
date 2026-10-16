@@ -13,8 +13,8 @@ import {
   Ticket
 } from 'lucide-react';
 import { getCachedItems, setCachedItems } from '../utils/cache';
-import { ConfirmBidModal, PaymentMethodSelector } from '../components/BidPaymentModal';
-import ChapaPushModal from '../components/ChapaPushModal';
+import { optimizeImageUrl } from '../utils/imageOptimizer';
+import { ConfirmBidModal } from '../components/BidPaymentModal';
 import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
 
 /* Translations */
@@ -194,36 +194,50 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
     setShowConfirmModal(true);
   };
 
-  const handleConfirmBid = async () => {
+  const { setUser } = useAuth();
+
+  const handleConfirmBid = async (phoneNumber, paymentMethod) => {
     if (!pendingBidAmount) return;
+    const paymentToUse = paymentMethod || selectedPayment;
+    if (paymentMethod && paymentMethod !== selectedPayment) {
+      setSelectedPayment(paymentMethod);
+    }
     setIsSubmittingBid(true);
     setError('');
     setSuccess('');
     setSubmitting(true);
     try {
-      if (selectedPayment !== 'wallet') {
+      if (paymentToUse !== 'wallet') {
         const response = await axios.post('/api/payments/chapa/inline/prepare', {
           item_id: item.id,
           amount: pendingBidAmount,
         });
-        setShowConfirmModal(false);
-        setInlinePayment({ txRef: response.data.tx_ref, amount: response.data.amount });
+        setInlinePayment({
+          txRef: response.data.tx_ref,
+          amount: response.data.amount,
+          mobile: phoneNumber || user?.phone_number
+        });
         return;
       }
 
       await axios.post('/api/bids/place', {
         item_id: item.id,
         amount: pendingBidAmount,
-        payment_method: selectedPayment,
+        payment_method: paymentToUse,
       });
+      const actualFee = item?.base_price ?? 1.0;
+      if (user && setUser) {
+        setUser({ ...user, wallet_balance: Math.max(0, (user.wallet_balance || 0) - actualFee) });
+      }
       setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Br placed!`);
       setLocalBidCount((c) => c + 1);
       setBidInput('');
-      setShowConfirmModal(false);
       setTimeout(() => setSuccess(''), 3000);
+      return { success: true };
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to place bid.');
       setTimeout(() => setError(''), 4000);
+      throw err;
     } finally {
       setSubmitting(false);
       setIsSubmittingBid(false);
@@ -240,9 +254,10 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         <Link to={`/item/${item.id}`}>
           {item.image_url ? (
             <img
-              src={item.image_url}
+              src={optimizeImageUrl(item.image_url, { width: 600 })}
               alt={item.title}
               loading="lazy"
+              decoding="async"
               className="w-full h-56 sm:h-64 object-cover"
             />
           ) : (
@@ -332,13 +347,6 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
               </button>
             </div>
 
-            {isBidInputFocused && (
-              <PaymentMethodSelector
-                selectedPayment={selectedPayment}
-                onSelectPayment={setSelectedPayment}
-              />
-            )}
-
             {error && (
               <div className="flex items-center gap-2 text-xs text-red-400 font-bold bg-red-950/50 border border-red-500/30 rounded-xl px-3 py-2">
                 <AlertCircle size={13} /> {error}
@@ -376,13 +384,33 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
       </div>
       <ConfirmBidModal
         isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setInlinePayment(null);
+        }}
         onConfirm={handleConfirmBid}
         itemTitle={item.title}
         bidAmount={pendingBidAmount}
         bidFee={item.base_price || 0}
         selectedPayment={selectedPayment}
+        onSelectPayment={setSelectedPayment}
         isSubmitting={isSubmittingBid}
+        inlinePayment={inlinePayment}
+        mobile={inlinePayment?.mobile || user?.phone_number}
+        onInlineClose={(msg) => {
+          setInlinePayment(null);
+          if (msg && typeof msg === 'string') {
+            setError(msg);
+            setTimeout(() => setError(''), 4500);
+          }
+        }}
+        onInlineSuccess={async ({ txRef, chapaRef }) => {
+          await axios.post('/api/payments/chapa/inline/complete', { tx_ref: txRef, chapa_ref: chapaRef });
+          setLocalBidCount((count) => count + 1);
+          setBidInput('');
+          setSuccess(`Bid of ${pendingBidAmount?.toFixed(2) || ''} Br placed!`);
+          setTimeout(() => setSuccess(''), 4000);
+        }}
       />
       {checkoutUrl && (
         <ChapaEmbeddedModal
@@ -399,22 +427,6 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           onFailure={({ message }) => setError(message || 'Payment was not completed.')}
         />
       )}
-      <ChapaPushModal
-        isOpen={Boolean(inlinePayment)}
-        amount={inlinePayment?.amount}
-        txRef={inlinePayment?.txRef}
-        selectedPayment={selectedPayment}
-        mobile={user?.phone_number}
-        onClose={() => setInlinePayment(null)}
-        onSuccess={async ({ txRef, chapaRef }) => {
-          await axios.post('/api/payments/chapa/inline/complete', { tx_ref: txRef, chapa_ref: chapaRef });
-          setInlinePayment(null);
-          setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Br placed!`);
-          setLocalBidCount((c) => c + 1);
-          setBidInput('');
-          setTimeout(() => setSuccess(''), 3000);
-        }}
-      />
     </div>
   );
 };

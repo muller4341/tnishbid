@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
-import { Signal, Wifi, Battery, Clock, ArrowLeft, ArrowRight, Trophy, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Trophy, Clock, Package } from 'lucide-react';
+import { optimizeImageUrl } from '../utils/imageOptimizer';
 
 const MyBids = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const themeContext = useTheme();
+  const isLight =
+    themeContext?.theme === 'light' ||
+    (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
 
-  const [poolType, setPoolType] = useState('lub'); // 'lub' | 'open'
-  const [statusFilter, setStatusFilter] = useState('active'); // 'active' | 'won' | 'ended'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'won' | 'ended'
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,25 +28,18 @@ const MyBids = () => {
         setLoading(true);
         const res = await axios.get('/api/bids/my-bids');
         if (res.data && Array.isArray(res.data)) {
-          // Transform backend bids strictly for this user
-          const formatted = res.data.map(b => {
+          // Transform backend bids strictly for this user without exposing secret status
+          const formatted = res.data.map((b) => {
             const isWon = b.item.winner_id === user.id;
             const isEnded = b.item.status === 'closed' || new Date(b.item.end_time) <= new Date();
-            const isLUB = b.item.is_lub || b.item.pool_type === 'lub' || b.item.pool_type === 'premium';
-            
-            let status = 'PLACED';
+
+            let status = 'ACTIVE';
             if (isWon) {
               status = 'WINNER';
             } else if (isEnded) {
               status = 'ENDED';
             } else {
-              if (isLUB) {
-                status = b.is_unique ? 'UNIQUE' : 'DUPLICATED';
-              } else {
-                const itemBids = b.item.bids || [];
-                const maxBid = itemBids.length > 0 ? Math.max(...itemBids.map(x => x.amount)) : b.item.base_price;
-                status = b.amount >= maxBid ? 'WINNING' : 'OUTBID';
-              }
+              status = 'ACTIVE';
             }
 
             const now = new Date().getTime();
@@ -53,26 +51,28 @@ const MyBids = () => {
               const hours = Math.floor(distance / (1000 * 60 * 60));
               const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
               const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-              const pad = n => (n < 10 ? '0' + n : n);
+              const pad = (n) => (n < 10 ? '0' + n : n);
               timeStr = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
             } else {
-              timeStr = new Date(b.item.end_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              timeStr = new Date(b.item.end_time).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              });
             }
-
-            const itemBids = b.item.bids || [];
-            const maxBid = itemBids.length > 0 ? Math.max(...itemBids.map(x => x.amount)) : b.item.base_price;
 
             return {
               id: b.id,
               itemId: b.item.id,
               title: b.item.title,
               userBid: `${b.amount.toLocaleString()} Birr`,
-              latestHighest: `${maxBid.toLocaleString()} Birr`,
+              basePrice: `${(b.item.base_price ?? 0).toLocaleString()} Birr`,
               status,
               timeRemaining: timeStr,
-              poolType: isLUB ? 'lub' : 'open',
-              bidStatus: isWon ? 'won' : (isEnded ? 'ended' : 'active'),
-              image: b.item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300'
+              bidStatus: isWon ? 'won' : isEnded ? 'ended' : 'active',
+              image:
+                optimizeImageUrl(b.item.image_url, { width: 200 }) ||
+                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300',
             };
           });
 
@@ -91,70 +91,95 @@ const MyBids = () => {
     fetchUserBids();
   }, [user]);
 
-  // Filter logic
-  const filteredBids = bids.filter(bid => {
-    const matchesPool = poolType === 'lub' ? bid.poolType === 'lub' : (bid.poolType === 'open' || !bid.poolType);
-    const matchesStatus = statusFilter === 'all' || bid.bidStatus === statusFilter;
-    return matchesPool && matchesStatus;
+  // Filter logic (status filter only, open bids tab removed)
+  const filteredBids = bids.filter((bid) => {
+    if (statusFilter === 'all') return true;
+    return bid.bidStatus === statusFilter;
   });
 
-  // Calculate counts for secondary filter badges
-  const activeCount = bids.filter(b => (poolType === 'lub' ? b.poolType === 'lub' : (b.poolType === 'open' || !b.poolType)) && b.bidStatus === 'active').length;
-  const wonCount = bids.filter(b => (poolType === 'lub' ? b.poolType === 'lub' : (b.poolType === 'open' || !b.poolType)) && b.bidStatus === 'won').length;
-  const endedCount = bids.filter(b => (poolType === 'lub' ? b.poolType === 'lub' : (b.poolType === 'open' || !b.poolType)) && b.bidStatus === 'ended').length;
+  // Calculate counts for filter pills
+  const totalCount = bids.length;
+  const activeCount = bids.filter((b) => b.bidStatus === 'active').length;
+  const wonCount = bids.filter((b) => b.bidStatus === 'won').length;
+  const endedCount = bids.filter((b) => b.bidStatus === 'ended').length;
 
   return (
-    <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased">
+    <div
+      className={`min-h-screen pb-28 pt-3 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased transition-colors ${
+        isLight ? 'bg-[#F8F9FA] text-zinc-900' : 'bg-[#0A0B0E] text-slate-100'
+      }`}
+    >
       {/* Header with Back Button */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-5">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer shadow-md shrink-0"
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md shrink-0 border ${
+            isLight
+              ? 'bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              : 'bg-[#141519] border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800'
+          }`}
           aria-label="Go Back"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight font-serif">
-          My Bids
-        </h1>
+        <div>
+          <h1
+            className={`text-2xl font-black tracking-tight ${
+              isLight ? 'text-zinc-900' : 'text-white'
+            }`}
+          >
+            My Bids
+          </h1>
+          <p className={`text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+            Track your bids across all ongoing and past auctions
+          </p>
+        </div>
       </div>
 
-      {/* Primary Segmented Control (LUB Bids vs Open Bids) */}
-      <div className="bg-[#141519] border border-zinc-800/80 p-1.5 rounded-2xl flex font-bold text-sm mb-4 shadow-inner">
-        <button
-          type="button"
-          onClick={() => setPoolType('lub')}
-          className={`flex-1 py-2.5 rounded-xl text-center transition-all duration-200 ${
-            poolType === 'lub'
-              ? 'bg-amber-500 text-black font-extrabold shadow-md'
-              : 'text-zinc-400 hover:text-zinc-200 font-semibold'
-          }`}
-        >
-          LUB Bids
-        </button>
-        <button
-          type="button"
-          onClick={() => setPoolType('open')}
-          className={`flex-1 py-2.5 rounded-xl text-center transition-all duration-200 ${
-            poolType === 'open'
-              ? 'bg-amber-500 text-black font-extrabold shadow-md'
-              : 'text-zinc-400 hover:text-zinc-200 font-semibold'
-          }`}
-        >
-          Open Bids
-        </button>
-      </div>
-
-      {/* Secondary Status Filter Pills (Active, Won, Ended) */}
+      {/* Status Filter Pills (All, Active, Won, Ended) */}
       <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 scrollbar-none">
         <button
           type="button"
+          onClick={() => setStatusFilter('all')}
+          style={
+            statusFilter === 'all'
+              ? {
+                  background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                }
+              : undefined
+          }
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
+            statusFilter === 'all'
+              ? 'border-transparent'
+              : isLight
+              ? 'bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900'
+              : 'bg-[#141519] border-zinc-800 text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          All ({totalCount})
+        </button>
+
+        <button
+          type="button"
           onClick={() => setStatusFilter('active')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+          style={
             statusFilter === 'active'
-              ? 'border border-amber-500 text-amber-400 bg-amber-500/10 shadow-sm'
-              : 'bg-[#141519] border border-zinc-800 text-zinc-400 hover:text-zinc-200 font-medium'
+              ? {
+                  background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                }
+              : undefined
+          }
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
+            statusFilter === 'active'
+              ? 'border-transparent'
+              : isLight
+              ? 'bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900'
+              : 'bg-[#141519] border-zinc-800 text-zinc-400 hover:text-zinc-200'
           }`}
         >
           Active ({activeCount})
@@ -163,10 +188,21 @@ const MyBids = () => {
         <button
           type="button"
           onClick={() => setStatusFilter('won')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+          style={
             statusFilter === 'won'
-              ? 'border border-amber-500 text-amber-400 bg-amber-500/10 shadow-sm'
-              : 'bg-[#141519] border border-zinc-800 text-zinc-400 hover:text-zinc-200 font-medium'
+              ? {
+                  background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                }
+              : undefined
+          }
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
+            statusFilter === 'won'
+              ? 'border-transparent'
+              : isLight
+              ? 'bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900'
+              : 'bg-[#141519] border-zinc-800 text-zinc-400 hover:text-zinc-200'
           }`}
         >
           Won ({wonCount})
@@ -175,142 +211,239 @@ const MyBids = () => {
         <button
           type="button"
           onClick={() => setStatusFilter('ended')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+          style={
             statusFilter === 'ended'
-              ? 'border border-amber-500 text-amber-400 bg-amber-500/10 shadow-sm'
-              : 'bg-[#141519] border border-zinc-800 text-zinc-400 hover:text-zinc-200 font-medium'
+              ? {
+                  background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                }
+              : undefined
+          }
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
+            statusFilter === 'ended'
+              ? 'border-transparent'
+              : isLight
+              ? 'bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900'
+              : 'bg-[#141519] border-zinc-800 text-zinc-400 hover:text-zinc-200'
           }`}
         >
           Ended ({endedCount})
         </button>
       </div>
 
-      {/* Bids List */}
-      <div className="space-y-3.5">
-        {filteredBids.length === 0 ? (
-          <div className="bg-[#141519] border border-zinc-800/80 rounded-2xl p-8 text-center text-zinc-400 space-y-3 my-4">
-            <Trophy className="mx-auto text-zinc-600" size={36} />
-            <p className="text-sm font-semibold text-zinc-300">No {statusFilter} bids found in this section</p>
-            <p className="text-xs text-zinc-500">Explore active auctions to place your unique bid!</p>
-            <Link
-              to="/discover"
-              className="inline-block bg-amber-500 text-black font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md hover:bg-amber-400 transition-all mt-2"
-            >
-              Explore Auctions
-            </Link>
-          </div>
-        ) : (
-          filteredBids.map((bid) => (
+      {/* Loading Skeleton */}
+      {loading ? (
+        <div className="space-y-3.5">
+          {[1, 2, 3].map((i) => (
             <div
-              key={bid.id}
-              className="bg-[#141519] border border-zinc-800/90 rounded-2xl p-4 shadow-xl space-y-3 transition-all hover:border-zinc-700/80"
+              key={i}
+              className={`rounded-2xl p-4 border animate-pulse ${
+                isLight ? 'bg-white border-zinc-200' : 'bg-[#141519] border-zinc-800'
+              }`}
             >
-              {/* Card Header Top Row */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={bid.image}
-                    alt={bid.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-14 h-14 object-cover rounded-xl border border-zinc-800 bg-zinc-900 shadow-sm"
+              <div className="flex gap-3">
+                <div
+                  className={`w-14 h-14 rounded-xl ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`}
+                />
+                <div className="flex-1 space-y-2">
+                  <div
+                    className={`h-4 w-3/4 rounded ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`}
                   />
-                  <div>
-                    <h3 className="font-serif font-extrabold text-base md:text-lg text-white leading-tight">
-                      {bid.title}
-                    </h3>
-                    <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                      Your Bid: <span className="text-amber-400 font-bold">{bid.userBid}</span>
-                    </p>
+                  <div
+                    className={`h-3 w-1/2 rounded ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Bids List */
+        <div className="space-y-3.5">
+          {filteredBids.length === 0 ? (
+            <div
+              className={`border rounded-2xl p-8 text-center space-y-3 my-4 ${
+                isLight
+                  ? 'bg-white border-zinc-200 text-zinc-500 shadow-sm'
+                  : 'bg-[#141519] border-zinc-800/80 text-zinc-400'
+              }`}
+            >
+              <Trophy className="mx-auto text-orange-500" size={38} />
+              <p
+                className={`text-sm font-bold ${
+                  isLight ? 'text-zinc-800' : 'text-zinc-200'
+                }`}
+              >
+                No {statusFilter !== 'all' ? statusFilter : ''} bids found
+              </p>
+              <p className="text-xs text-zinc-500">
+                Explore active auctions and place your secret lowest unique bid!
+              </p>
+              <Link
+                to="/"
+                style={{
+                  background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.35)',
+                }}
+                className="inline-block font-black text-xs px-5 py-2.5 rounded-xl transition-all hover:brightness-110 active:scale-95 shadow-md mt-2 uppercase tracking-wider"
+              >
+                Explore Auctions
+              </Link>
+            </div>
+          ) : (
+            filteredBids.map((bid) => (
+              <div
+                key={bid.id}
+                className={`border rounded-2xl p-4 shadow-lg space-y-3 transition-all hover:border-orange-500/30 ${
+                  isLight
+                    ? 'bg-white border-zinc-200 text-zinc-900 shadow-zinc-200/50'
+                    : 'bg-[#141519] border-zinc-800 text-white'
+                }`}
+              >
+                {/* Card Header Top Row */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={bid.image}
+                      alt={bid.title}
+                      loading="lazy"
+                      decoding="async"
+                      className={`w-14 h-14 object-cover rounded-xl border shrink-0 ${
+                        isLight
+                          ? 'border-zinc-200 bg-zinc-100'
+                          : 'border-zinc-800 bg-zinc-900'
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <h3
+                        className={`font-bold text-sm sm:text-base leading-tight truncate ${
+                          isLight ? 'text-zinc-900' : 'text-white'
+                        }`}
+                      >
+                        {bid.title}
+                      </h3>
+                      <p
+                        className={`text-xs font-medium mt-1 ${
+                          isLight ? 'text-zinc-500' : 'text-zinc-400'
+                        }`}
+                      >
+                        Your Bid:{' '}
+                        <span
+                          className={`font-black font-mono ${
+                            isLight ? 'text-orange-600' : 'text-orange-400'
+                          }`}
+                        >
+                          {bid.userBid}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Badge: Only WINNER, ACTIVE, or ENDED (never leak UNIQUE or DUPLICATED) */}
+                  <div className="shrink-0">
+                    {bid.status === 'WINNER' ? (
+                      <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-[10px] font-black tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-xs">
+                        WINNER 🎉
+                      </span>
+                    ) : bid.status === 'ACTIVE' ? (
+                      <span
+                        className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-lg uppercase border ${
+                          isLight
+                            ? 'bg-orange-50 border-orange-200 text-orange-600'
+                            : 'bg-orange-500/15 border-orange-500/30 text-orange-400'
+                        }`}
+                      >
+                        ACTIVE
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-lg uppercase border ${
+                          isLight
+                            ? 'bg-zinc-100 border-zinc-200 text-zinc-500'
+                            : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
+                        }`}
+                      >
+                        ENDED
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Status Badge */}
-                <div>
-                  {bid.status === 'WINNER' && (
-                    <span className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
-                      WINNER 🎉
-                    </span>
-                  )}
-                  {bid.status === 'WINNING' && (
-                    <span className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
-                      HIGHEST BID
-                    </span>
-                  )}
-                  {bid.status === 'UNIQUE' && (
-                    <span className="bg-amber-950/80 border border-amber-500/40 text-amber-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
-                      UNIQUE BID
-                    </span>
-                  )}
-                  {bid.status === 'DUPLICATED' && (
-                    <span className="bg-rose-950/80 border border-rose-500/40 text-rose-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
-                      DUPLICATED
-                    </span>
-                  )}
-                  {bid.status === 'OUTBID' && (
-                    <span className="bg-rose-950/80 border border-rose-500/40 text-rose-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
-                      OUTBID
-                    </span>
-                  )}
-                  {bid.status === 'ENDED' && (
-                    <span className="bg-zinc-800/80 border border-zinc-700 text-zinc-400 text-[10px] font-extrabold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm">
-                      ENDED
-                    </span>
-                  )}
-                </div>
-              </div>
+                {/* Divider Line */}
+                <div
+                  className={`border-t pt-2.5 ${
+                    isLight ? 'border-zinc-100' : 'border-zinc-800/70'
+                  }`}
+                />
 
-              {/* Divider Line */}
-              <div className="border-t border-zinc-800/70 pt-2.5"></div>
+                {/* Card Bottom Info Row */}
+                <div className="flex items-center justify-between text-xs">
+                  {/* FEE / BASE PRICE */}
+                  <div>
+                    <p
+                      className={`text-[10px] uppercase font-bold tracking-wider ${
+                        isLight ? 'text-zinc-400' : 'text-zinc-500'
+                      }`}
+                    >
+                      Bid Fee
+                    </p>
+                    <p
+                      className={`text-xs sm:text-sm font-black mt-0.5 font-mono ${
+                        isLight ? 'text-zinc-800' : 'text-zinc-200'
+                      }`}
+                    >
+                      {bid.basePrice}
+                    </p>
+                  </div>
 
-              {/* Card Bottom Info Row */}
-              <div className="flex items-center justify-between text-xs">
-                {/* LATEST HIGHEST */}
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-                    {bid.poolType === 'lub' ? 'BASE PRICE' : 'LATEST HIGHEST'}
-                  </p>
-                  <p className="text-sm md:text-base font-black text-amber-400 mt-0.5 tracking-tight">
-                    {bid.latestHighest}
-                  </p>
-                </div>
+                  {/* TIME REMAINING */}
+                  <div>
+                    <p
+                      className={`text-[10px] uppercase font-bold tracking-wider ${
+                        isLight ? 'text-zinc-400' : 'text-zinc-500'
+                      }`}
+                    >
+                      Time Remaining
+                    </p>
+                    <p
+                      className={`text-xs sm:text-sm font-bold mt-0.5 font-mono ${
+                        bid.status === 'WINNER'
+                          ? 'text-emerald-500'
+                          : bid.status === 'ACTIVE'
+                          ? isLight
+                            ? 'text-orange-600'
+                            : 'text-orange-400'
+                          : isLight
+                          ? 'text-zinc-500'
+                          : 'text-zinc-400'
+                      }`}
+                    >
+                      {bid.timeRemaining}
+                    </p>
+                  </div>
 
-                {/* TIME REMAINING */}
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-                    TIME REMAINING
-                  </p>
-                  <p
-                    className={`text-sm md:text-base font-bold mt-0.5 ${
-                      bid.status === 'WINNING' || bid.status === 'WINNER' || bid.status === 'UNIQUE'
-                        ? 'text-emerald-400 font-mono'
-                        : bid.status === 'OUTBID' || bid.status === 'DUPLICATED'
-                        ? 'text-rose-400 font-mono'
-                        : 'text-zinc-300 font-sans'
-                    }`}
+                  {/* View Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/item/${bid.itemId}`)}
+                    style={{
+                      background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                      color: '#ffffff',
+                    }}
+                    className="font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer hover:brightness-110"
                   >
-                    {bid.timeRemaining}
-                  </p>
+                    View
+                  </button>
                 </div>
-
-                {/* View Action Button */}
-                <button
-                  type="button"
-                  onClick={() => navigate(`/item/${bid.itemId}`)}
-                  className="bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
-                >
-                  View
-                </button>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
 export default MyBids;
-
-
-

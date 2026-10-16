@@ -1,15 +1,54 @@
-// In-memory cache for fast Stale-While-Revalidate page rendering
-let itemsCache = null;
-let lastFetchTime = 0;
-const CACHE_TTL = 30000; // 30 seconds fresh window
+// High-performance Stale-While-Revalidate Client Cache
+const CACHE_TTL = 60000; // 60 seconds fresh window
 
-export const getCachedItems = () => itemsCache;
+let memoryCache = new Map();
 
-export const setCachedItems = (data) => {
-  itemsCache = data;
-  lastFetchTime = Date.now();
+export const cacheGet = (key) => {
+  if (memoryCache.has(key)) {
+    const { data, timestamp } = memoryCache.get(key);
+    if (Date.now() - timestamp < CACHE_TTL) {
+      return data;
+    }
+  }
+
+  try {
+    const stored = sessionStorage.getItem(`app_cache_${key}`);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Date.now() - parsed.timestamp < CACHE_TTL * 3) {
+        memoryCache.set(key, parsed);
+        return parsed.data;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
 };
 
+export const cacheSet = (key, data) => {
+  const payload = { data, timestamp: Date.now() };
+  memoryCache.set(key, payload);
+  try {
+    sessionStorage.setItem(`app_cache_${key}`, JSON.stringify(payload));
+  } catch {
+    // ignore quota errors
+  }
+};
+
+export const getCachedItems = () => cacheGet('items_all');
+
+export const setCachedItems = (data) => cacheSet('items_all', data);
+
 export const isCacheValid = () => {
-  return itemsCache !== null && (Date.now() - lastFetchTime < CACHE_TTL);
+  return getCachedItems() !== null;
+};
+
+export default {
+  cacheGet,
+  cacheSet,
+  getCachedItems,
+  setCachedItems,
+  isCacheValid
 };
