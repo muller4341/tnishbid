@@ -20,7 +20,7 @@ const ChapaPushEngine = ({ isOpen, amount, txRef, selectedPayment, mobile, onSuc
 
   useLayoutEffect(() => {
     if (!isOpen || !txRef || selectedPayment === 'wallet') return undefined;
-    const publicKey = import.meta.env.VITE_CHAPA_PUBLIC_KEY;
+    const publicKey = import.meta.env.VITE_CHAPA_PUBLIC_KEY || 'CHAPUBK_TEST-rsrOoHDhR3XQe4yEwiRspYqDn81Qky6a';
     if (!publicKey || publicKey === 'your_chapa_public_key') {
       failureRef.current?.('Chapa public key is not configured.');
       return undefined;
