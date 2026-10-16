@@ -1,4 +1,5 @@
 const prisma = require('../prismaClient');
+const { uploadImage } = require('../utils/cloudinary');
 
 exports.getProfile = async (req, res) => {
   try {
@@ -38,8 +39,9 @@ exports.updateAvatar = async (req, res) => {
     let image_url = req.body.image_url;
     
     if (req.file) {
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
-      image_url = `data:${req.file.mimetype};base64,${b64}`;
+      image_url = await uploadImage(req.file, { folder: 'tinishbid/avatars' });
+    } else if (image_url) {
+      image_url = await uploadImage(image_url, { folder: 'tinishbid/avatars' });
     }
 
     if (!image_url) {

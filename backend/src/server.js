@@ -5,6 +5,8 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const dotenv = require('dotenv');
 
+const compression = require('compression');
+
 dotenv.config();
 
 const app = express();
@@ -16,9 +18,21 @@ const io = new Server(server, {
   }
 });
 
+// High-performance gzip/deflate compression for all API payloads and assets
+app.use(compression());
+
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Serve uploads with 7-day cache and etags for maximum performance
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '../uploads'), {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true
+  })
+);
 
 // Passing socket.io instance to routes via middleware
 app.use((req, res, next) => {

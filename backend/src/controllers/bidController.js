@@ -1,4 +1,5 @@
 const prisma = require('../prismaClient');
+const { invalidateItemCache } = require('./itemController');
 
 const BID_FEE = 1.00;
 
@@ -40,11 +41,13 @@ const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
     await tx.notification.create({
       data: { user_id: duplicatedUserId, message }
     });
-    io.to(`user_${duplicatedUserId}`).emit('bid_duplicated', {
-      item_id: itemId,
-      amount: parsedAmount,
-      message
-    });
+    if (io && typeof io.to === 'function') {
+      io.to(`user_${duplicatedUserId}`).emit('bid_duplicated', {
+        item_id: itemId,
+        amount: parsedAmount,
+        message
+      });
+    }
   }
 
   return newBid;
@@ -93,6 +96,9 @@ exports.placeBid = async (req, res) => {
       // 3. Create the bid after the selected fee source is authorized.
       return createBidRecord(tx, { itemId: item_id, userId: user_id, amount: parsedAmount, io });
     });
+
+    // Invalidate cache so live auction details and item lists are up to date
+    invalidateItemCache(item_id);
 
     // Broadcast global update
     io.emit('bid_update', {

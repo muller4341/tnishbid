@@ -1,7 +1,24 @@
 const prisma = require('../prismaClient');
+const { uploadImage, uploadMultipleImages, optimizeCloudinaryUrl } = require('../utils/cloudinary');
+const cache = require('../utils/cache');
+
+const invalidateItemCache = (id) => {
+  cache.del('items:all');
+  if (id) {
+    cache.del(`item:${id}`);
+  }
+};
+exports.invalidateItemCache = invalidateItemCache;
 
 exports.getItems = async (req, res) => {
   try {
+    const cached = cache.get('items:all');
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, max-age=10, stale-while-revalidate=30');
+      return res.json(cached);
+    }
+
     const items = await prisma.item.findMany({
       orderBy: { created_at: 'desc' },
       include: {
@@ -10,7 +27,17 @@ exports.getItems = async (req, res) => {
         }
       }
     });
-    res.json(items);
+
+    const optimizedItems = items.map((item) => ({
+      ...item,
+      image_url: optimizeCloudinaryUrl(item.image_url),
+      images: Array.isArray(item.images) ? item.images.map(optimizeCloudinaryUrl) : item.images
+    }));
+
+    cache.set('items:all', optimizedItems, 45); // Cache for 45 seconds with instant invalidation on updates
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, max-age=10, stale-while-revalidate=30');
+    res.json(optimizedItems);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -18,8 +45,16 @@ exports.getItems = async (req, res) => {
 
 exports.getItemById = async (req, res) => {
   try {
+    const id = parseInt(req.params.id);
+    const cacheKey = `item:${id}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     const item = await prisma.item.findUnique({
-      where: { id: parseInt(req.params.id) },
+      where: { id },
       include: {
         winner: {
           select: { id: true, name: true, phone_number: true }
@@ -35,7 +70,16 @@ exports.getItemById = async (req, res) => {
       }
     });
     if (!item) return res.status(404).json({ error: 'Item not found' });
-    res.json(item);
+
+    const optimizedItem = {
+      ...item,
+      image_url: optimizeCloudinaryUrl(item.image_url),
+      images: Array.isArray(item.images) ? item.images.map(optimizeCloudinaryUrl) : item.images
+    };
+
+    cache.set(cacheKey, optimizedItem, 8); // Cache for 8 seconds
+    res.setHeader('X-Cache', 'MISS');
+    res.json(optimizedItem);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -58,15 +102,23 @@ exports.createItem = async (req, res) => {
     }
 
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-      const fileUrls = req.files.map(f => {
-        const b64 = Buffer.from(f.buffer).toString('base64');
-        return `data:${f.mimetype};base64,${b64}`;
-      });
-      image_url = fileUrls[0];
-      itemImages = [...itemImages, ...fileUrls];
+      const uploadedUrls = await uploadMultipleImages(req.files, { folder: 'tinishbid/items' });
+      const validUrls = uploadedUrls.filter(Boolean);
+      if (validUrls.length > 0) {
+        image_url = validUrls[0];
+        itemImages = [...itemImages, ...validUrls];
+      }
     } else if (req.file) {
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
-      image_url = `data:${req.file.mimetype};base64,${b64}`;
+      const uploadedUrl = await uploadImage(req.file, { folder: 'tinishbid/items' });
+      if (uploadedUrl) {
+        image_url = uploadedUrl;
+        itemImages = [...itemImages, uploadedUrl];
+      }
+    }
+
+    // Also upload any base64 images passed in the body
+    if (itemImages.length > 0) {
+      itemImages = (await uploadMultipleImages(itemImages, { folder: 'tinishbid/items' })).filter(Boolean);
     }
 
     if (!image_url && itemImages.length > 0) {
@@ -90,6 +142,7 @@ exports.createItem = async (req, res) => {
         status: 'active'
       }
     });
+    invalidateItemCache();
     res.status(201).json(item);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -120,15 +173,23 @@ exports.updateItem = async (req, res) => {
     }
 
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-      const fileUrls = req.files.map(f => {
-        const b64 = Buffer.from(f.buffer).toString('base64');
-        return `data:${f.mimetype};base64,${b64}`;
-      });
-      image_url = fileUrls[0];
-      itemImages = [...itemImages, ...fileUrls];
+      const uploadedUrls = await uploadMultipleImages(req.files, { folder: 'tinishbid/items' });
+      const validUrls = uploadedUrls.filter(Boolean);
+      if (validUrls.length > 0) {
+        image_url = validUrls[0];
+        itemImages = [...itemImages, ...validUrls];
+      }
     } else if (req.file) {
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
-      image_url = `data:${req.file.mimetype};base64,${b64}`;
+      const uploadedUrl = await uploadImage(req.file, { folder: 'tinishbid/items' });
+      if (uploadedUrl) {
+        image_url = uploadedUrl;
+        itemImages = [...itemImages, uploadedUrl];
+      }
+    }
+
+    // Also upload any base64 images passed in the body
+    if (itemImages.length > 0) {
+      itemImages = (await uploadMultipleImages(itemImages, { folder: 'tinishbid/items' })).filter(Boolean);
     }
 
     if (!image_url && itemImages.length > 0) {
@@ -156,6 +217,7 @@ exports.updateItem = async (req, res) => {
       }
     });
 
+    invalidateItemCache(id);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -173,6 +235,7 @@ exports.deleteItem = async (req, res) => {
     await prisma.bid.deleteMany({ where: { item_id: id } });
     await prisma.item.delete({ where: { id } });
 
+    invalidateItemCache(id);
     res.json({ message: 'Item deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });

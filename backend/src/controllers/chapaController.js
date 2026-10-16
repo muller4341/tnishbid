@@ -1,5 +1,6 @@
 const prisma = require('../prismaClient');
 const bidController = require('./bidController');
+const { invalidateItemCache } = require('./itemController');
 
 const CHAPA_INITIALIZE_URL = 'https://api.chapa.co/v1/transaction/initialize';
 const CHAPA_VERIFY_URL = 'https://api.chapa.co/v1/transaction/verify';
@@ -53,7 +54,7 @@ const redirectToResult = (res, status, txRef, message) => {
 };
 
 exports.initializeBidPayment = async (req, res) => {
-  const { item_id, amount } = req.body;
+  const { item_id, amount, phone_number } = req.body;
   const userId = req.user.id;
 
   try {
@@ -75,7 +76,9 @@ exports.initializeBidPayment = async (req, res) => {
     const bidFee = item.base_price != null ? item.base_price : 1.00;
     const txRef = `tinish-bid-${userId}-${itemId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const nameParts = (user.name || 'Tinish Bid User').trim().split(/\s+/);
-    const phone = String(user.phone_number || '').replace(/\s+/g, '');
+    let rawPhone = String(phone_number || user.phone_number || '').replace(/\D/g, '');
+    if (rawPhone.startsWith('251')) rawPhone = '0' + rawPhone.slice(3);
+    if (!rawPhone.startsWith('0') && (rawPhone.startsWith('9') || rawPhone.startsWith('7'))) rawPhone = '0' + rawPhone;
 
     await prisma.chapaPayment.create({
       data: {
@@ -102,7 +105,7 @@ exports.initializeBidPayment = async (req, res) => {
         description: `Bid fee for ${item.title}`
       }
     };
-    if (/^(09|07)\d{8}$/.test(phone)) chapaPayload.phone_number = phone;
+    if (/^(09|07)\d{8}$/.test(rawPhone)) chapaPayload.phone_number = rawPhone;
 
     const chapaResponse = await chapaRequest(CHAPA_INITIALIZE_URL, {
       method: 'POST',
@@ -169,7 +172,8 @@ exports.completeInlineBidPayment = async (req, res) => {
     if (!payment || payment.user_id !== userId) return res.status(404).json({ error: 'Payment record not found' });
     if (payment.status === 'completed') return res.json({ status: 'success' });
 
-    const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(chapaRef || txRef)}`, {
+    // Chapa verify endpoint expects merchant's tx_ref
+    const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${config.secretKey}` }
     });
@@ -178,6 +182,8 @@ exports.completeInlineBidPayment = async (req, res) => {
     if (verifiedStatus !== 'success' || (Number.isFinite(verifiedAmount) && Math.abs(verifiedAmount - payment.amount) > 0.001)) {
       return res.status(400).json({ error: 'Chapa payment could not be verified' });
     }
+
+    const verifiedChapaRef = verified.data?.reference || verified.data?.ref_id || (typeof chapaRef === 'string' ? chapaRef : null);
 
     const result = await prisma.$transaction(async (tx) => {
       const currentPayment = await tx.chapaPayment.findUnique({ where: { tx_ref: txRef } });
@@ -191,12 +197,15 @@ exports.completeInlineBidPayment = async (req, res) => {
       });
       await tx.chapaPayment.update({
         where: { tx_ref: txRef },
-        data: { status: 'completed', chapa_ref: chapaRef || null }
+        data: { status: 'completed', chapa_ref: verifiedChapaRef }
       });
       return bid;
     });
 
-    if (result) req.io.emit('bid_update', { item_id: payment.item_id, new_bid_amount: result.amount, is_unique: result.is_unique });
+    if (result && req.io) {
+      invalidateItemCache(payment.item_id);
+      req.io.emit('bid_update', { item_id: payment.item_id, new_bid_amount: result.amount, is_unique: result.is_unique });
+    }
     res.json({ status: 'success', bid: result });
   } catch (error) {
     console.error('Inline Chapa completion error:', error.message);
@@ -248,11 +257,14 @@ exports.handleCallback = async (req, res) => {
     });
 
     if (result) {
-      req.io.emit('bid_update', {
-        item_id: payment.item_id,
-        new_bid_amount: result.amount,
-        is_unique: result.is_unique
-      });
+      invalidateItemCache(payment.item_id);
+      if (req.io) {
+        req.io.emit('bid_update', {
+          item_id: payment.item_id,
+          new_bid_amount: result.amount,
+          is_unique: result.is_unique
+        });
+      }
     }
     return redirectToResult(res, 'success', txRef);
   } catch (error) {
