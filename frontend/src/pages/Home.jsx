@@ -336,7 +336,8 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
                 placeholder={t.bidAmount}
                 min="0"
                 step="0.01"
-                className="flex-1 bg-transparent text-center text-white text-sm font-bold placeholder-zinc-500 focus:outline-none py-3"
+                className="flex-1 bg-transparent text-center text-white text-[16px] font-bold placeholder-zinc-500 focus:outline-none py-3"
+                style={{ fontSize: '16px' }}
               />
               <button
                 onClick={handleIncrement}
@@ -521,50 +522,51 @@ const Home = () => {
   }
 
   return (
-    <div className="home-page max-w-lg mx-auto pb-8">
+    <div className="home-page w-full max-w-lg mx-auto pb-4 sm:pb-8 min-w-0">
 
       {/* Hero */}
       <HeroSection t={t} onScrollToItems={handleScrollToItems} />
 
       {/* Search */}
       <div className="home-toolbar flex items-center gap-2 mb-3 sticky top-[56px] z-30 backdrop-blur-md py-2">
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="w-full pl-9 pr-4 py-2.5 bg-[#16161A] border border-zinc-800/90 rounded-2xl text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
+            className="w-full pl-9 pr-4 py-2.5 bg-[#16161A] border border-zinc-800/90 rounded-2xl text-[16px] sm:text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
+            style={{ fontSize: '16px' }}
           />
         </div>
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        <label className="relative">
-          <Clock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-8 pr-7 text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-5">
+        <label className="relative min-w-0">
+          <Clock size={12} className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-6 sm:pl-8 pr-5 sm:pr-7 text-[10px] sm:text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500 truncate">
             <option value="all">Time</option>
             <option value="ending">Ending soon</option>
             <option value="newest">New this week</option>
-          </select><ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+          </select><ChevronDown size={12} className="pointer-events-none absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
         </label>
-        <label className="relative">
-          <DollarSign size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <select value={priceFilter} onChange={(event) => setPriceFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-8 pr-7 text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500">
+        <label className="relative min-w-0">
+          <DollarSign size={12} className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <select value={priceFilter} onChange={(event) => setPriceFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-6 sm:pl-8 pr-5 sm:pr-7 text-[10px] sm:text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500 truncate">
             <option value="all">Price</option>
             <option value="low">Under 100</option>
             <option value="medium">100 - 499</option>
             <option value="high">500+</option>
-          </select><ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+          </select><ChevronDown size={12} className="pointer-events-none absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
         </label>
-        <label className="relative">
-          <Grid3X3 size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-8 pr-7 text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500">
+        <label className="relative min-w-0">
+          <Grid3X3 size={12} className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-6 sm:pl-8 pr-5 sm:pr-7 text-[10px] sm:text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500 truncate">
             <option value="all">Category</option>
             {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-          </select><ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+          </select><ChevronDown size={12} className="pointer-events-none absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
         </label>
       </div>
 

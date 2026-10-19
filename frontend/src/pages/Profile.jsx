@@ -136,7 +136,7 @@ const Profile = () => {
   // Sub-page View 1: Payment Methods & Wallet
   if (activeSubPage === 'payment') {
     return (
-      <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200">
+      <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200 min-w-0">
         <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80">
           <button 
             onClick={() => setActiveSubPage(null)}
@@ -246,7 +246,7 @@ const Profile = () => {
   // Sub-page View 2: Notification Preferences
   if (activeSubPage === 'notifications') {
     return (
-      <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200">
+      <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200 min-w-0">
         <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80">
           <button 
             onClick={() => setActiveSubPage(null)}
@@ -312,7 +312,7 @@ const Profile = () => {
   // Sub-page View 3: Help & FAQ
   if (activeSubPage === 'faq') {
     return (
-      <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200">
+      <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200 min-w-0">
         <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80">
           <button 
             onClick={() => setActiveSubPage(null)}
@@ -361,7 +361,7 @@ const Profile = () => {
   // Sub-page View 4: Legal & Policies
   if (activeSubPage === 'legal') {
     return (
-      <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200">
+      <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200 min-w-0">
         <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80">
           <button 
             onClick={() => setActiveSubPage(null)}
@@ -407,7 +407,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased">
+    <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased min-w-0">
       {/* Top Mobile Status Header (matching Screenshot frame aesthetic) */}
      
 

@@ -129,17 +129,17 @@ const Navbar = () => {
 
   return (
     <nav
-      className="backdrop-blur-md shadow-md sticky top-0 z-40 transition-colors duration-300"
+      className="backdrop-blur-md shadow-md sticky top-0 z-40 transition-colors duration-300 pt-[env(safe-area-inset-top,0px)]"
       style={{
         backgroundColor: theme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(13,14,17,0.90)',
         borderBottom: theme === 'light' ? '1px solid #D4D5DA' : '1px solid rgba(39,39,42,0.8)',
       }}
     >
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="container mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
         {/* Brand Logo & Crown Icon matching Screenshot */}
-        <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center gap-2 text-xl md:text-2xl font-black tracking-tight text-white group">
-            <Crown size={24} className="text-amber-400 fill-amber-400/20 group-hover:scale-110 transition-transform" />
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 text-lg sm:text-xl md:text-2xl font-black tracking-tight text-white group">
+            <Crown size={22} className="text-amber-400 fill-amber-400/20 group-hover:scale-110 transition-transform shrink-0" />
             <span>
             ትንሽ<span className="text-amber-400">Bid</span>
             </span>
@@ -155,7 +155,7 @@ const Navbar = () => {
         </div>
         
         {/* Top Right Actions */}
-        <div className="flex items-center gap-2.5 md:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-4 shrink-0">
           {user ? (
             <>
               {user.role === 'admin' && (

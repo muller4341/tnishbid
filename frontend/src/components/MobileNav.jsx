@@ -52,7 +52,7 @@ const MobileNav = () => {
 
   return (
     <div
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl px-4 py-2 transition-colors duration-300"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl px-2 xs:px-4 pt-2 pb-[max(0.6rem,calc(0.4rem+env(safe-area-inset-bottom,0px)))] transition-colors duration-300"
       style={{
         backgroundColor: theme === 'light' ? 'rgba(255,255,255,0.97)' : 'rgba(14,15,18,0.95)',
         borderTop: theme === 'light' ? '1px solid #D4D5DA' : '1px solid rgba(39,39,42,0.8)',
@@ -61,7 +61,7 @@ const MobileNav = () => {
           : '0 -4px 25px rgba(0,0,0,0.5)',
       }}
     >
-      <div className="flex justify-around items-center">
+      <div className="flex justify-around items-center max-w-lg mx-auto w-full">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.exact 
@@ -72,7 +72,7 @@ const MobileNav = () => {
             <Link
               key={item.label}
               to={item.path}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 relative ${
+              className={`flex flex-col items-center justify-center py-1 px-2 xs:px-3 rounded-2xl transition-all duration-200 relative min-w-0 ${
                 isActive 
                   ? 'text-amber-400 font-bold scale-105' 
                   : theme === 'light' ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-500 hover:text-zinc-300'

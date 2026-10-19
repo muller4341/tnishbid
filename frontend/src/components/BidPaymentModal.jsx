@@ -339,7 +339,7 @@ export const ConfirmBidModal = memo(({
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[92vh] overflow-y-auto px-5 py-4 sm:py-5 sm:px-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${
+        className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${
           paymentSuccess || (inlinePayment && !isWallet)
             ? 'rounded-3xl zoom-in-95'
             : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
@@ -636,11 +636,12 @@ export const ConfirmBidModal = memo(({
                     value={phoneNumber.replace(/^0/, '')}
                     onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, ''))}
                     placeholder="91 234 5678"
-                    className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${
+                    className={`min-w-0 flex-1 bg-transparent pl-3 text-[16px] font-bold outline-none ${
                       isLight
                         ? 'text-zinc-900 placeholder:text-zinc-400'
                         : 'text-white placeholder:text-zinc-600'
                     }`}
+                    style={{ fontSize: '16px' }}
                   />
                 </div>
               </div>

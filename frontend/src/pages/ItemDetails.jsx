@@ -610,13 +610,13 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
         <span className="text-[8.5px] text-zinc-500 font-normal">Choose option to pay bid fee</span>
       </label>
 
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
         {/* 1. Telebirr */}
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('telebirr')}
-          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${selectedPayment === 'telebirr'
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${selectedPayment === 'telebirr'
               ? 'bg-sky-950/70 border-sky-400 ring-1 ring-sky-400/40 shadow-sm'
               : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
             }`}
@@ -624,8 +624,8 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           {selectedPayment === 'telebirr' && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky-400"></span>
           )}
-          <img src={telebirrLogo} alt="Telebirr" className="h-5.5 max-w-[72px] object-contain rounded-xs shrink-0" />
-          <span className="text-[10px] font-bold text-white tracking-wide">Telebirr</span>
+          <img src={telebirrLogo} alt="Telebirr" className="h-4.5 sm:h-5.5 max-w-[55px] sm:max-w-[72px] object-contain rounded-xs shrink-0" />
+          <span className="text-[9px] xs:text-[10px] font-bold text-white tracking-wide truncate">Telebirr</span>
         </button>
 
         {/* 2. CBE */}
@@ -633,7 +633,7 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('cbe')}
-          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${selectedPayment === 'cbe'
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${selectedPayment === 'cbe'
               ? 'bg-purple-950/70 border-purple-400 ring-1 ring-purple-400/40 shadow-sm'
               : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
             }`}
@@ -641,8 +641,8 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           {selectedPayment === 'cbe' && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-400"></span>
           )}
-          <img src={cbeLogo} alt="CBE" className="h-5.5 max-w-[72px] object-contain rounded-xs shrink-0" />
-          <span className="text-[10px] font-bold text-white tracking-wide">CBE</span>
+          <img src={cbeLogo} alt="CBE" className="h-4.5 sm:h-5.5 max-w-[55px] sm:max-w-[72px] object-contain rounded-xs shrink-0" />
+          <span className="text-[9px] xs:text-[10px] font-bold text-white tracking-wide truncate">CBE</span>
         </button>
 
         {/* 3. Wallet */}
@@ -650,7 +650,7 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('wallet')}
-          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${selectedPayment === 'wallet'
+          className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${selectedPayment === 'wallet'
               ? 'bg-amber-950/70 border-amber-400 ring-1 ring-amber-400/40 shadow-sm'
               : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
             }`}
@@ -658,10 +658,10 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           {selectedPayment === 'wallet' && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400"></span>
           )}
-          <div className="w-5 h-5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
-            <Wallet size={13} />
+          <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
+            <Wallet size={12} />
           </div>
-          <span className="text-[10px] font-bold text-white tracking-wide">Wallet</span>
+          <span className="text-[9px] xs:text-[10px] font-bold text-white tracking-wide truncate">Wallet</span>
         </button>
       </div>
     </div>
@@ -991,7 +991,7 @@ const ItemDetails = memo(() => {
   const productImage = item?.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=600';
 
   return (
-    <div className="min-h-screen bg-[#0A0B0E] text-slate-100 pb-28 pt-2 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased">
+    <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased min-w-0">
       {/* Phone Status Header */}
 
 
@@ -1229,6 +1229,7 @@ const ItemDetails = memo(() => {
                     onChange={(e) => setCustomBidInput(e.target.value)}
                     className="w-full bg-transparent font-mono font-black text-2xl md:text-3xl text-white focus:outline-none"
                     placeholder="e.g. 0.01 or 50.00"
+                    style={{ fontSize: '24px' }}
                   />
                   <span className="text-zinc-400 font-bold text-base pl-2">Birr</span>
                 </div>
@@ -1411,10 +1412,11 @@ const ItemDetails = memo(() => {
                           disabled={timeLeft === 'EXPIRED'}
                           onFocus={() => setIsLubInputFocused(true)}
                           onBlur={() => setTimeout(() => setIsLubInputFocused(false), 200)}
-                          className="w-full pl-12 pr-3 py-3 bg-[#111113] border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-mono font-bold text-sm text-white transition-all"
+                          className="w-full pl-12 pr-3 py-3 bg-[#111113] border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-mono font-bold text-[16px] text-white transition-all"
                           placeholder="e.g. 0.01 or 15.20"
                           value={lubBidAmount}
                           onChange={(e) => setLubBidAmount(e.target.value)}
+                          style={{ fontSize: '16px' }}
                         />
                       </div>
                       <button

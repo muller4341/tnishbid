@@ -68,7 +68,7 @@ const ChapaEmbeddedModal = ({ checkoutUrl, onClose, onSuccess, onFailure }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200"
       style={{
         background: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.80)',
         backdropFilter: 'blur(18px)',
@@ -88,7 +88,7 @@ const ChapaEmbeddedModal = ({ checkoutUrl, onClose, onSuccess, onFailure }) => {
             ? 'bg-white border-orange-500/20 shadow-orange-950/10'
             : 'bg-[#141519] border-zinc-800 shadow-black/50'
         }`}
-        style={{ height: '80vh', maxHeight: '700px' }}
+        style={{ height: 'min(82vh, 700px)', maxHeight: 'calc(100dvh - 2rem)' }}
       >
         {/* Header bar */}
         <div

@@ -35,7 +35,7 @@ const AppContent = () => {
     <div className="min-h-screen bg-[#0A0B0D] text-slate-100 flex flex-col antialiased selection:bg-amber-500 selection:text-black">
       <ScrollToTop />
       <Navbar />
-      <main className="flex-grow container mx-auto px-4 pt-4 pb-20 md:pb-12 max-w-7xl">
+      <main className="flex-grow w-full container mx-auto px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-7xl min-w-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/discover" element={<Discover />} />

@@ -175,16 +175,16 @@ const MyBids = () => {
 
   return (
     <div
-      className={`min-h-screen pb-28 pt-3 px-3 md:px-6 max-w-lg mx-auto font-sans antialiased transition-colors ${
+      className={`w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased transition-colors min-w-0 ${
         isLight ? 'bg-[#F8F9FA] text-zinc-900' : 'bg-[#0A0B0E] text-slate-100'
       }`}
     >
       {/* Header with Back Button */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-2.5 sm:gap-3 mb-5">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md shrink-0 border ${
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md shrink-0 border ${
             isLight
               ? 'bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
               : 'bg-[#141519] border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800'
@@ -193,22 +193,22 @@ const MyBids = () => {
         >
           <ArrowLeft size={18} />
         </button>
-        <div>
+        <div className="min-w-0 flex-1">
           <h1
-            className={`text-2xl font-black tracking-tight ${
+            className={`text-xl sm:text-2xl font-black tracking-tight truncate ${
               isLight ? 'text-zinc-900' : 'text-white'
             }`}
           >
             My Bids
           </h1>
-          <p className={`text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+          <p className={`text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'} truncate`}>
             Track your bids across all ongoing and past auctions
           </p>
         </div>
       </div>
 
       {/* Status Filter Pills (All, Active, Won, Ended) */}
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-5 overflow-x-auto pb-1.5 scrollbar-none w-full">
         <button
           type="button"
           onClick={() => setStatusFilter('all')}
