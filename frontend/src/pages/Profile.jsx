@@ -34,6 +34,20 @@ const Profile = () => {
   const [activeSubPage, setActiveSubPage] = useState(null); // 'payment', 'notifications', 'faq', 'legal' | null
   const [addFundsAmount, setAddFundsAmount] = useState('');
   const [fundingSuccess, setFundingSuccess] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Close logout confirmation on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showLogoutConfirm) {
+        setShowLogoutConfirm(false);
+      }
+    };
+    if (showLogoutConfirm) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showLogoutConfirm]);
 
   // Dynamic Avatar state (defaults to human icon, user can upload custom photo)
   const avatarStorageKey = user?.id ? `user_avatar_${user.id}` : 'user_avatar_guest';
@@ -624,7 +638,7 @@ const Profile = () => {
 
         {/* 5. Sign Out Profile Session */}
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="w-full bg-[#141519] hover:bg-rose-950/20 active:bg-rose-950/30 border border-zinc-800/80 hover:border-rose-900/50 rounded-2xl p-4 transition-all duration-200 text-left flex items-center justify-between group shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-4">
@@ -643,6 +657,69 @@ const Profile = () => {
           <ChevronRight size={18} className="text-zinc-600 group-hover:text-rose-400 transition-colors" />
         </button>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm bg-[#141519] border border-zinc-800/90 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            {/* Top ambient glow */}
+            <div className="absolute -top-16 -right-16 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="flex items-start justify-between gap-3 relative z-10 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/10">
+                <LogOut size={22} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-8 h-8 rounded-full bg-zinc-800/70 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Close dialog"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="relative z-10 text-left">
+              <h3 className="text-lg font-bold text-white tracking-tight">
+                Sign Out of BidWin?
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-400 mt-1.5 leading-relaxed">
+                Are you sure you want to end your session? You will need to sign back in with your phone number to place bids and access your wallet.
+              </p>
+              {user?.phone && (
+                <div className="mt-3.5 py-2 px-3 rounded-xl bg-zinc-900/80 border border-zinc-800/80 text-xs text-zinc-400 flex items-center gap-2">
+                  <Phone size={13} className="text-zinc-500 shrink-0" />
+                  <span className="truncate">Active account: <strong className="text-zinc-200">{user.phone}</strong></span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 mt-6 relative z-10">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-zinc-800/90 hover:bg-zinc-800 active:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 active:scale-[0.98] text-white shadow-lg shadow-rose-600/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <LogOut size={15} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

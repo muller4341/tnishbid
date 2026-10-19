@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
   Eye, Tag, Gavel, Star, AlertCircle,
@@ -98,15 +99,15 @@ const HeroSection = ({ t, onScrollToItems }) => (
     <div className="home-hero-glow home-hero-glow-amber absolute -top-16 -right-10 pointer-events-none" />
     <div className="home-hero-glow home-hero-glow-green absolute -bottom-20 -left-10 pointer-events-none" />
 
-    
+
 
     <div className="relative p-5 space-y-4">
 
       {/* Brand badge */}
-     
+
 
       <h1 className="text-2xl md:text-3xl font-black leading-tight tracking-tight"
-        style={{color:'#fff',textShadow:'0 2px 20px rgba(249,115,22,0.4)'}}>
+        style={{ color: '#fff', textShadow: '0 2px 20px rgba(249,115,22,0.4)' }}>
         {t.heroTitle}
       </h1>
 
@@ -127,7 +128,7 @@ const HeroSection = ({ t, onScrollToItems }) => (
         })}
       </div>
 
-      
+
 
       <button
         onClick={onScrollToItems}
@@ -156,7 +157,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmittingBid, setIsSubmittingBid] = useState(false);
   const [pendingBidAmount, setPendingBidAmount] = useState(null);
-    const [inlinePayment, setInlinePayment] = useState(null);
+  const [inlinePayment, setInlinePayment] = useState(null);
   const [checkoutUrl, setCheckoutUrl] = useState(null);
 
   const isExpired =
@@ -269,11 +270,11 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
 
         {/* Category badge */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/75 backdrop-blur-md text-amber-300 text-[10px] font-black px-2.5 py-1 rounded-lg border border-amber-500/60 shadow-lg">
-          
+
           {item.category || 'Auction'}
         </div>
 
-       
+
       </div>
 
       {/* Body */}
@@ -294,23 +295,23 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         <div className="grid grid-cols-2 gap-2">
           <div className="home-card-panel flex  gap-2 rounded-xl p-2.5 flex-col">
             <div className=" flex  gap-1 flex-row">
-            <Coins size={15} className="text-amber-400 shrink-0" />
-             <p className="text-[10px] text-amber-400 ">{t.bidFee}</p>
-             </div>
-            
-              <p className="text-sm font-black text-white font-mono">
-                {(item.base_price || 0).toFixed(2)} Br
-              </p>
-            
+              <Coins size={15} className="text-amber-400 shrink-0" />
+              <p className="text-[10px] text-amber-400 ">{t.bidFee}</p>
+            </div>
+
+            <p className="text-sm font-black text-white font-mono">
+              {(item.base_price || 0).toFixed(2)} Br
+            </p>
+
           </div>
 
           <div className="home-card-panel flex  gap-2 rounded-xl p-2.5 flex-col">
 
 
             <div className=" flex  gap-1 flex-row">
-            <Ticket size={15} className="text-amber-400 shrink-0" />
-            <p className="text-[10px] text-amber-400 ">{t.bids}</p>
-               
+              <Ticket size={15} className="text-amber-400 shrink-0" />
+              <p className="text-[10px] text-amber-400 ">{t.bids}</p>
+
             </div>
             <p className="text-sm font-black text-white font-mono">{bidCount}</p>
           </div>
@@ -446,7 +447,26 @@ const Home = () => {
   const [priceFilter, setPriceFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const { user, socket } = useAuth();
+  const themeContext = useTheme();
+  const isLight =
+    themeContext?.theme === 'light' ||
+    (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
   const navigate = useNavigate();
+
+  const timeFilterLabels = {
+    all: 'Time',
+    ending: 'Ending',
+    newest: 'Newest',
+  };
+
+  const priceFilterLabels = {
+    all: 'Price',
+    low: '< 100',
+    medium: '100-500',
+    high: '500+',
+  };
+
+  const categoryFilterLabel = categoryFilter === 'all' ? 'Category' : categoryFilter;
 
   const itemsRef = useRef(null);
   const handleScrollToItems = () => {
@@ -543,31 +563,136 @@ const Home = () => {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-5">
-        <label className="relative min-w-0">
-          <Clock size={12} className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-6 sm:pl-8 pr-5 sm:pr-7 text-[10px] sm:text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500 truncate">
-            <option value="all">Time</option>
-            <option value="ending">Ending soon</option>
-            <option value="newest">New this week</option>
-          </select><ChevronDown size={12} className="pointer-events-none absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-        </label>
-        <label className="relative min-w-0">
-          <DollarSign size={12} className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <select value={priceFilter} onChange={(event) => setPriceFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-6 sm:pl-8 pr-5 sm:pr-7 text-[10px] sm:text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500 truncate">
-            <option value="all">Price</option>
-            <option value="low">Under 100</option>
-            <option value="medium">100 - 499</option>
-            <option value="high">500+</option>
-          </select><ChevronDown size={12} className="pointer-events-none absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-        </label>
-        <label className="relative min-w-0">
-          <Grid3X3 size={12} className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-zinc-800 bg-[#141519] py-2 pl-6 sm:pl-8 pr-5 sm:pr-7 text-[10px] sm:text-[11px] font-bold text-zinc-300 outline-none focus:border-amber-500 truncate">
-            <option value="all">Category</option>
-            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-          </select><ChevronDown size={12} className="pointer-events-none absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-        </label>
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        {/* 1. Time Filter Dropdown */}
+        <div
+          className={`relative rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none group active:scale-[0.98] ${
+            timeFilter !== 'all'
+              ? isLight
+                ? 'bg-amber-50 border-amber-400/60 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
+                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
+              : isLight
+              ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+              : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
+          }`}
+        >
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <Clock
+              size={13}
+              className={`shrink-0 transition-colors ${
+                timeFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-500' : 'text-zinc-400 group-hover:text-amber-400'
+              }`}
+            />
+            <span className="text-[11px] sm:text-xs font-bold truncate">
+              {timeFilterLabels[timeFilter] || 'Time'}
+            </span>
+          </div>
+          <ChevronDown
+            size={12}
+            className={`shrink-0 transition-transform pointer-events-none ml-1 ${
+              timeFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500 group-hover:text-zinc-300'
+            }`}
+          />
+          <select
+            value={timeFilter}
+            onChange={(event) => setTimeFilter(event.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 bg-[#16161A] text-white"
+            style={{ fontSize: '16px' }}
+            aria-label="Filter by time"
+          >
+            <option value="all" className="bg-[#16161A] text-white">Time (All)</option>
+            <option value="ending" className="bg-[#16161A] text-white">Ending soon</option>
+            <option value="newest" className="bg-[#16161A] text-white">New this week</option>
+          </select>
+        </div>
+
+        {/* 2. Price Filter Dropdown */}
+        <div
+          className={`relative rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none group active:scale-[0.98] ${
+            priceFilter !== 'all'
+              ? isLight
+                ? 'bg-amber-50 border-amber-400/60 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
+                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
+              : isLight
+              ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+              : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
+          }`}
+        >
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <DollarSign
+              size={13}
+              className={`shrink-0 transition-colors ${
+                priceFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-500' : 'text-zinc-400 group-hover:text-amber-400'
+              }`}
+            />
+            <span className="text-[11px] sm:text-xs font-bold truncate">
+              {priceFilterLabels[priceFilter] || 'Price'}
+            </span>
+          </div>
+          <ChevronDown
+            size={12}
+            className={`shrink-0 transition-transform pointer-events-none ml-1 ${
+              priceFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500 group-hover:text-zinc-300'
+            }`}
+          />
+          <select
+            value={priceFilter}
+            onChange={(event) => setPriceFilter(event.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 bg-[#16161A] text-white"
+            style={{ fontSize: '16px' }}
+            aria-label="Filter by price"
+          >
+            <option value="all" className="bg-[#16161A] text-white">Price (All)</option>
+            <option value="low" className="bg-[#16161A] text-white">Under 100 Br</option>
+            <option value="medium" className="bg-[#16161A] text-white">100 - 499 Br</option>
+            <option value="high" className="bg-[#16161A] text-white">500+ Br</option>
+          </select>
+        </div>
+
+        {/* 3. Category Filter Dropdown */}
+        <div
+          className={`relative rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none group active:scale-[0.98] ${
+            categoryFilter !== 'all'
+              ? isLight
+                ? 'bg-amber-50 border-amber-400/60 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
+                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
+              : isLight
+              ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+              : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
+          }`}
+        >
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <Grid3X3
+              size={13}
+              className={`shrink-0 transition-colors ${
+                categoryFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-500' : 'text-zinc-400 group-hover:text-amber-400'
+              }`}
+            />
+            <span className="text-[11px] sm:text-xs font-bold truncate">
+              {categoryFilterLabel}
+            </span>
+          </div>
+          <ChevronDown
+            size={12}
+            className={`shrink-0 transition-transform pointer-events-none ml-1 ${
+              categoryFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500 group-hover:text-zinc-300'
+            }`}
+          />
+          <select
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 bg-[#16161A] text-white"
+            style={{ fontSize: '16px' }}
+            aria-label="Filter by category"
+          >
+            <option value="all" className="bg-[#16161A] text-white">Category (All)</option>
+            {categories.map((category) => (
+              <option key={category} value={category} className="bg-[#16161A] text-white">
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Products */}

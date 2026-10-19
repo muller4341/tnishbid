@@ -234,8 +234,8 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
               type="button"
               onClick={() => handleSelect(idx)}
               className={`transition-all duration-300 rounded-full cursor-pointer ${currentIndex === idx
-                  ? 'w-5 h-2 bg-amber-400 shadow-sm'
-                  : 'w-2 h-2 bg-zinc-600 hover:bg-zinc-400'
+                ? 'w-5 h-2 bg-amber-400 shadow-sm'
+                : 'w-2 h-2 bg-zinc-600 hover:bg-zinc-400'
                 }`}
               aria-label={`Go to slide ${idx + 1}`}
             />
@@ -256,8 +256,8 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
                 type="button"
                 onClick={() => handleSelect(idx)}
                 className={`relative rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${isActive
-                    ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20'
-                    : 'border-zinc-800/90 opacity-60 hover:opacity-100 hover:border-zinc-600'
+                  ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20'
+                  : 'border-zinc-800/90 opacity-60 hover:opacity-100 hover:border-zinc-600'
                   }`}
               >
                 <img
@@ -382,8 +382,8 @@ const BidGroupRow = ({ group, winningBidId, currentUserId }) => {
         </p>
         <div>
           <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase ${isUnique
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : 'bg-zinc-800 text-zinc-400'
+            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+            : 'bg-zinc-800 text-zinc-400'
             }`}>
             {isUnique ? 'UNIQUE' : `${totalCount} BIDS`}
           </span>
@@ -402,10 +402,10 @@ const BidGroupRow = ({ group, winningBidId, currentUserId }) => {
               <div
                 key={b.id || i}
                 className={`flex items-center justify-between text-xs px-3 py-1.5 rounded-xl transition-all ${isWinner
-                    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold shadow-sm'
-                    : isUser
-                      ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold'
-                      : 'bg-[#141519] border border-zinc-800/60 text-zinc-300'
+                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold shadow-sm'
+                  : isUser
+                    ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold'
+                    : 'bg-[#141519] border border-zinc-800/60 text-zinc-300'
                   }`}
               >
                 <div className="flex items-center gap-2">
@@ -617,8 +617,8 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('telebirr')}
           className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${selectedPayment === 'telebirr'
-              ? 'bg-sky-950/70 border-sky-400 ring-1 ring-sky-400/40 shadow-sm'
-              : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
+            ? 'bg-sky-950/70 border-sky-400 ring-1 ring-sky-400/40 shadow-sm'
+            : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
             }`}
         >
           {selectedPayment === 'telebirr' && (
@@ -634,8 +634,8 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('cbe')}
           className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${selectedPayment === 'cbe'
-              ? 'bg-purple-950/70 border-purple-400 ring-1 ring-purple-400/40 shadow-sm'
-              : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
+            ? 'bg-purple-950/70 border-purple-400 ring-1 ring-purple-400/40 shadow-sm'
+            : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
             }`}
         >
           {selectedPayment === 'cbe' && (
@@ -651,8 +651,8 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSelectPayment('wallet')}
           className={`py-2 px-1 rounded-xl border transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${selectedPayment === 'wallet'
-              ? 'bg-amber-950/70 border-amber-400 ring-1 ring-amber-400/40 shadow-sm'
-              : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
+            ? 'bg-amber-950/70 border-amber-400 ring-1 ring-amber-400/40 shadow-sm'
+            : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 opacity-70 hover:opacity-100'
             }`}
         >
           {selectedPayment === 'wallet' && (
@@ -1076,8 +1076,8 @@ const ItemDetails = memo(() => {
                           <div
                             key={bidder.id}
                             className={`p-3 rounded-2xl flex items-center justify-between transition-all shadow-md ${bidder.isUser
-                                ? 'bg-emerald-950/30 border border-emerald-500/50 shadow-emerald-950/20'
-                                : 'bg-[#0E0F12] border border-zinc-800/80'
+                              ? 'bg-emerald-950/30 border border-emerald-500/50 shadow-emerald-950/20'
+                              : 'bg-[#0E0F12] border border-zinc-800/80'
                               }`}
                           >
                             <div className="flex items-center gap-3">
@@ -1203,8 +1203,8 @@ const ItemDetails = memo(() => {
                           setCustomBidInput((currentHighestBid + inc).toFixed(2));
                         }}
                         className={`py-3 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-md ${isSelected
-                            ? 'bg-amber-500 text-black font-black shadow-amber-500/20'
-                            : 'bg-[#141519] border border-zinc-800 text-zinc-300 hover:text-white'
+                          ? 'bg-amber-500 text-black font-black shadow-amber-500/20'
+                          : 'bg-[#141519] border border-zinc-800 text-zinc-300 hover:text-white'
                           }`}
                       >
                         +{inc}
