@@ -47,6 +47,9 @@ const AppContent = () => {
               </PrivateRoute>
             } 
           />
+          <Route path="/mybid" element={<Navigate to="/my-bids" replace />} />
+          <Route path="/mybids" element={<Navigate to="/my-bids" replace />} />
+          <Route path="/my-bid" element={<Navigate to="/my-bids" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/payment-result" element={<PaymentResult />} />

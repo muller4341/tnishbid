@@ -417,12 +417,13 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           checkoutUrl={checkoutUrl}
           onClose={() => setCheckoutUrl(null)}
           onSuccess={() => {
-            setCheckoutUrl(null);
             setBidInput('');
             setLocalBidCount((count) => count + 1);
-            setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Br placed!`);
             setPendingBidAmount(null);
-            setTimeout(() => setSuccess(''), 3000);
+            setTimeout(() => {
+              setCheckoutUrl(null);
+              navigate('/my-bids');
+            }, 1000);
           }}
           onFailure={({ message }) => setError(message || 'Payment was not completed.')}
         />

@@ -28,10 +28,44 @@ const MyBids = () => {
         setLoading(true);
         const res = await axios.get('/api/bids/my-bids');
         if (res.data && Array.isArray(res.data)) {
-          // Transform backend bids strictly for this user without exposing secret status
-          const formatted = res.data.map((b) => {
-            const isWon = b.item.winner_id === user.id;
-            const isEnded = b.item.status === 'closed' || new Date(b.item.end_time) <= new Date();
+          // Group bids by product item.id
+          const groupsMap = new Map();
+
+          res.data.forEach((b) => {
+            if (!b.item) return;
+            const itemId = b.item.id;
+            if (!groupsMap.has(itemId)) {
+              groupsMap.set(itemId, {
+                itemId: b.item.id,
+                item: b.item,
+                title: b.item.title,
+                image:
+                  optimizeImageUrl(b.item.image_url, { width: 200 }) ||
+                  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300',
+                basePrice: `${(b.item.base_price ?? 0).toLocaleString()} Birr`,
+                endTime: b.item.end_time,
+                winnerId: b.item.winner_id,
+                itemStatus: b.item.status,
+                latestBidTime: new Date(b.created_at || 0).getTime(),
+                bids: [],
+              });
+            }
+
+            const group = groupsMap.get(itemId);
+            group.bids.push({
+              id: b.id,
+              amount: b.amount,
+              createdAt: b.created_at,
+            });
+            if (new Date(b.created_at || 0).getTime() > group.latestBidTime) {
+              group.latestBidTime = new Date(b.created_at || 0).getTime();
+            }
+          });
+
+          // Format grouped items
+          const groupedList = Array.from(groupsMap.values()).map((g) => {
+            const isWon = g.winnerId === user.id;
+            const isEnded = g.itemStatus === 'closed' || (g.endTime && new Date(g.endTime) <= new Date());
 
             let status = 'ACTIVE';
             if (isWon) {
@@ -43,7 +77,7 @@ const MyBids = () => {
             }
 
             const now = new Date().getTime();
-            const end = new Date(b.item.end_time).getTime();
+            const end = g.endTime ? new Date(g.endTime).getTime() : 0;
             const distance = end - now;
 
             let timeStr = 'Ended';
@@ -53,30 +87,37 @@ const MyBids = () => {
               const seconds = Math.floor((distance % (1000 * 60)) / 1000);
               const pad = (n) => (n < 10 ? '0' + n : n);
               timeStr = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-            } else {
-              timeStr = new Date(b.item.end_time).toLocaleDateString('en-US', {
+            } else if (g.endTime) {
+              timeStr = new Date(g.endTime).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
               });
             }
 
+            // Sort individual bids by amount ascending
+            const sortedBids = [...g.bids].sort((a, b) => a.amount - b.amount);
+
             return {
-              id: b.id,
-              itemId: b.item.id,
-              title: b.item.title,
-              userBid: `${b.amount.toLocaleString()} Birr`,
-              basePrice: `${(b.item.base_price ?? 0).toLocaleString()} Birr`,
+              id: `item-${g.itemId}`,
+              itemId: g.itemId,
+              title: g.title,
+              basePrice: g.basePrice,
               status,
               timeRemaining: timeStr,
               bidStatus: isWon ? 'won' : isEnded ? 'ended' : 'active',
-              image:
-                optimizeImageUrl(b.item.image_url, { width: 200 }) ||
-                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300',
+              image: g.image,
+              bids: sortedBids,
+              totalBidsCount: sortedBids.length,
+              latestBidTime: g.latestBidTime,
+              endTime: g.endTime,
             };
           });
 
-          setBids(formatted);
+          // Sort by latest activity (most recently placed bids first)
+          groupedList.sort((a, b) => b.latestBidTime - a.latestBidTime);
+
+          setBids(groupedList);
         } else {
           setBids([]);
         }
@@ -91,7 +132,36 @@ const MyBids = () => {
     fetchUserBids();
   }, [user]);
 
-  // Filter logic (status filter only, open bids tab removed)
+  // Live ticker for active countdowns
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBids((prev) =>
+        prev.map((g) => {
+          if (!g.endTime || g.bidStatus !== 'active') return g;
+          const distance = new Date(g.endTime).getTime() - Date.now();
+          if (distance <= 0) {
+            return {
+              ...g,
+              timeRemaining: 'Ended',
+              status: g.bidStatus === 'won' ? 'WINNER' : 'ENDED',
+              bidStatus: g.bidStatus === 'won' ? 'won' : 'ended',
+            };
+          }
+          const hours = Math.floor(distance / (1000 * 60 * 60));
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+          const pad = (n) => (n < 10 ? '0' + n : n);
+          return {
+            ...g,
+            timeRemaining: `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`,
+          };
+        })
+      );
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Filter logic (status filter only)
   const filteredBids = bids.filter((bid) => {
     if (statusFilter === 'all') return true;
     return bid.bidStatus === statusFilter;
@@ -293,9 +363,9 @@ const MyBids = () => {
               </Link>
             </div>
           ) : (
-            filteredBids.map((bid) => (
+            filteredBids.map((itemGroup) => (
               <div
-                key={bid.id}
+                key={itemGroup.id}
                 className={`border rounded-2xl p-4 shadow-lg space-y-3 transition-all hover:border-orange-500/30 ${
                   isLight
                     ? 'bg-white border-zinc-200 text-zinc-900 shadow-zinc-200/50'
@@ -303,14 +373,14 @@ const MyBids = () => {
                 }`}
               >
                 {/* Card Header Top Row */}
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <img
-                      src={bid.image}
-                      alt={bid.title}
+                      src={itemGroup.image}
+                      alt={itemGroup.title}
                       loading="lazy"
                       decoding="async"
-                      className={`w-14 h-14 object-cover rounded-xl border shrink-0 ${
+                      className={`w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-xl border shrink-0 ${
                         isLight
                           ? 'border-zinc-200 bg-zinc-100'
                           : 'border-zinc-800 bg-zinc-900'
@@ -322,32 +392,35 @@ const MyBids = () => {
                           isLight ? 'text-zinc-900' : 'text-white'
                         }`}
                       >
-                        {bid.title}
+                        {itemGroup.title}
                       </h3>
-                      <p
-                        className={`text-xs font-medium mt-1 ${
-                          isLight ? 'text-zinc-500' : 'text-zinc-400'
-                        }`}
-                      >
-                        Your Bid:{' '}
+                      
+                      {/* Bids Count Badge */}
+                      <div className="mt-1 flex items-center gap-2">
                         <span
-                          className={`font-black font-mono ${
-                            isLight ? 'text-orange-600' : 'text-orange-400'
+                          className={`inline-flex items-center text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                            itemGroup.totalBidsCount > 1
+                              ? isLight
+                                ? 'bg-orange-50 border-orange-200 text-orange-600'
+                                : 'bg-orange-500/15 border-orange-500/30 text-orange-400'
+                              : isLight
+                              ? 'bg-zinc-100 border-zinc-200 text-zinc-600'
+                              : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
                           }`}
                         >
-                          {bid.userBid}
+                          {itemGroup.totalBidsCount} {itemGroup.totalBidsCount === 1 ? 'Bid Placed' : 'Bids Placed'}
                         </span>
-                      </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Status Badge: Only WINNER, ACTIVE, or ENDED (never leak UNIQUE or DUPLICATED) */}
+                  {/* Status Badge: WINNER, ACTIVE, or ENDED */}
                   <div className="shrink-0">
-                    {bid.status === 'WINNER' ? (
+                    {itemGroup.status === 'WINNER' ? (
                       <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-[10px] font-black tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-xs">
                         WINNER 🎉
                       </span>
-                    ) : bid.status === 'ACTIVE' ? (
+                    ) : itemGroup.status === 'ACTIVE' ? (
                       <span
                         className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-lg uppercase border ${
                           isLight
@@ -371,9 +444,42 @@ const MyBids = () => {
                   </div>
                 </div>
 
+                {/* Placed Bids Amounts Section */}
+                <div
+                  className={`rounded-xl p-2.5 border ${
+                    isLight
+                      ? 'bg-zinc-50/70 border-zinc-200/80'
+                      : 'bg-[#0f1013] border-zinc-800/60'
+                  }`}
+                >
+                  <p
+                    className={`text-[10px] font-bold uppercase tracking-wider ${
+                      isLight ? 'text-zinc-500' : 'text-zinc-400'
+                    }`}
+                  >
+                    {itemGroup.totalBidsCount === 1
+                      ? 'Your Bid Amount:'
+                      : `Your Bid Amounts (${itemGroup.totalBidsCount}):`}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {itemGroup.bids.map((b) => (
+                      <span
+                        key={b.id}
+                        className={`font-mono text-xs font-black px-2.5 py-1 rounded-lg border transition-all ${
+                          isLight
+                            ? 'bg-white border-orange-200 text-orange-600 shadow-2xs'
+                            : 'bg-[#18191f] border-orange-500/30 text-orange-400 shadow-2xs'
+                        }`}
+                      >
+                        {parseFloat(b.amount || 0).toFixed(2)} Birr
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Divider Line */}
                 <div
-                  className={`border-t pt-2.5 ${
+                  className={`border-t ${
                     isLight ? 'border-zinc-100' : 'border-zinc-800/70'
                   }`}
                 />
@@ -394,7 +500,7 @@ const MyBids = () => {
                         isLight ? 'text-zinc-800' : 'text-zinc-200'
                       }`}
                     >
-                      {bid.basePrice}
+                      {itemGroup.basePrice}
                     </p>
                   </div>
 
@@ -409,9 +515,9 @@ const MyBids = () => {
                     </p>
                     <p
                       className={`text-xs sm:text-sm font-bold mt-0.5 font-mono ${
-                        bid.status === 'WINNER'
+                        itemGroup.status === 'WINNER'
                           ? 'text-emerald-500'
-                          : bid.status === 'ACTIVE'
+                          : itemGroup.status === 'ACTIVE'
                           ? isLight
                             ? 'text-orange-600'
                             : 'text-orange-400'
@@ -420,14 +526,14 @@ const MyBids = () => {
                           : 'text-zinc-400'
                       }`}
                     >
-                      {bid.timeRemaining}
+                      {itemGroup.timeRemaining}
                     </p>
                   </div>
 
                   {/* View Action Button */}
                   <button
                     type="button"
-                    onClick={() => navigate(`/item/${bid.itemId}`)}
+                    onClick={() => navigate(`/item/${itemGroup.itemId}`)}
                     style={{
                       background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
                       color: '#ffffff',

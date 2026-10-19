@@ -1508,14 +1508,12 @@ const ItemDetails = memo(() => {
           checkoutUrl={checkoutUrl}
           onClose={() => setCheckoutUrl(null)}
           onSuccess={() => {
-            setCheckoutUrl(null);
             setPendingBidAmount(null);
-            setSuccess('Payment successful. Your bid has been placed!');
             fetchItemDetails();
             setTimeout(() => {
-              setSuccess('');
-              setViewMode('detail');
-            }, 2500);
+              setCheckoutUrl(null);
+              navigate('/my-bids');
+            }, 1000);
           }}
           onFailure={({ message }) => setError(message || 'Payment was not completed.')}
         />

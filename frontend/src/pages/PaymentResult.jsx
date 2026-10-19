@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const PaymentResult = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const status = searchParams.get('status');
   const success = status === 'success';
@@ -40,6 +41,16 @@ const PaymentResult = () => {
     }
   }, [status, txRef, message]);
 
+  /* Auto-navigate to /my-bids after 1 second if on standalone page */
+  useEffect(() => {
+    if (success && (!window.parent || window.parent === window)) {
+      const timer = setTimeout(() => {
+        navigate('/my-bids');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, navigate]);
+
   return (
     <div className="max-w-md mx-auto py-16 px-4 text-center animate-in fade-in duration-300">
       <div
@@ -66,6 +77,11 @@ const PaymentResult = () => {
             ? 'Your participation fee was received and your bid has been placed successfully.'
             : message || 'Your bid was not placed. You can try again from the auction page.'}
         </p>
+        {success && (
+          <p className={`mt-3 text-xs font-medium animate-pulse ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+            Redirecting to your bids…
+          </p>
+        )}
         <Link
           to={success ? '/my-bids' : targetItemId ? `/item/${targetItemId}` : '/'}
           style={{
