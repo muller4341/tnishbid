@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Home from './pages/Home';
+import Draws from './pages/Draws';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ItemDetails from './pages/ItemDetails';
@@ -38,6 +39,7 @@ const AppContent = () => {
       <main className="flex-grow w-full container mx-auto px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-7xl min-w-0">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/draws" element={<Draws />} />
           <Route path="/discover" element={<Discover />} />
           <Route 
             path="/my-bids" 

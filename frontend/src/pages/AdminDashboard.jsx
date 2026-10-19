@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import ProductBidsDetailModal from '../components/ProductBidsDetailModal';
 import { 
   Users, 
@@ -33,7 +34,9 @@ import {
   Sparkles,
   Award,
   Zap,
-  Plus
+  Plus,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -87,8 +90,35 @@ const AdminDashboard = () => {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const categoryDropdownRef = useRef(null);
+  const themeContext = useTheme();
+  const isLight =
+    themeContext?.theme === 'light' ||
+    (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
   const [timeframe, setTimeframe] = useState('7d'); // '7d' | '30d'
   const [selectedTrendProductId, setSelectedTrendProductId] = useState('all'); // 'all' or product ID
+
+  // Close category dropdown on outside click or escape
+  useEffect(() => {
+    if (!isCategoryOpen) return;
+    const handleClickOutside = (e) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
+        setIsCategoryOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsCategoryOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCategoryOpen]);
 
   // Modals
   const [selectedProductLog, setSelectedProductLog] = useState(null);
@@ -260,6 +290,12 @@ const AdminDashboard = () => {
       setError(err.response?.data?.error || 'Failed to delete item');
     }
   };
+
+  // Available Categories (predefined + dynamic)
+  const availableCategories = useMemo(() => {
+    const productCats = statsData?.productStats?.map((p) => p.category).filter(Boolean) || [];
+    return [...new Set([...CATEGORIES, ...productCats])];
+  }, [statsData?.productStats]);
 
   // Filtered products list
   const filteredProducts = useMemo(() => {
@@ -773,18 +809,159 @@ const AdminDashboard = () => {
                 />
               </div>
 
+              {/* Mobile Backdrop for active category dropdown */}
+              {isCategoryOpen && (
+                <div
+                  className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] md:hidden transition-opacity"
+                  onClick={() => setIsCategoryOpen(false)}
+                  aria-hidden="true"
+                />
+              )}
+
               <div className="flex items-center gap-2 w-full md:w-auto">
-                <Filter size={14} className="text-amber-400" />
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="bg-[#0E0F12] border border-zinc-800 text-xs font-semibold text-zinc-300 rounded-xl px-3 py-2 focus:outline-none"
-                >
-                  <option value="all">All Categories</option>
-                  {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                {/* Custom Category Dropdown */}
+                <div className={`relative ${isCategoryOpen ? 'z-50' : 'z-10'}`} ref={categoryDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                    aria-haspopup="listbox"
+                    aria-expanded={isCategoryOpen}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all duration-200 cursor-pointer select-none active:scale-[0.98] ${
+                      isCategoryOpen
+                        ? isLight
+                          ? 'bg-amber-50 border-amber-500 text-amber-900 shadow-md ring-2 ring-amber-400/40'
+                          : 'bg-[#1C1E28] border-amber-500/80 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/50'
+                        : categoryFilter !== 'all'
+                        ? isLight
+                          ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
+                          : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
+                        : isLight
+                        ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+                        : 'bg-[#0E0F12] hover:bg-[#161720] border-zinc-800 text-zinc-300 hover:text-white'
+                    }`}
+                  >
+                    <Filter
+                      size={13}
+                      className={`shrink-0 transition-colors ${
+                        categoryFilter !== 'all' || isCategoryOpen ? 'text-amber-400' : 'text-zinc-400'
+                      }`}
+                    />
+                    <span className="truncate max-w-[130px] sm:max-w-[180px]">
+                      {categoryFilter === 'all' ? 'All Categories' : categoryFilter}
+                    </span>
+                    <ChevronDown
+                      size={12}
+                      className={`shrink-0 transition-transform duration-200 ml-0.5 ${
+                        isCategoryOpen ? 'rotate-180 text-amber-400' : categoryFilter !== 'all' ? 'text-amber-400' : 'text-zinc-500'
+                      }`}
+                    />
+                  </button>
+
+                  {/* Popover Dropdown Menu */}
+                  {isCategoryOpen && (
+                    <div
+                      role="listbox"
+                      className={`absolute top-full right-0 mt-2 w-56 sm:w-64 max-w-[calc(100vw-32px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${
+                        isLight
+                          ? 'bg-white/98 border-zinc-200 shadow-2xl shadow-zinc-900/15'
+                          : 'bg-[#161720]/98 border-zinc-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)]'
+                      }`}
+                    >
+                      <div className={`px-2.5 py-1.5 mb-1 text-[10px] font-black uppercase tracking-wider flex items-center justify-between border-b ${
+                        isLight ? 'text-zinc-400 border-zinc-100' : 'text-zinc-400 border-zinc-800/60'
+                      }`}>
+                        <span>Category Filter</span>
+                        <span className="text-[9px] font-normal lowercase opacity-70">
+                          {availableCategories.length + 1} options
+                        </span>
+                      </div>
+
+                      <div className="space-y-0.5 max-h-60 overflow-y-auto overscroll-contain pr-0.5">
+                        {/* All Categories Option */}
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={categoryFilter === 'all'}
+                          onClick={() => {
+                            setCategoryFilter('all');
+                            setIsCategoryOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${
+                            categoryFilter === 'all'
+                              ? isLight
+                                ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
+                                : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
+                              : isLight
+                              ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
+                              : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <Filter size={13} className={categoryFilter === 'all' ? 'text-amber-400' : 'text-zinc-400'} />
+                            <span className="truncate">All Categories</span>
+                          </div>
+                          {categoryFilter === 'all' && (
+                            <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
+                              isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
+                            }`}>
+                              <Check size={10} strokeWidth={3} />
+                            </span>
+                          )}
+                        </button>
+
+                        {/* Specific Categories */}
+                        {availableCategories.map((cat) => {
+                          const isSelected = categoryFilter === cat;
+                          return (
+                            <button
+                              key={cat}
+                              type="button"
+                              role="option"
+                              aria-selected={isSelected}
+                              onClick={() => {
+                                setCategoryFilter(cat);
+                                setIsCategoryOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${
+                                isSelected
+                                  ? isLight
+                                    ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
+                                    : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
+                                  : isLight
+                                  ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
+                                  : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <Tag size={13} className={isSelected ? 'text-amber-400' : 'text-zinc-400'} />
+                                <span className="truncate">{cat}</span>
+                              </div>
+                              {isSelected && (
+                                <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
+                                  isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
+                                }`}>
+                                  <Check size={10} strokeWidth={3} />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reset button when filtered */}
+                {categoryFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter('all')}
+                    title="Clear filter"
+                    className="p-2 rounded-xl bg-[#0E0F12] border border-zinc-800 hover:border-amber-400/50 text-zinc-400 hover:text-amber-400 transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
 
                 <button
                   onClick={() => setActiveTab('create')}

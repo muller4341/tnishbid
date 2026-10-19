@@ -62,16 +62,85 @@ exports.updateAvatar = async (req, res) => {
 
 exports.addFunds = async (req, res) => {
   try {
-    const { amount } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+    const { amount, method, transaction_id, phone_number } = req.body;
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0) {
+      return res.status(400).json({ error: 'Please enter a valid amount' });
+    }
 
-    const user = await prisma.user.update({
-      where: { id: req.user.id },
-      data: { wallet_balance: { increment: amount } },
-      select: { id: true, name: true, wallet_balance: true }
+    const cleanTxn = String(transaction_id || '').trim();
+    if (!cleanTxn) {
+      return res.status(400).json({ error: 'Please provide a valid transaction reference' });
+    }
+
+    // Format validation to prevent fake random strings
+    if (method === 'cbe') {
+      const isCbeFormat = /^FT[A-Za-z0-9]{8,18}$/i.test(cleanTxn) || /^\d{10,20}$/.test(cleanTxn);
+      if (!isCbeFormat) {
+        return res.status(400).json({
+          error: "Invalid CBE reference. CBE FT codes typically start with 'FT' (e.g. FT261099824) from your SMS receipt."
+        });
+      }
+    } else {
+      // Telebirr
+      const isTelebirrFormat = /^(TB|tb)?[A-Za-z0-9]{8,18}$/i.test(cleanTxn) && cleanTxn.length >= 8;
+      if (!isTelebirrFormat) {
+        return res.status(400).json({
+          error: "Invalid Telebirr reference. Must be a valid 8+ character transaction ID from your Telebirr SMS."
+        });
+      }
+    }
+
+    // Check if this transaction reference has already been credited
+    const alreadyCredited = await prisma.notification.findFirst({
+      where: {
+        message: { contains: cleanTxn }
+      }
     });
-    res.json(user);
+
+    if (alreadyCredited) {
+      return res.status(400).json({
+        error: `Transaction reference '${cleanTxn}' has already been used and credited. Duplicate claims are not permitted.`
+      });
+    }
+
+    const methodName = method === 'cbe' ? 'CBE Birr / CBE' : 'Telebirr';
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { wallet_balance: { increment: parsedAmount } },
+      select: { id: true, name: true, phone_number: true, wallet_balance: true }
+    });
+
+    const refText = ` (Txn: ${cleanTxn})`;
+    try {
+      await prisma.notification.create({
+        data: {
+          user_id: req.user.id,
+          message: `Deposit Successful! ${parsedAmount.toFixed(2)} Birr credited to your wallet via ${methodName}${refText}.`
+        }
+      });
+    } catch (notifErr) {
+      console.warn('Could not create notification log:', notifErr.message);
+    }
+
+    if (req.io) {
+      req.io.to(`user_${req.user.id}`).emit('wallet_updated', {
+        wallet_balance: updatedUser.wallet_balance,
+        added: parsedAmount,
+        method: methodName,
+        transaction_id
+      });
+    }
+
+    res.json({
+      success: true,
+      wallet_balance: updatedUser.wallet_balance,
+      user: updatedUser,
+      message: `${parsedAmount.toFixed(2)} Birr added to your wallet successfully!`
+    });
   } catch (err) {
+    console.error('addFunds error:', err);
     res.status(500).json({ error: err.message });
   }
 };

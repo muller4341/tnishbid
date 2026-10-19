@@ -47,6 +47,7 @@ const bidRoutes = require('./routes/bidRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const drawRoutes = require('./routes/drawRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -55,6 +56,7 @@ app.use('/api/bids', bidRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/draws', drawRoutes);
 
 app.get('/', (req, res) => {
   res.send('Tinish Bid API is running');

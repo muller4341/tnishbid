@@ -213,9 +213,200 @@ exports.completeInlineBidPayment = async (req, res) => {
   }
 };
 
+exports.initializeWalletDeposit = async (req, res) => {
+  const { amount, phone_number, method } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const config = getConfig();
+    const parsedAmount = parseFloat(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 10) {
+      return res.status(400).json({ error: 'Please enter a valid deposit amount of at least 10 Birr' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const txRef = `tinish-wallet-${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const nameParts = (user.name || 'Tinish Bid User').trim().split(/\s+/);
+    let rawPhone = String(phone_number || user.phone_number || '').replace(/\D/g, '');
+    if (rawPhone.startsWith('251')) rawPhone = '0' + rawPhone.slice(3);
+    if (!rawPhone.startsWith('0') && (rawPhone.startsWith('9') || rawPhone.startsWith('7'))) rawPhone = '0' + rawPhone;
+
+    const chapaPayload = {
+      amount: parsedAmount.toFixed(2),
+      currency: 'ETB',
+      email: normalizeEmail(user.email) || normalizeEmail(process.env.CHAPA_DEFAULT_EMAIL) || 'payments@tinishbid.com',
+      first_name: nameParts[0] || 'User',
+      last_name: nameParts.slice(1).join(' ') || nameParts[0] || 'Member',
+      tx_ref: txRef,
+      callback_url: config.callbackUrl,
+      return_url: `${config.frontendUrl}/payment-result?status=success&tx_ref=${txRef}`,
+      customization: {
+        title: 'TinishBid',
+        description: `Add ${parsedAmount} Coins via ${method === 'cbe' ? 'CBE' : 'Telebirr'}`
+      }
+    };
+    if (/^(09|07)\d{8}$/.test(rawPhone)) chapaPayload.phone_number = rawPhone;
+
+    const chapaResponse = await chapaRequest(CHAPA_INITIALIZE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.secretKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(chapaPayload)
+    });
+
+    res.json({
+      success: true,
+      tx_ref: txRef,
+      checkout_url: chapaResponse.data?.checkout_url
+    });
+  } catch (error) {
+    console.error('Wallet deposit initialization error:', error.message);
+    res.status(502).json({ error: error.message || 'Failed to initialize deposit with Chapa' });
+  }
+};
+
+exports.verifyWalletDeposit = async (req, res) => {
+  const { tx_ref: txRef } = req.body;
+  const userId = req.user.id;
+
+  if (!txRef) {
+    return res.status(400).json({ error: 'Missing transaction reference' });
+  }
+
+  try {
+    const config = getConfig();
+
+    // Call Chapa verify endpoint to authoritatively check with Chapa / Ethio Telecom / CBE
+    const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${config.secretKey}` }
+    });
+
+    const verifiedStatus = String(verified.data?.status || verified.status || '').toLowerCase();
+    if (verifiedStatus !== 'success') {
+      return res.status(400).json({
+        error: 'Payment was not verified by Chapa or was cancelled. No funds were added.'
+      });
+    }
+
+    const verifiedAmount = Number(verified.data?.amount);
+    if (!Number.isFinite(verifiedAmount) || verifiedAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid verified payment amount' });
+    }
+
+    // Check if this tx_ref has already been credited to prevent double crediting
+    const existingNotif = await prisma.notification.findFirst({
+      where: {
+        user_id: userId,
+        message: { contains: txRef }
+      }
+    });
+
+    if (existingNotif) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { wallet_balance: true }
+      });
+      return res.json({
+        success: true,
+        already_credited: true,
+        wallet_balance: user.wallet_balance,
+        amount: verifiedAmount,
+        message: 'This deposit was already credited to your wallet.'
+      });
+    }
+
+    // Credit exact amount to user wallet
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { wallet_balance: { increment: verifiedAmount } },
+      select: { id: true, name: true, phone_number: true, wallet_balance: true }
+    });
+
+    const methodName = String(verified.data?.payment_method || 'Telebirr/CBE').toUpperCase();
+    try {
+      await prisma.notification.create({
+        data: {
+          user_id: userId,
+          message: `Deposit Successful! ${verifiedAmount.toFixed(2)} Birr credited to your wallet via ${methodName} (Txn: ${txRef}).`
+        }
+      });
+    } catch (e) {
+      console.warn('Could not save notification:', e.message);
+    }
+
+    if (req.io) {
+      req.io.to(`user_${userId}`).emit('wallet_updated', {
+        wallet_balance: updatedUser.wallet_balance,
+        added: verifiedAmount,
+        method: methodName,
+        transaction_id: txRef
+      });
+    }
+
+    res.json({
+      success: true,
+      wallet_balance: updatedUser.wallet_balance,
+      amount: verifiedAmount,
+      method: methodName,
+      transaction_id: txRef,
+      message: `${verifiedAmount.toFixed(2)} Birr added to your wallet successfully!`
+    });
+  } catch (error) {
+    console.error('Wallet deposit verification error:', error.message);
+    res.status(400).json({
+      error: error.message || 'Payment verification failed. Please check that you completed the payment.'
+    });
+  }
+};
+
 exports.handleCallback = async (req, res) => {
   const txRef = req.query.tx_ref || req.query.trx_ref;
   if (!txRef) return redirectToResult(res, 'failed', '', 'Missing Chapa transaction reference');
+
+  // Handle wallet deposit callback
+  if (txRef.startsWith('tinish-wallet-')) {
+    try {
+      const config = getConfig();
+      const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${config.secretKey}` }
+      });
+      const verifiedStatus = String(verified.data?.status || verified.status || '').toLowerCase();
+      if (verifiedStatus === 'success') {
+        const verifiedAmount = Number(verified.data?.amount);
+        const parts = txRef.split('-');
+        const userId = parseInt(parts[2], 10);
+        if (userId && Number.isFinite(verifiedAmount)) {
+          const existingNotif = await prisma.notification.findFirst({
+            where: { user_id: userId, message: { contains: txRef } }
+          });
+          if (!existingNotif) {
+            await prisma.user.update({
+              where: { id: userId },
+              data: { wallet_balance: { increment: verifiedAmount } }
+            });
+            try {
+              await prisma.notification.create({
+                data: {
+                  user_id: userId,
+                  message: `Deposit Successful! ${verifiedAmount.toFixed(2)} Birr credited to your wallet via Chapa (Txn: ${txRef}).`
+                }
+              });
+            } catch (e) {}
+          }
+        }
+        return redirectToResult(res, 'success', txRef, 'Wallet credited successfully!');
+      }
+      return redirectToResult(res, 'failed', txRef, 'Payment not verified');
+    } catch (err) {
+      return redirectToResult(res, 'failed', txRef, err.message);
+    }
+  }
 
   try {
     const config = getConfig();

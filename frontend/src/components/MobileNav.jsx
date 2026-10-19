@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Home, Hourglass, User, LogIn, ShieldCheck } from 'lucide-react';
+import { Home, Hourglass, User, LogIn, ShieldCheck, History } from 'lucide-react';
 
 const MobileNav = () => {
   const location = useLocation();
@@ -26,6 +26,11 @@ const MobileNav = () => {
           exact: true
         },
         {
+          label: 'Draws',
+          path: '/draws',
+          icon: History,
+        },
+        {
           label: 'Profile',
           path: '/profile',
           icon: User
@@ -37,6 +42,11 @@ const MobileNav = () => {
           path: '/',
           icon: Home,
           exact: true
+        },
+        {
+          label: 'Draws',
+          path: '/draws',
+          icon: History,
         },
         {
           label: 'My Bids',

@@ -47,6 +47,11 @@ export const AuthProvider = ({ children }) => {
       newSocket.on('connect', () => {
         newSocket.emit('authenticate', user.id);
       });
+      newSocket.on('wallet_updated', (data) => {
+        if (data?.wallet_balance !== undefined) {
+          setUser(prev => prev ? { ...prev, wallet_balance: data.wallet_balance } : null);
+        }
+      });
       setSocket(newSocket);
       return () => newSocket.close();
     } else {

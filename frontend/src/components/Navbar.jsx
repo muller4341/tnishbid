@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Bell, Wallet, Crown, Smartphone, ShieldCheck, Sun, Moon, Globe } from 'lucide-react';
+import { Bell, Wallet, Crown, Smartphone, ShieldCheck, Sun, Moon, Globe, History } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -144,10 +144,17 @@ const Navbar = () => {
             ትንሽ<span className="text-amber-400">Bid</span>
             </span>
           </Link>
+          <Link 
+            to="/draws" 
+            className="hidden md:inline-flex items-center gap-1.5 text-xs font-extrabold text-zinc-300 hover:text-white bg-[#16161A] hover:bg-[#202026] border border-zinc-800 px-3 py-1.5 rounded-full transition-colors ml-3"
+          >
+            <History size={13} className="text-amber-400" />
+            Draws
+          </Link>
           {user && user.role !== 'admin' && (
             <Link 
               to="/my-bids" 
-              className="hidden md:inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 rounded-full transition-colors ml-3"
+              className="hidden md:inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 rounded-full transition-colors ml-2"
             >
               My Bids
             </Link>
