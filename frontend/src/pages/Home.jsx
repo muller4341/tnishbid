@@ -11,7 +11,9 @@ import {
   Trophy, Repeat2, Target,
   TrendingDown, Sparkles, Search,
   Coins,
-  Ticket
+  Ticket,
+  Check,
+  X
 } from 'lucide-react';
 import { getCachedItems, setCachedItems } from '../utils/cache';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
@@ -41,6 +43,19 @@ const TRANSLATIONS = {
     expired: 'EXPIRED',
     viewDetails: 'View Details',
     noItems: 'No active auctions at the moment.',
+    filterTime: 'Time',
+    filterPrice: 'Price',
+    filterCategory: 'Category',
+    allTimes: 'Time (All)',
+    endingSoon: 'Ending soon',
+    newThisWeek: 'New this week',
+    allPrices: 'Price (All)',
+    under100: 'Under 100 Br',
+    between100and500: '100 - 499 Br',
+    over500: '500+ Br',
+    allCategories: 'Category (All)',
+    clearFilters: 'Clear filters',
+    showingResults: 'results found',
   },
   am: {
     langLabel: '\u12a0\u121b\u122d\u129b',
@@ -63,6 +78,19 @@ const TRANSLATIONS = {
     expired: '\u130a\u12dc\u12cd \u12a0\u120d\u134f\u120d',
     viewDetails: '\u12dd\u122d\u12dd\u122d \u12ed\u1218\u120d\u12a8\u1271',
     noItems: '\u1260\u12da\u1205 \u130a\u12dc \u1295\u1261 \u1328\u1228\u1273\u12ce\u127d \u12e8\u1209\u121d\u1362',
+    filterTime: '\u130a\u12dc',
+    filterPrice: '\u12cb\u130b',
+    filterCategory: '\u121d\u12f5\u1265',
+    allTimes: '\u130a\u12dc (\u1201\u1209\u121d)',
+    endingSoon: '\u1260\u1245\u122d\u1265 \u12e8\u121a\u12a0\u120d\u1241',
+    newThisWeek: '\u12a0\u12f3\u12f2\u1235 \u1328\u1228\u1273\u12ce\u127d',
+    allPrices: '\u12cb\u130b (\u1201\u1209\u121d)',
+    under100: '\u12a8 100 \u1265\u122d \u1260\u1273\u127d',
+    between100and500: '100 - 499 \u1265\u122d',
+    over500: '500+ \u1265\u122d',
+    allCategories: '\u121d\u12f5\u1265 (\u1201\u1209\u121d)',
+    clearFilters: '\u12a0\u1323\u122b\u12ce\u127d\u1295 \u12a0\u1325\u134b',
+    showingResults: '\u12e8\u1270\u1308\u1299 \u1328\u1228\u1273\u12ce\u127d',
   },
 };
 
@@ -434,6 +462,139 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   );
 };
 
+/* Custom Sleek Filter Dropdown Component */
+const FilterDropdown = ({
+  id,
+  label,
+  icon: Icon,
+  isActive,
+  isOpen,
+  onToggle,
+  options,
+  selectedValue,
+  onSelect,
+  align = 'left',
+  isLight,
+  dropdownTitle,
+}) => {
+  const getAlignClass = () => {
+    if (align === 'left') return 'left-0';
+    if (align === 'center') return 'left-1/2 -translate-x-1/2';
+    return 'right-0';
+  };
+
+  return (
+    <div className={`relative min-w-0 ${isOpen ? 'z-50' : 'z-10'}`}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`w-full rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none active:scale-[0.98] ${
+          isOpen
+            ? isLight
+              ? 'bg-amber-50/90 border-amber-500 text-amber-900 shadow-md ring-2 ring-amber-400/40'
+              : 'bg-[#1C1E28] border-amber-500/80 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/50'
+            : isActive
+            ? isLight
+              ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30 font-bold'
+              : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40 font-bold'
+            : isLight
+            ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+            : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
+        }`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <Icon
+            size={13}
+            className={`shrink-0 transition-colors ${
+              isActive || isOpen
+                ? 'text-amber-400'
+                : isLight
+                ? 'text-zinc-500'
+                : 'text-zinc-400'
+            }`}
+          />
+          <span className="text-[11px] sm:text-xs font-bold truncate">
+            {label}
+          </span>
+        </div>
+        <ChevronDown
+          size={12}
+          className={`shrink-0 transition-transform duration-200 ml-1 ${
+            isOpen ? 'rotate-180 text-amber-400' : isActive ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500'
+          }`}
+        />
+      </button>
+
+      {/* Popover Dropdown Menu */}
+      {isOpen && (
+        <div
+          role="listbox"
+          className={`absolute top-full mt-2 ${getAlignClass()} w-52 sm:w-56 max-w-[calc(100vw-24px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${
+            isLight
+              ? 'bg-white/98 border-zinc-200 shadow-2xl shadow-zinc-900/15'
+              : 'bg-[#161720]/98 border-zinc-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)]'
+          }`}
+        >
+          {dropdownTitle && (
+            <div className={`px-2.5 py-1.5 mb-1 text-[10px] font-black uppercase tracking-wider flex items-center justify-between border-b ${
+              isLight ? 'text-zinc-400 border-zinc-100' : 'text-zinc-400 border-zinc-800/60'
+            }`}>
+              <span>{dropdownTitle}</span>
+              <span className="text-[9px] font-normal lowercase opacity-70">
+                {options.length} {options.length === 1 ? 'option' : 'options'}
+              </span>
+            </div>
+          )}
+
+          <div className="space-y-0.5 max-h-60 overflow-y-auto overscroll-contain pr-0.5">
+            {options.map((opt) => {
+              const isSelected = selectedValue === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => onSelect(opt.value)}
+                  className={`w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${
+                    isSelected
+                      ? isLight
+                        ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
+                        : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
+                      : isLight
+                      ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
+                      : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {opt.icon && (
+                      <span className={`shrink-0 ${isSelected ? 'text-amber-400' : 'text-zinc-400'}`}>
+                        {opt.icon}
+                      </span>
+                    )}
+                    <span className="truncate">{opt.label}</span>
+                  </div>
+
+                  {isSelected && (
+                    <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
+                      isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
+                    }`}>
+                      <Check size={10} strokeWidth={3} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* Home Page */
 const Home = () => {
   const { lang } = useLanguage();
@@ -446,6 +607,8 @@ const Home = () => {
   const [timeFilter, setTimeFilter] = useState('all');
   const [priceFilter, setPriceFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [openDropdown, setOpenDropdown] = useState(null); // 'time' | 'price' | 'category' | null
+  const filtersContainerRef = useRef(null);
   const { user, socket } = useAuth();
   const themeContext = useTheme();
   const isLight =
@@ -453,20 +616,41 @@ const Home = () => {
     (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
   const navigate = useNavigate();
 
+  // Close dropdown on outside click or escape key
+  useEffect(() => {
+    if (!openDropdown) return;
+    const handleClickOutside = (e) => {
+      if (filtersContainerRef.current && !filtersContainerRef.current.contains(e.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setOpenDropdown(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openDropdown]);
+
   const timeFilterLabels = {
-    all: 'Time',
-    ending: 'Ending',
-    newest: 'Newest',
+    all: t.filterTime || 'Time',
+    ending: t.endingSoon || 'Ending soon',
+    newest: t.newThisWeek || 'Newest',
   };
 
   const priceFilterLabels = {
-    all: 'Price',
-    low: '< 100',
-    medium: '100-500',
-    high: '500+',
+    all: t.filterPrice || 'Price',
+    low: '< 100 Br',
+    medium: '100-500 Br',
+    high: '500+ Br',
   };
 
-  const categoryFilterLabel = categoryFilter === 'all' ? 'Category' : categoryFilter;
+  const categoryFilterLabel = categoryFilter === 'all' ? (t.filterCategory || 'Category') : categoryFilter;
 
   const itemsRef = useRef(null);
   const handleScrollToItems = () => {
@@ -519,7 +703,30 @@ const Home = () => {
     };
   }, [socket]);
 
-  const categories = [...new Set(items.map((item) => item.category).filter(Boolean))];
+  const categories = [...new Set(items.map((item) => item.category).filter(Boolean))].sort();
+
+  const timeOptions = [
+    { value: 'all', label: t.allTimes || 'Time (All)', icon: <Clock size={13} /> },
+    { value: 'ending', label: t.endingSoon || 'Ending soon', icon: <Clock size={13} className="text-amber-400" /> },
+    { value: 'newest', label: t.newThisWeek || 'New this week', icon: <Sparkles size={13} className="text-emerald-400" /> },
+  ];
+
+  const priceOptions = [
+    { value: 'all', label: t.allPrices || 'Price (All)', icon: <DollarSign size={13} /> },
+    { value: 'low', label: t.under100 || 'Under 100 Br', icon: <Coins size={13} className="text-emerald-400" /> },
+    { value: 'medium', label: t.between100and500 || '100 - 499 Br', icon: <DollarSign size={13} className="text-amber-400" /> },
+    { value: 'high', label: t.over500 || '500+ Br', icon: <CircleDollarSign size={13} className="text-purple-400" /> },
+  ];
+
+  const categoryOptions = [
+    { value: 'all', label: t.allCategories || 'Category (All)', icon: <Grid3X3 size={13} /> },
+    ...categories.map((category) => ({
+      value: category,
+      label: category,
+      icon: <Tag size={13} className="text-amber-400/80" />,
+    })),
+  ];
+
   const filteredItems = items
     .filter((item) => {
       const query = searchQuery.toLowerCase();
@@ -562,137 +769,97 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        {/* 1. Time Filter Dropdown */}
+      {/* Mobile Backdrop for active dropdown */}
+      {openDropdown && (
         <div
-          className={`relative rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none group active:scale-[0.98] ${
-            timeFilter !== 'all'
-              ? isLight
-                ? 'bg-amber-50 border-amber-400/60 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
-                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
-              : isLight
-              ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
-              : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
-          }`}
-        >
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <Clock
-              size={13}
-              className={`shrink-0 transition-colors ${
-                timeFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-500' : 'text-zinc-400 group-hover:text-amber-400'
-              }`}
-            />
-            <span className="text-[11px] sm:text-xs font-bold truncate">
-              {timeFilterLabels[timeFilter] || 'Time'}
-            </span>
-          </div>
-          <ChevronDown
-            size={12}
-            className={`shrink-0 transition-transform pointer-events-none ml-1 ${
-              timeFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500 group-hover:text-zinc-300'
-            }`}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-150"
+          onClick={() => setOpenDropdown(null)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Filters Toolbar */}
+      <div ref={filtersContainerRef} className="relative z-40 mb-5">
+        <div className="grid grid-cols-3 gap-2">
+          {/* 1. Time Filter Dropdown */}
+          <FilterDropdown
+            id="time"
+            label={timeFilterLabels[timeFilter] || t.filterTime}
+            icon={Clock}
+            isActive={timeFilter !== 'all'}
+            isOpen={openDropdown === 'time'}
+            onToggle={() => setOpenDropdown((prev) => (prev === 'time' ? null : 'time'))}
+            options={timeOptions}
+            selectedValue={timeFilter}
+            onSelect={(val) => {
+              setTimeFilter(val);
+              setOpenDropdown(null);
+            }}
+            align="left"
+            isLight={isLight}
+            dropdownTitle={t.filterTime}
           />
-          <select
-            value={timeFilter}
-            onChange={(event) => setTimeFilter(event.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 bg-[#16161A] text-white"
-            style={{ fontSize: '16px' }}
-            aria-label="Filter by time"
-          >
-            <option value="all" className="bg-[#16161A] text-white">Time (All)</option>
-            <option value="ending" className="bg-[#16161A] text-white">Ending soon</option>
-            <option value="newest" className="bg-[#16161A] text-white">New this week</option>
-          </select>
+
+          {/* 2. Price Filter Dropdown */}
+          <FilterDropdown
+            id="price"
+            label={priceFilterLabels[priceFilter] || t.filterPrice}
+            icon={DollarSign}
+            isActive={priceFilter !== 'all'}
+            isOpen={openDropdown === 'price'}
+            onToggle={() => setOpenDropdown((prev) => (prev === 'price' ? null : 'price'))}
+            options={priceOptions}
+            selectedValue={priceFilter}
+            onSelect={(val) => {
+              setPriceFilter(val);
+              setOpenDropdown(null);
+            }}
+            align="center"
+            isLight={isLight}
+            dropdownTitle={t.filterPrice}
+          />
+
+          {/* 3. Category Filter Dropdown */}
+          <FilterDropdown
+            id="category"
+            label={categoryFilterLabel}
+            icon={Grid3X3}
+            isActive={categoryFilter !== 'all'}
+            isOpen={openDropdown === 'category'}
+            onToggle={() => setOpenDropdown((prev) => (prev === 'category' ? null : 'category'))}
+            options={categoryOptions}
+            selectedValue={categoryFilter}
+            onSelect={(val) => {
+              setCategoryFilter(val);
+              setOpenDropdown(null);
+            }}
+            align="right"
+            isLight={isLight}
+            dropdownTitle={t.filterCategory}
+          />
         </div>
 
-        {/* 2. Price Filter Dropdown */}
-        <div
-          className={`relative rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none group active:scale-[0.98] ${
-            priceFilter !== 'all'
-              ? isLight
-                ? 'bg-amber-50 border-amber-400/60 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
-                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
-              : isLight
-              ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
-              : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
-          }`}
-        >
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <DollarSign
-              size={13}
-              className={`shrink-0 transition-colors ${
-                priceFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-500' : 'text-zinc-400 group-hover:text-amber-400'
-              }`}
-            />
-            <span className="text-[11px] sm:text-xs font-bold truncate">
-              {priceFilterLabels[priceFilter] || 'Price'}
+        {/* Active Filter Chips / Clear button */}
+        {(timeFilter !== 'all' || priceFilter !== 'all' || categoryFilter !== 'all' || searchQuery) && (
+          <div className="flex items-center justify-between mt-2.5 px-1 text-xs">
+            <span className="text-[11px] font-medium text-zinc-400">
+              {filteredItems.length} {t.showingResults || 'results found'}
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                setTimeFilter('all');
+                setPriceFilter('all');
+                setCategoryFilter('all');
+                setSearchQuery('');
+                setOpenDropdown(null);
+              }}
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              <X size={12} /> {t.clearFilters || 'Clear filters'}
+            </button>
           </div>
-          <ChevronDown
-            size={12}
-            className={`shrink-0 transition-transform pointer-events-none ml-1 ${
-              priceFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500 group-hover:text-zinc-300'
-            }`}
-          />
-          <select
-            value={priceFilter}
-            onChange={(event) => setPriceFilter(event.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 bg-[#16161A] text-white"
-            style={{ fontSize: '16px' }}
-            aria-label="Filter by price"
-          >
-            <option value="all" className="bg-[#16161A] text-white">Price (All)</option>
-            <option value="low" className="bg-[#16161A] text-white">Under 100 Br</option>
-            <option value="medium" className="bg-[#16161A] text-white">100 - 499 Br</option>
-            <option value="high" className="bg-[#16161A] text-white">500+ Br</option>
-          </select>
-        </div>
-
-        {/* 3. Category Filter Dropdown */}
-        <div
-          className={`relative rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none group active:scale-[0.98] ${
-            categoryFilter !== 'all'
-              ? isLight
-                ? 'bg-amber-50 border-amber-400/60 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
-                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
-              : isLight
-              ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
-              : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
-          }`}
-        >
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <Grid3X3
-              size={13}
-              className={`shrink-0 transition-colors ${
-                categoryFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-500' : 'text-zinc-400 group-hover:text-amber-400'
-              }`}
-            />
-            <span className="text-[11px] sm:text-xs font-bold truncate">
-              {categoryFilterLabel}
-            </span>
-          </div>
-          <ChevronDown
-            size={12}
-            className={`shrink-0 transition-transform pointer-events-none ml-1 ${
-              categoryFilter !== 'all' ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500 group-hover:text-zinc-300'
-            }`}
-          />
-          <select
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 bg-[#16161A] text-white"
-            style={{ fontSize: '16px' }}
-            aria-label="Filter by category"
-          >
-            <option value="all" className="bg-[#16161A] text-white">Category (All)</option>
-            {categories.map((category) => (
-              <option key={category} value={category} className="bg-[#16161A] text-white">
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
+        )}
       </div>
 
       {/* Products */}
