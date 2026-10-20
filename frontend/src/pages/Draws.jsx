@@ -103,6 +103,99 @@ const formatHumanDateTime = (dateStr) => {
   });
 };
 
+const cleanText = (str) => {
+  if (!str || typeof str !== 'string') return str || '';
+  return str.replace(/onebid-?/gi, '').trim();
+};
+
+/* Non-stop celebratory confetti falling animation from top to bottom */
+const CELEBRATION_COLORS = [
+  '#FF0055', '#FF3366', '#FF007F', '#EC4899', '#F43F5E', // Vivid pinks / magentas
+  '#FF5722', '#FF7A00', '#F97316', '#FB923C',             // Electric oranges
+  '#FFD700', '#FFEA00', '#FACC15', '#F59E0B', '#FBBF24', // Rich golds & sunburst yellows
+  '#00F5D4', '#10B981', '#22C55E', '#14B8A6', '#84CC16', // Emeralds, mints & limes
+  '#00E5FF', '#38BDF8', '#3B82F6', '#0284C7', '#2563EB', // Electric blues & cyans
+  '#8B5CF6', '#A855F7', '#C084FC', '#7928CA', '#9333EA', // Royal purples & violets
+  '#E11D48', '#EF4444'                                     // Crimson reds
+];
+
+const CelebrationRain = ({ containerClass = "fixed inset-0 pointer-events-none z-20 overflow-hidden", count = 55 }) => {
+  const pieces = useMemo(() => {
+    return Array.from({ length: count }, (_, i) => {
+      const size = 6 + (i % 9);
+      const isRibbon = i % 5 === 0;
+      const isCircle = i % 5 === 1;
+      const isStar = i % 5 === 2;
+      const isSparkle = i % 5 === 3;
+      return {
+        id: i,
+        left: `${(i * 1.9 + (i % 9) * 2.7) % 98}%`,
+        color: CELEBRATION_COLORS[i % CELEBRATION_COLORS.length],
+        duration: `${2.8 + (i % 6) * 0.6}s`,
+        delay: `-${(i * 0.18).toFixed(2)}s`,
+        size,
+        isRibbon,
+        isCircle,
+        isStar,
+        isSparkle,
+        swayAmount: 14 + (i % 18)
+      };
+    });
+  }, [count]);
+
+  return (
+    <div className={containerClass} aria-hidden="true">
+      <style>{`
+        @keyframes celebrationFall {
+          0% {
+            transform: translate3d(0, -32px, 0) rotate(0deg) rotateX(0deg);
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.95;
+          }
+          100% {
+            transform: translate3d(var(--sway, 18px), 105vh, 0) rotate(720deg) rotateX(360deg);
+            opacity: 0.25;
+          }
+        }
+      `}</style>
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="absolute block will-change-transform"
+          style={{
+            left: p.left,
+            top: '-32px',
+            backgroundColor: p.isStar || p.isSparkle ? 'transparent' : p.color,
+            width: p.isRibbon ? `${Math.max(3.5, p.size * 0.45)}px` : `${p.size}px`,
+            height: p.isRibbon ? `${p.size * 2.4}px` : `${p.size}px`,
+            borderRadius: p.isCircle ? '50%' : '2px',
+            boxShadow: p.isStar || p.isSparkle ? 'none' : `0 0 7px ${p.color}66`,
+            animation: `celebrationFall ${p.duration} linear infinite`,
+            animationDelay: p.delay,
+            '--sway': `${(p.id % 2 === 0 ? 1 : -1) * p.swayAmount}px`
+          }}
+        >
+          {(p.isStar || p.isSparkle) && (
+            <span
+              style={{
+                color: p.color,
+                fontSize: `${p.size + (p.isSparkle ? 5 : 3)}px`,
+                lineHeight: 1,
+                display: 'block',
+                textShadow: `0 0 10px ${p.color}`
+              }}
+            >
+              {p.isSparkle ? '✦' : '★'}
+            </span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 const Draws = () => {
   const navigate = useNavigate();
   const { lang, setLang } = useLanguage();
@@ -184,7 +277,10 @@ const Draws = () => {
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto pb-20 min-w-0">
+    <div className="w-full max-w-lg mx-auto pb-20 min-w-0 relative">
+      {/* Continuous Congratulations / Celebratory Falling Animation */}
+      <CelebrationRain />
+
       {/* Top Header matching Screenshot 1 */}
       <div className="flex items-center justify-between mb-4 pt-1">
         <button
@@ -205,19 +301,7 @@ const Draws = () => {
           <p className="text-[11px] font-medium text-zinc-400">{t.subtitle}</p>
         </div>
 
-        {/* Language switch */}
-        <button
-          type="button"
-          onClick={() => setLang(lang === 'en' ? 'am' : 'en')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-            isLight
-              ? 'bg-white hover:bg-zinc-100 text-zinc-800 border border-zinc-200 shadow-sm'
-              : 'bg-[#16171E] hover:bg-[#20222B] text-zinc-300 border border-zinc-800'
-          }`}
-        >
-          <Globe size={13} className="text-amber-400" />
-          <span>{lang === 'en' ? 'Eng' : 'አማ'}</span>
-        </button>
+        
       </div>
 
       {/* Segmented Tab Switcher matching Screenshot 1 */}
@@ -324,14 +408,20 @@ const Draws = () => {
                     {draw.title}
                   </h2>
 
-                  <div className="flex items-center gap-2 text-xs flex-wrap">
-                    <span className="bg-zinc-800/90 text-amber-300 font-bold px-2 py-0.5 rounded-md text-[10px] tracking-wide border border-zinc-700/60">
-                      {draw.auction_code}
-                    </span>
-                    <span className="text-zinc-400 text-[11px] font-medium">
-                      {draw.entry_code}
-                    </span>
-                  </div>
+                  {draw.winner && (
+                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 font-bold text-xs">
+                        <Phone size={12} className="text-amber-400 shrink-0" />
+                        <span>{draw.winner.masked_phone}</span>
+                      </div>
+                      {draw.winner.name && draw.winner.name !== 'Winner Announced' && (
+                        <span className="text-zinc-400 text-[11px] font-medium truncate max-w-[150px]">
+                          {draw.winner.name}
+                        </span>
+                      )}
+                      
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-medium pt-0.5 ">
                     <Calendar size={12} className="text-zinc-500 shrink-0" />
@@ -415,12 +505,14 @@ const Draws = () => {
           }}
         >
           <div
-            className={`w-full max-w-lg max-h-[90vh] rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden flex flex-col border transition-all animate-in slide-in-from-bottom-6 duration-200 ${
+            className={`w-full max-w-lg max-h-[90vh] rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden flex flex-col border transition-all animate-in slide-in-from-bottom-6 duration-200 relative ${
               isLight
                 ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xl'
                 : 'bg-[#14151B] border-zinc-800/90 text-white shadow-2xl shadow-black/90'
             }`}
           >
+            {/* Non-stop Celebration Confetti falling inside Bottom Sheet */}
+            <CelebrationRain containerClass="absolute inset-0 pointer-events-none z-30 overflow-hidden" count={45} />
             {/* Sheet Header with Close & "DRAW ENDED" badge */}
             <div className="flex items-center justify-between p-4 border-b border-zinc-800/60 shrink-0">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-black uppercase tracking-wider">
@@ -488,7 +580,7 @@ const Draws = () => {
                         <span>{drawDetails.winner.masked_phone}</span>
                       </p>
                       <p className="text-[11px] font-medium text-zinc-400 truncate">
-                        {drawDetails.winner.entry_code}
+                        {cleanText(drawDetails.winner.entry_code)}
                       </p>
                     </div>
                   </div>
@@ -507,7 +599,7 @@ const Draws = () => {
 
                     <div className="bg-[#161720] border border-zinc-800/80 rounded-xl p-2.5 space-y-0.5">
                       <p className="text-[10px] text-zinc-400 font-medium">{t.auction}</p>
-                      <p className="text-xs sm:text-sm font-black text-white truncate">{drawDetails.stats.auctionCode}</p>
+                      <p className="text-xs sm:text-sm font-black text-white truncate">{cleanText(drawDetails.stats.auctionCode)}</p>
                     </div>
                   </div>
 

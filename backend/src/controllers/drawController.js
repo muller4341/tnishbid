@@ -16,10 +16,10 @@ const maskPhoneNumber = (phone) => {
   return str;
 };
 
-// Formats an auction / entry code: e.g. "ONEBID-QP7QVT"
+// Formats an auction / entry code: e.g. "#QP7QVT"
 const getAuctionCode = (item) => {
   const hex = item.id.toString(36).toUpperCase().padStart(6, '0');
-  return `ONEBID-${hex}`;
+  return `#${hex}`;
 };
 
 exports.getDraws = async (req, res) => {
