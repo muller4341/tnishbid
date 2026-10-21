@@ -143,6 +143,36 @@ exports.createItem = async (req, res) => {
       }
     });
     invalidateItemCache();
+
+    // Broadcast new bid post event & notify users who enabled "New Bid Post" (bidDrops)
+    if (req.io) {
+      req.io.emit('new_bid_post', {
+        item_id: item.id,
+        title: item.title,
+        category: item.category,
+        image_url: item.image_url,
+        base_price: item.base_price,
+        message: `New Bid Post: "${item.title}" is now open for bidding!`
+      });
+    }
+
+    try {
+      const { getUserPreferences } = require('../utils/preferenceStore');
+      const allUsers = await prisma.user.findMany({ select: { id: true } });
+      const notifData = allUsers
+        .filter(u => getUserPreferences(u.id).bidDrops !== false)
+        .map(u => ({
+          user_id: u.id,
+          message: `New Bid Post: "${item.title}" is now open for bidding!`
+        }));
+
+      if (notifData.length > 0) {
+        await prisma.notification.createMany({ data: notifData });
+      }
+    } catch (notifErr) {
+      console.warn('Failed to dispatch new bid post notifications:', notifErr.message);
+    }
+
     res.status(201).json(item);
   } catch (err) {
     res.status(500).json({ error: err.message });

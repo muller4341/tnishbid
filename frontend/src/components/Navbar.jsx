@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Bell, Wallet, Crown, Smartphone, ShieldCheck, Sun, Moon, Globe, History } from 'lucide-react';
+import { Bell, Wallet, Crown, Smartphone, ShieldCheck, Sun, Moon, Globe, History, Trophy, Sparkles, X } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -74,6 +74,7 @@ const Navbar = () => {
   const location = useLocation();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [toastNotif, setToastNotif] = useState(null);
   const notificationRef = useRef(null);
 
   useEffect(() => {
@@ -86,6 +87,14 @@ const Navbar = () => {
 
   useEffect(() => {
     if (socket) {
+      const getPrefs = () => {
+        try {
+          const raw = localStorage.getItem(`notif_settings_${user?.id}`);
+          if (raw) return JSON.parse(raw);
+        } catch {}
+        return { bidDrops: true, wins: true };
+      };
+
       const handleDup = (data) => {
         setNotifications(prev => [{
           id: Date.now(),
@@ -94,10 +103,56 @@ const Navbar = () => {
           created_at: new Date()
         }, ...prev]);
       };
+
+      const handleNewBidPost = (data) => {
+        const prefs = getPrefs();
+        if (prefs.bidDrops !== false) {
+          const newNotif = {
+            id: Date.now(),
+            message: data.message || `New Bid Post: "${data.title}" is now open for bidding!`,
+            is_read: false,
+            created_at: new Date()
+          };
+          setNotifications(prev => [newNotif, ...prev]);
+          setToastNotif({
+            title: 'New Bid Post',
+            message: data.message || `"${data.title}" is now open for bidding!`,
+            type: 'bid'
+          });
+          setTimeout(() => setToastNotif(null), 5000);
+        }
+      };
+
+      const handleAuctionWon = (data) => {
+        const prefs = getPrefs();
+        if (prefs.wins !== false) {
+          const newNotif = {
+            id: Date.now(),
+            message: data.message || `🎉 Congratulations! You won "${data.itemTitle}"!`,
+            is_read: false,
+            created_at: new Date()
+          };
+          setNotifications(prev => [newNotif, ...prev]);
+          setToastNotif({
+            title: '🎉 Congratulations!',
+            message: data.message || `You won the auction!`,
+            type: 'win'
+          });
+          setTimeout(() => setToastNotif(null), 6000);
+        }
+      };
+
       socket.on('bid_duplicated', handleDup);
-      return () => socket.off('bid_duplicated', handleDup);
+      socket.on('new_bid_post', handleNewBidPost);
+      socket.on('auction_won', handleAuctionWon);
+
+      return () => {
+        socket.off('bid_duplicated', handleDup);
+        socket.off('new_bid_post', handleNewBidPost);
+        socket.off('auction_won', handleAuctionWon);
+      };
     }
-  }, [socket]);
+  }, [socket, user]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -261,6 +316,28 @@ const Navbar = () => {
         </div>
         
       </div>
+
+      {/* Real-time Floating Notification Banner honoring user preferences */}
+      {toastNotif && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[200] w-[92%] max-w-md p-3.5 rounded-2xl bg-zinc-950/95 text-white border border-amber-500/40 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${toastNotif.type === 'win' ? 'bg-amber-400 text-black' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
+              {toastNotif.type === 'win' ? <Trophy size={18} /> : <Sparkles size={18} />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-black text-amber-400">{toastNotif.title}</p>
+              <p className="text-xs text-zinc-200 truncate">{toastNotif.message}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastNotif(null)}
+            className="w-7 h-7 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center shrink-0 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </nav>
   );
 };

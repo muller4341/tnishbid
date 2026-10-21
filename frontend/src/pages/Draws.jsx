@@ -124,7 +124,29 @@ const CELEBRATION_COLORS = [
   '#E11D48', '#EF4444'                                     // Crimson reds
 ];
 
-const CelebrationRain = ({ containerClass = "fixed inset-0 pointer-events-none z-20 overflow-hidden", count = 55 }) => {
+const CelebrationRain = ({ containerClass = "fixed inset-0 pointer-events-none z-20 overflow-hidden", count = 55, durationSeconds = 5 }) => {
+  const [visible, setVisible] = useState(true);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    if (!durationSeconds || durationSeconds <= 0) return;
+
+    // Start fading out slightly before 5 seconds
+    const fadeTimer = setTimeout(() => {
+      setFading(true);
+    }, Math.max(500, (durationSeconds - 0.9) * 1000));
+
+    // Completely turn off after 5 seconds
+    const removeTimer = setTimeout(() => {
+      setVisible(false);
+    }, durationSeconds * 1000);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, [durationSeconds]);
+
   const pieces = useMemo(() => {
     return Array.from({ length: count }, (_, i) => {
       const size = 6 + (i % 9);
@@ -148,8 +170,13 @@ const CelebrationRain = ({ containerClass = "fixed inset-0 pointer-events-none z
     });
   }, [count]);
 
+  if (!visible) return null;
+
   return (
-    <div className={containerClass} aria-hidden="true">
+    <div
+      className={`${containerClass} transition-opacity duration-700 ease-out ${fading ? 'opacity-0' : 'opacity-100'}`}
+      aria-hidden="true"
+    >
       <style>{`
         @keyframes celebrationFall {
           0% {
@@ -310,8 +337,8 @@ const Draws = () => {
 
   return (
     <div className="w-full max-w-lg mx-auto pb-20 min-w-0 relative">
-      {/* Continuous Congratulations / Celebratory Falling Animation (Only on Past Draws tab) */}
-      {activeTab === 'past' && <CelebrationRain />}
+      {/* Congratulations / Celebratory Falling Animation (Stops after 5 seconds) */}
+      {activeTab === 'past' && <CelebrationRain key="past-celebration" durationSeconds={5} />}
 
       {/* Floating Toast Notification */}
       {toastMessage && (
@@ -581,8 +608,8 @@ const Draws = () => {
               : 'bg-[#14151B] border-zinc-800/90 text-white shadow-2xl shadow-black/95'
               }`}
           >
-            {/* Non-stop Celebration Confetti falling inside Bottom Sheet */}
-            <CelebrationRain containerClass="absolute inset-0 pointer-events-none z-30 overflow-hidden" count={45} />
+            {/* Celebration Confetti falling inside Bottom Sheet (Stops after 5 seconds) */}
+            <CelebrationRain key={`sheet-rain-${selectedDrawId}`} containerClass="absolute inset-0 pointer-events-none z-30 overflow-hidden" count={45} durationSeconds={5} />
             {/* Sheet Header with Close & "DRAW ENDED" badge */}
             <div className="flex items-center justify-between p-4 border-b border-zinc-800/60 shrink-0">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-black uppercase tracking-wider">

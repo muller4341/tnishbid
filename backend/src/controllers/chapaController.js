@@ -213,6 +213,34 @@ exports.completeInlineBidPayment = async (req, res) => {
   }
 };
 
+exports.prepareInlineWalletDeposit = async (req, res) => {
+  const { amount, method } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const parsedAmount = parseFloat(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 10) {
+      return res.status(400).json({ error: 'Please enter a valid deposit amount of at least 10 Birr' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const normalizedMethod = String(method || '').toLowerCase().includes('cbe') ? 'cbe' : 'telebirr';
+    const txRef = `tinish-w-inline-${userId}-${normalizedMethod}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+    res.json({
+      success: true,
+      tx_ref: txRef,
+      amount: parsedAmount,
+      method: normalizedMethod === 'cbe' ? 'cbe' : 'telebirr'
+    });
+  } catch (error) {
+    console.error('Inline wallet deposit preparation error:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to prepare deposit' });
+  }
+};
+
 exports.initializeWalletDeposit = async (req, res) => {
   const { amount, phone_number, method } = req.body;
   const userId = req.user.id;
@@ -227,7 +255,8 @@ exports.initializeWalletDeposit = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const txRef = `tinish-wallet-${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const normalizedMethod = String(method || '').toLowerCase().includes('cbe') ? 'cbe' : 'telebirr';
+    const txRef = `tinish-wallet-${userId}-${normalizedMethod}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const nameParts = (user.name || 'Tinish Bid User').trim().split(/\s+/);
     let rawPhone = String(phone_number || user.phone_number || '').replace(/\D/g, '');
     if (rawPhone.startsWith('251')) rawPhone = '0' + rawPhone.slice(3);
@@ -241,10 +270,10 @@ exports.initializeWalletDeposit = async (req, res) => {
       last_name: nameParts.slice(1).join(' ') || nameParts[0] || 'Member',
       tx_ref: txRef,
       callback_url: config.callbackUrl,
-      return_url: `${config.frontendUrl}/payment-result?status=success&tx_ref=${txRef}`,
+      return_url: `${config.frontendUrl}/payment-result?status=success&tx_ref=${txRef}&type=wallet&method=${normalizedMethod}`,
       customization: {
         title: 'TinishBid',
-        description: `Add ${parsedAmount} Coins via ${method === 'cbe' ? 'CBE' : 'Telebirr'}`
+        description: `Add ${parsedAmount} Coins via ${normalizedMethod === 'cbe' ? 'CBE Birr' : 'Telebirr'}`
       }
     };
     if (/^(09|07)\d{8}$/.test(rawPhone)) chapaPayload.phone_number = rawPhone;
@@ -270,7 +299,7 @@ exports.initializeWalletDeposit = async (req, res) => {
 };
 
 exports.verifyWalletDeposit = async (req, res) => {
-  const { tx_ref: txRef } = req.body;
+  const { tx_ref: txRef, method: passedMethod, payment_method: passedPaymentMethod } = req.body;
   const userId = req.user.id;
 
   if (!txRef) {
@@ -298,6 +327,18 @@ exports.verifyWalletDeposit = async (req, res) => {
       return res.status(400).json({ error: 'Invalid verified payment amount' });
     }
 
+    // Determine the real chosen payment method from request, Chapa verification data, or txRef
+    const rawMethod = String(
+      passedMethod ||
+      passedPaymentMethod ||
+      verified.data?.payment_method ||
+      (txRef.toLowerCase().includes('-cbe-') || txRef.toLowerCase().includes('cbe') ? 'cbe' : '') ||
+      (txRef.toLowerCase().includes('-telebirr-') || txRef.toLowerCase().includes('tele') ? 'telebirr' : '') ||
+      'telebirr'
+    ).toLowerCase();
+
+    const methodName = rawMethod.includes('cbe') ? 'CBE Birr' : 'Telebirr';
+
     // Check if this tx_ref has already been credited to prevent double crediting
     const existingNotif = await prisma.notification.findFirst({
       where: {
@@ -316,6 +357,7 @@ exports.verifyWalletDeposit = async (req, res) => {
         already_credited: true,
         wallet_balance: user.wallet_balance,
         amount: verifiedAmount,
+        method: methodName,
         message: 'This deposit was already credited to your wallet.'
       });
     }
@@ -327,7 +369,6 @@ exports.verifyWalletDeposit = async (req, res) => {
       select: { id: true, name: true, phone_number: true, wallet_balance: true }
     });
 
-    const methodName = String(verified.data?.payment_method || 'Telebirr/CBE').toUpperCase();
     try {
       await prisma.notification.create({
         data: {
@@ -354,7 +395,7 @@ exports.verifyWalletDeposit = async (req, res) => {
       amount: verifiedAmount,
       method: methodName,
       transaction_id: txRef,
-      message: `${verifiedAmount.toFixed(2)} Birr added to your wallet successfully!`
+      message: `${verifiedAmount.toFixed(2)} Birr added to your wallet successfully via ${methodName}!`
     });
   } catch (error) {
     console.error('Wallet deposit verification error:', error.message);

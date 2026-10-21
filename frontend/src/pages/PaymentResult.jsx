@@ -11,6 +11,9 @@ const PaymentResult = () => {
   const message = searchParams.get('message') || '';
   const txRef = searchParams.get('tx_ref') || '';
 
+  const typeParam = searchParams.get('type') || '';
+  const methodParam = searchParams.get('method') || '';
+
   const themeContext = useTheme();
   const isLight =
     themeContext?.theme === 'light' ||
@@ -22,9 +25,33 @@ const PaymentResult = () => {
     return match ? match[1] : null;
   }, [txRef]);
 
+  // Detect whether this was a wallet deposit
+  const isWalletDeposit = useMemo(() => {
+    return (
+      typeParam === 'wallet' ||
+      txRef.includes('-wallet-') ||
+      txRef.includes('-w-inline-')
+    );
+  }, [typeParam, txRef]);
+
+  // Determine real chosen payment method (Telebirr or CBE Birr)
+  const paymentMethod = useMemo(() => {
+    const raw = (methodParam || txRef).toLowerCase();
+    if (raw.includes('cbe')) return 'CBE Birr';
+    if (raw.includes('tele')) return 'Telebirr';
+    return methodParam ? methodParam.toUpperCase() : 'Telebirr';
+  }, [methodParam, txRef]);
+
   /* If inside ChapaEmbeddedModal iframe or popup, notify the parent window */
   useEffect(() => {
-    const payload = { type: 'CHAPA_PAYMENT_RESULT', status, tx_ref: txRef, message };
+    const payload = {
+      type: 'CHAPA_PAYMENT_RESULT',
+      status,
+      tx_ref: txRef,
+      message,
+      payment_method: paymentMethod,
+      is_wallet: isWalletDeposit
+    };
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(payload, window.location.origin);
@@ -39,17 +66,18 @@ const PaymentResult = () => {
     } catch {
       // ignore
     }
-  }, [status, txRef, message]);
+  }, [status, txRef, message, paymentMethod, isWalletDeposit]);
 
-  /* Auto-navigate to /my-bids after 1 second if on standalone page */
+  /* Auto-navigate after 1.5 seconds if on standalone page */
   useEffect(() => {
     if (success && (!window.parent || window.parent === window)) {
+      const destination = isWalletDeposit ? '/profile' : '/my-bids';
       const timer = setTimeout(() => {
-        navigate('/my-bids');
-      }, 1000);
+        navigate(destination);
+      }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [success, navigate]);
+  }, [success, isWalletDeposit, navigate]);
 
   return (
     <div className="max-w-md mx-auto py-16 px-4 text-center animate-in fade-in duration-300">
@@ -73,17 +101,44 @@ const PaymentResult = () => {
           {success ? 'Payment Successful!' : 'Payment Not Completed'}
         </h1>
         <p className={`mt-2.5 text-sm leading-relaxed ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
-          {success
-            ? 'Your participation fee was received and your bid has been placed successfully.'
-            : message || 'Your bid was not placed. You can try again from the auction page.'}
+          {success ? (
+            isWalletDeposit ? (
+              <>
+                Your wallet deposit via{' '}
+                <span className="font-bold text-emerald-400">{paymentMethod}</span> was received and
+                credited to your balance successfully.
+              </>
+            ) : (
+              <>
+                Your participation fee was received via{' '}
+                <span className="font-bold text-emerald-400">{paymentMethod}</span> and your bid has
+                been placed successfully.
+              </>
+            )
+          ) : (
+            message ||
+            (isWalletDeposit
+              ? 'Your wallet deposit was not completed. You can try again from your profile.'
+              : 'Your bid was not placed. You can try again from the auction page.')
+          )}
         </p>
         {success && (
           <p className={`mt-3 text-xs font-medium animate-pulse ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
-            Redirecting to your bids…
+            {isWalletDeposit ? 'Redirecting to your wallet…' : 'Redirecting to your bids…'}
           </p>
         )}
         <Link
-          to={success ? '/my-bids' : targetItemId ? `/item/${targetItemId}` : '/'}
+          to={
+            success
+              ? isWalletDeposit
+                ? '/profile'
+                : '/my-bids'
+              : targetItemId
+              ? `/item/${targetItemId}`
+              : isWalletDeposit
+              ? '/profile'
+              : '/'
+          }
           style={{
             background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
             color: '#ffffff',
@@ -93,7 +148,15 @@ const PaymentResult = () => {
         >
           <ArrowLeft size={16} style={{ color: '#ffffff' }} />
           <span style={{ color: '#ffffff' }}>
-            {success ? 'View My Bids' : targetItemId ? 'Return to Auction' : 'Return to Auctions'}
+            {success
+              ? isWalletDeposit
+                ? 'View Wallet'
+                : 'View My Bids'
+              : isWalletDeposit
+              ? 'Return to Profile'
+              : targetItemId
+              ? 'Return to Auction'
+              : 'Return to Auctions'}
           </span>
         </Link>
       </div>

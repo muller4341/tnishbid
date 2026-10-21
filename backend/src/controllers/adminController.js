@@ -255,19 +255,25 @@ exports.endAuction = async (req, res) => {
     });
 
     if (winnerId) {
+      const { getUserPreferences } = require('../utils/preferenceStore');
+      const winnerPrefs = getUserPreferences(winnerId);
       const winnerMessage = `🎉 Congratulations! You won the auction for "${item.title}" with a winning bid of ${winningAmount || item.base_price} ETB!`;
-      await prisma.notification.create({
-        data: {
-          user_id: winnerId,
-          message: winnerMessage
-        }
-      });
-      if (io) {
-        io.to(`user_${winnerId}`).emit('auction_won', {
-          itemId: item.id,
-          itemTitle: item.title,
-          message: winnerMessage
+      
+      if (winnerPrefs.wins !== false) {
+        await prisma.notification.create({
+          data: {
+            user_id: winnerId,
+            message: winnerMessage
+          }
         });
+        if (io) {
+          io.to(`user_${winnerId}`).emit('auction_won', {
+            itemId: item.id,
+            itemTitle: item.title,
+            winningAmount: winningAmount || item.base_price,
+            message: winnerMessage
+          });
+        }
       }
 
       // Notify other participants that auction has concluded

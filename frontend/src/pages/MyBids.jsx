@@ -409,8 +409,8 @@ const MyBids = () => {
                           className={`inline-flex items-center text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                             itemGroup.totalBidsCount > 1
                               ? isLight
-                                ? 'bg-orange-50 border-orange-200 text-orange-600'
-                                : 'bg-orange-500/15 border-orange-500/30 text-orange-400'
+                                ? 'bg-zinc-100 border-zinc-200 text-zinc-600'
+                              : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
                               : isLight
                               ? 'bg-zinc-100 border-zinc-200 text-zinc-600'
                               : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'

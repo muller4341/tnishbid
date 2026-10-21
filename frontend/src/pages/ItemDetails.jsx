@@ -95,9 +95,9 @@ const RenderDescriptionSections = memo(({ description }) => {
       <div className="bg-[#0E0F12] rounded-2xl border border-zinc-800/70 divide-y divide-zinc-800/60 text-xs overflow-hidden">
         {validSections.map((sec, idx) => (
           <div key={idx} className="flex flex-row items-center justify-between p-3.5 gap-3">
-            {/* Subtitle - Centered Vertically and Horizontally */}
-            <div className="w-1/3 min-w-[100px] font-bold text-amber-400 text-xs flex items-center justify-start text-center shrink-0 self-center">
-              <span>{sec.title || 'Detail'}</span>
+            {/* Subtitle - Left-aligned so multi-line titles start at the same left margin as single-line titles */}
+            <div className="w-1/3 min-w-[100px] font-bold text-amber-400 text-xs flex items-center justify-start text-left shrink-0 self-center">
+              <span className="w-full text-left break-words">{sec.title || 'Detail'}</span>
             </div>
 
             {/* Description - Full justified alignment so all line endings align except the last line */}

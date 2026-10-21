@@ -39,7 +39,7 @@ const TRANSLATIONS = {
     bids: 'bids',
     bidAmount: 'Bid amount',
     submitBid: 'Submit a Bid Amount',
-    terms: 'Bid fee is none refundable',
+    terms: 'Bids require 2 decimal places. Only lowest unique bids win!',
     expired: 'Ended',
     viewDetails: 'View Details',
     noItems: 'No active auctions at the moment.',
@@ -395,7 +395,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
             </button>
 
             <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-500 font-bold">
-              <Info size={11} className="text-red-400" />
+              <Info size={11} className="text-green-400" />
               {t.terms}
             </div>
           </>

@@ -168,3 +168,29 @@ exports.markNotificationRead = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+const { getUserPreferences, setUserPreferences } = require('../utils/preferenceStore');
+
+exports.getNotificationPreferences = async (req, res) => {
+  try {
+    const prefs = getUserPreferences(req.user.id);
+    res.json(prefs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateNotificationPreferences = async (req, res) => {
+  try {
+    const { bidDrops, wins } = req.body;
+    const updated = setUserPreferences(req.user.id, {
+      ...(bidDrops !== undefined ? { bidDrops: Boolean(bidDrops) } : {}),
+      ...(wins !== undefined ? { wins: Boolean(wins) } : {})
+    });
+    res.json({ success: true, preferences: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getUserPreferences = getUserPreferences;

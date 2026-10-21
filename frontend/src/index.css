@@ -17,6 +17,13 @@ html {
   }
 }
 
+/* Suppress default Chapa SDK popup container so our custom success screen is displayed cleanly */
+#popup-container {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* Mobile-first safe area helpers */
 .pb-safe {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));

@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId, useLayoutEffect, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import telebirrLogo from '../assets/telebirr.png';
 import cbeLogo from '../assets/cbe.png';
-import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
+import '@chapa_et/inline.js/lib/inline.js';
 import { 
   CreditCard, 
   Bell, 
@@ -21,6 +23,8 @@ import {
   Signal,
   Battery,
   Phone,
+  Smartphone,
+  Info,
   Wallet,
   User,
   Camera,
@@ -36,6 +40,487 @@ import {
   Zap
 } from 'lucide-react';
 
+/* Chapa Push Engine for inline USSD / App Push without site redirect */
+const ChapaPushEngine = ({ isOpen, amount, txRef, selectedPayment, mobile, onSuccess, onFailure }) => {
+  const containerId = `chapa-inline-deposit-${useId().replace(/:/g, '')}`;
+  const submitTimer = useRef(null);
+  const successRef = useRef(onSuccess);
+  const failureRef = useRef(onFailure);
+  const normalizedMobile = String(mobile || '').replace(/\D/g, '').replace(/^251(?=[97])/, '0');
+
+  successRef.current = onSuccess;
+  failureRef.current = onFailure;
+
+  useLayoutEffect(() => {
+    if (!isOpen || !txRef) return undefined;
+    const publicKey = import.meta.env.VITE_CHAPA_PUBLIC_KEY || 'CHAPUBK_TEST-rsrOoHDhR3XQe4yEwiRspYqDn81Qky6a';
+    if (!publicKey || publicKey === 'your_chapa_public_key') {
+      failureRef.current?.('Chapa public key is not configured.');
+      return undefined;
+    }
+
+    try {
+      const checkout = new window.ChapaCheckout({
+        publicKey,
+        amount: String(amount),
+        currency: 'ETB',
+        tx_ref: txRef,
+        mobile: normalizedMobile,
+        availablePaymentMethods: [
+          selectedPayment === 'cbe' ? 'cbebirr' : 'telebirr'
+        ],
+        showPaymentMethodsNames: false,
+        customizations: { buttonText: 'Send Payment Push' },
+        onSuccessfulPayment: async (_result, chapaRef) => {
+          document.getElementById('popup-container')?.remove();
+          try {
+            await successRef.current?.({ txRef, chapaRef });
+          } catch (error) {
+            failureRef.current?.(error.response?.data?.error || 'Payment was approved, but wallet could not be updated.');
+          } finally {
+            document.getElementById('popup-container')?.remove();
+          }
+        },
+        onPaymentFailure: (message) => {
+          document.getElementById('popup-container')?.remove();
+          failureRef.current?.(message || 'Payment push failed or was cancelled.');
+        },
+        onClose: () => {
+          document.getElementById('popup-container')?.remove();
+        }
+      });
+
+      checkout.initialize(containerId);
+      submitTimer.current = window.setTimeout(() => {
+        try {
+          const input = document.querySelector(`#${containerId} #chapa-phone-number`) || document.getElementById("chapa-phone-number");
+          if (input && normalizedMobile) {
+            input.value = normalizedMobile;
+          }
+          checkout.handlePayment();
+        } catch (err) {
+          console.error('Chapa checkout payment error:', err);
+          failureRef.current?.(err.message || 'Failed to trigger payment push');
+        }
+      }, 50);
+
+      return () => {
+        if (submitTimer.current) window.clearTimeout(submitTimer.current);
+        const container = document.getElementById(containerId);
+        if (container) container.innerHTML = '';
+      };
+    } catch (err) {
+      console.error('Chapa initialization error:', err);
+      failureRef.current?.(err.message || 'Failed to initialize Chapa push');
+    }
+  }, [amount, containerId, isOpen, normalizedMobile, selectedPayment, txRef]);
+
+  if (!isOpen) return null;
+  return <div id={containerId} className="hidden" aria-hidden="true" />;
+};
+
+/* Deposit Confirmation Pop-up Modal matching BidPaymentModal UI */
+const DepositPaymentModal = memo(({
+  isOpen,
+  onClose,
+  amount,
+  selectedMethod,
+  phone,
+  onChangePhone,
+  onConfirm,
+  isSubmitting,
+  inlinePayment,
+  onInlineClose,
+  onInlineSuccess,
+  successData,
+  onSuccessDone,
+  errorMessage
+}) => {
+  const themeContext = useTheme();
+  const isLight =
+    themeContext?.theme === 'light' ||
+    (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
+
+  const [agreed, setAgreed] = useState(false);
+  const prevIsOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      setAgreed(false);
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div
+      className={`fixed inset-0 z-[100] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${
+        successData || inlinePayment
+          ? 'items-center p-4'
+          : 'items-end p-0 sm:items-center sm:p-4 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
+      } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'}`}
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSubmitting && !inlinePayment) onClose?.();
+      }}
+    >
+      <div
+        className={`max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${
+          successData || inlinePayment
+            ? 'rounded-3xl zoom-in-95'
+            : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
+        } ${
+          isLight
+            ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
+            : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deposit-summary-title"
+      >
+        {/* Top Handle (bottom sheet only) */}
+        {!successData && !inlinePayment && (
+          <div className={`mx-auto mb-1 h-1.5 w-12 rounded-full shrink-0 ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
+        )}
+
+        {/* Header */}
+        <div
+          className={`flex items-center justify-between pb-3 border-b shrink-0 ${
+            isLight ? 'border-orange-500/15' : 'border-zinc-800'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${
+                successData
+                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
+                  : isLight
+                    ? 'bg-orange-50 border border-orange-200 text-orange-600'
+                    : 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
+              }`}
+            >
+              {successData ? <CheckCircle2 size={18} /> : <Wallet size={18} />}
+            </div>
+            <div>
+              <h2
+                id="deposit-summary-title"
+                className={`font-black text-lg sm:text-xl tracking-tight ${
+                  isLight ? 'text-zinc-900' : 'text-white'
+                }`}
+              >
+                {successData ? 'Deposit Successful' : inlinePayment ? 'Payment Push Sent' : 'Deposit Summary'}
+              </h2>
+              <p className={`text-[11px] font-medium ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                {successData ? 'Funds added to your wallet' : inlinePayment ? 'Waiting for PIN authorization' : 'Instant Automatic Wallet Credit'}
+              </p>
+            </div>
+          </div>
+          {!successData && !inlinePayment && (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border shrink-0 ${
+                isLight
+                  ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border-zinc-200'
+                  : 'bg-[#1f2026] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
+              }`}
+              aria-label="Close"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        {/* Inline Chapa Push Engine */}
+        {inlinePayment && !successData && (
+          <ChapaPushEngine
+            isOpen
+            amount={inlinePayment.amount}
+            txRef={inlinePayment.txRef}
+            selectedPayment={inlinePayment.selectedPayment || selectedMethod}
+            mobile={phone}
+            onSuccess={onInlineSuccess}
+            onFailure={(msg) => onInlineClose?.(msg)}
+          />
+        )}
+
+        {successData ? (
+          <div className="py-3 px-1 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-500 shadow-md">
+              <CheckCircle2 size={32} className="stroke-[2.5]" />
+            </div>
+            <div>
+              <h3 className={`text-lg sm:text-xl font-black tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                Deposit Successful! 🎉
+              </h3>
+              <p className={`mt-1.5 text-xs leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
+                <span className={`font-bold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>
+                  +{successData.amount} Coins
+                </span>{' '}
+                have been added to your wallet automatically.
+              </p>
+            </div>
+            <div className={`border rounded-2xl p-3.5 text-xs text-left space-y-2 ${
+              isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#0E0F12] border-zinc-800'
+            }`}>
+              <div className={`flex justify-between items-center py-0.5 border-b ${isLight ? 'border-zinc-200' : 'border-zinc-800/80'}`}>
+                <span className={isLight ? 'text-zinc-500' : 'text-zinc-400'}>Payment Channel</span>
+                <span className={`font-bold flex items-center gap-1.5 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                  <img
+                    src={successData.method?.toLowerCase().includes('cbe') ? cbeLogo : telebirrLogo}
+                    alt="channel"
+                    className="w-4 h-4 object-contain rounded"
+                  />
+                  {successData.method}
+                </span>
+              </div>
+              <div className={`flex justify-between items-center py-0.5 border-b ${isLight ? 'border-zinc-200' : 'border-zinc-800/80'}`}>
+                <span className={isLight ? 'text-zinc-500' : 'text-zinc-400'}>Coins Credited</span>
+                <span className="font-bold text-emerald-500 font-mono">+{successData.amount} Coins (ETB)</span>
+              </div>
+              <div className="flex justify-between items-center py-0.5 pt-1">
+                <span className={`font-bold uppercase text-[11px] ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                  New Wallet Balance
+                </span>
+                <span className={`font-mono text-base font-black ${isLight ? 'text-orange-600' : 'text-amber-400'}`}>
+                  {Number(successData.newBalance || 0).toFixed(2)} Birr
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onSuccessDone || onClose}
+              style={{
+                background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                color: '#ffffff',
+                boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
+              }}
+              className="w-full py-3.5 px-4 font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer text-center active:scale-95"
+            >
+              Done
+            </button>
+          </div>
+        ) : inlinePayment ? (
+          <div className="py-4 px-2 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md ${
+                isLight
+                  ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
+                  : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
+              }`}
+            >
+              <Smartphone size={28} className="animate-pulse" />
+            </div>
+            <div>
+              <h3 className={`text-base sm:text-lg font-black tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                Payment Push Sent!
+              </h3>
+              <p className={`mt-1.5 text-xs leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
+                A payment authorization prompt of{' '}
+                <span className={`font-bold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>
+                  {parseFloat(amount || 0).toFixed(2)} Br
+                </span>{' '}
+                has been sent to your phone (
+                <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                  +251 {String(phone || '').replace(/^(\+?251|0)/, '')}
+                </span>
+                ) via{' '}
+                <span className={`font-bold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>
+                  {selectedMethod === 'cbe' ? 'CBE Birr' : 'Telebirr'}
+                </span>
+                .
+              </p>
+              <p className={`mt-1 text-[11px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                Please check your phone and enter your PIN to approve the deposit.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-orange-500 pt-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
+              <span className="font-bold text-xs tracking-tight">Waiting for authorization…</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onInlineClose?.()}
+              className={`mt-2 text-xs underline cursor-pointer transition-colors block mx-auto ${
+                isLight ? 'text-zinc-500 hover:text-zinc-800' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Cancel Payment
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Deposit Details Card */}
+            <div
+              className={`rounded-2xl border p-3.5 sm:p-4 text-sm transition-colors space-y-2.5 ${
+                isLight
+                  ? 'bg-[#FFF9F5] border-orange-500/20 shadow-xs'
+                  : 'bg-[#111216] border-zinc-800/80'
+              }`}
+            >
+              <div
+                className={`flex items-start gap-2.5 border-b pb-2.5 ${
+                  isLight ? 'border-orange-500/15' : 'border-zinc-800'
+                }`}
+              >
+                <Coins size={16} className={`mt-0.5 shrink-0 ${isLight ? 'text-orange-600' : 'text-amber-400'}`} />
+                <div className="min-w-0 flex-1 flex items-center justify-between">
+                  <p className={`text-sm font-medium truncate ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                    Purpose: <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>Wallet Deposit (Coins)</span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs sm:text-[13px] font-medium ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  Coins to Credit:
+                </span>
+                <span className="font-mono font-bold text-sm sm:text-base text-emerald-500 flex items-center gap-1">
+                  +{parseFloat(amount || 0)} Coins
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-0.5">
+                <div className="flex items-center">
+                  <span className={`text-xs sm:text-[13px] font-medium ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                    Total Payable:
+                  </span>
+                  <span
+                    className={`ml-2 inline-block rounded-md px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider border ${
+                      isLight
+                        ? 'bg-orange-50 border-orange-200 text-orange-600'
+                        : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                    }`}
+                  >
+                    INSTANT SYNC
+                  </span>
+                </div>
+                <span
+                  className={`font-mono font-black text-lg sm:text-xl ${
+                    isLight ? 'text-[#ea580c]' : 'text-orange-400'
+                  }`}
+                >
+                  {parseFloat(amount || 0).toFixed(2)} Birr
+                </span>
+              </div>
+            </div>
+
+            {/* Phone Number Input */}
+            <div>
+              <label className={`mb-1.5 block text-xs sm:text-sm font-bold ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                {selectedMethod === 'cbe' ? 'CBE Birr Phone' : 'Telebirr Phone'}
+              </label>
+              <div
+                className={`flex items-center rounded-2xl border px-3.5 py-2.5 sm:py-3 transition-colors focus-within:border-orange-500 focus-within:ring-1.5 focus-within:ring-orange-500/30 ${
+                  isLight ? 'bg-white border-zinc-300' : 'bg-[#111216] border-zinc-800'
+                }`}
+              >
+                <Smartphone size={16} className="mr-2.5 text-zinc-400 shrink-0" />
+                <span
+                  className={`border-r pr-3 text-sm font-bold ${
+                    isLight ? 'border-zinc-200 text-zinc-600' : 'border-zinc-800 text-zinc-300'
+                  }`}
+                >
+                  +251
+                </span>
+                <input
+                  type="tel"
+                  value={String(phone || '').replace(/^(\+?251|0)/, '')}
+                  onChange={(event) => onChangePhone?.(event.target.value.replace(/\D/g, ''))}
+                  placeholder="91 234 5678"
+                  className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${
+                    isLight
+                      ? 'text-zinc-900 placeholder:text-zinc-400'
+                      : 'text-white placeholder:text-zinc-600'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Error Message if any */}
+            {errorMessage && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 flex items-start gap-2 text-xs text-red-400">
+                <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Agreement Checkbox */}
+            <div
+              onClick={() => setAgreed(!agreed)}
+              className="flex items-center gap-2.5 py-1 cursor-pointer select-none group"
+            >
+              <div
+                className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all shrink-0 ${
+                  agreed
+                    ? 'border-orange-500 text-white shadow-xs'
+                    : isLight
+                      ? 'bg-white border-zinc-300 group-hover:border-orange-400'
+                      : 'bg-[#111216] border-zinc-700 group-hover:border-zinc-500'
+                }`}
+                style={
+                  agreed
+                    ? {
+                        background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                        color: '#ffffff',
+                      }
+                    : undefined
+                }
+              >
+                {agreed && <Check size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />}
+              </div>
+              <span
+                className={`text-xs sm:text-sm font-semibold transition-colors ${
+                  isLight
+                    ? 'text-zinc-700 group-hover:text-zinc-900'
+                    : 'text-zinc-300 group-hover:text-white'
+                }`}
+              >
+                I agree to continue and deposit {parseFloat(amount || 0).toFixed(2)} Br
+              </span>
+            </div>
+
+            {/* Confirm Button */}
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={!agreed || isSubmitting || !amount || amount < 10}
+              style={
+                agreed && !isSubmitting && amount >= 10
+                  ? {
+                      background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                      color: '#ffffff',
+                      boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
+                    }
+                  : undefined
+              }
+              className={`w-full font-black text-sm sm:text-base py-3 sm:py-3.5 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${
+                agreed && !isSubmitting && amount >= 10
+                  ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
+                  : isLight
+                    ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
+                    : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  <CheckCircle2 size={18} style={{ color: agreed && amount >= 10 ? '#ffffff' : undefined }} />
+                  <span style={{ color: agreed && amount >= 10 ? '#ffffff' : undefined }}>
+                    Pay & Deposit {parseFloat(amount || 0).toFixed(2)} Br
+                  </span>
+                </>
+              )}
+            </button>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+});
+
 const Profile = () => {
   const { user, logout, setUser, socket } = useAuth();
   const navigate = useNavigate();
@@ -46,19 +531,16 @@ const Profile = () => {
   const [activeSubPage, setActiveSubPage] = useState(null); // 'payment', 'notifications', 'faq', 'legal' | null
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // Add Funds state (Telebirr & CBE automated deposits)
-  const [depositMode, setDepositMode] = useState('automatic'); // 'automatic' (Chapa Real-Time) | 'manual' (Direct Transfer Ref)
+  // Add Funds state (Telebirr & CBE automated deposits via Chapa)
   const [selectedMethod, setSelectedMethod] = useState('telebirr'); // 'telebirr' | 'cbe'
   const [selectedPreset, setSelectedPreset] = useState(100); // 25, 50, 100, 250, 500, 1000, 'custom'
   const [customAmount, setCustomAmount] = useState('');
-  const [transactionId, setTransactionId] = useState('');
   const [senderPhone, setSenderPhone] = useState('');
-  const [copiedAccount, setCopiedAccount] = useState(false);
   const [isSubmittingFund, setIsSubmittingFund] = useState(false);
   const [fundError, setFundError] = useState('');
   const [depositSuccessData, setDepositSuccessData] = useState(null);
-  const [chapaCheckoutUrl, setChapaCheckoutUrl] = useState(null);
-  const [activeChapaTxRef, setActiveChapaTxRef] = useState(null);
+  const [inlineDeposit, setInlineDeposit] = useState(null); // { txRef, amount, selectedPayment, mobile }
+  const [showDepositModal, setShowDepositModal] = useState(false);
 
   // Close logout confirmation on Escape key
   useEffect(() => {
@@ -108,13 +590,53 @@ const Profile = () => {
     }
   };
 
-  // Notification toggles
-  const [notifSettings, setNotifSettings] = useState({
-    bidDrops: true,
-    outbid: true,
-    wins: true,
-    promos: false
+  // Notification toggles & persistence
+  const notifStorageKey = user?.id ? `notif_settings_${user.id}` : 'notif_settings_guest';
+  const [notifSettings, setNotifSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem(notifStorageKey);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      bidDrops: true,
+      wins: true
+    };
   });
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      axios.get('/api/users/notification-preferences')
+        .then(res => {
+          if (res.data) {
+            const loaded = {
+              bidDrops: res.data.bidDrops !== false,
+              wins: res.data.wins !== false
+            };
+            setNotifSettings(loaded);
+            localStorage.setItem(notifStorageKey, JSON.stringify(loaded));
+          }
+        })
+        .catch(err => console.warn('Could not fetch notification preferences:', err.message));
+    }
+  }, [user, notifStorageKey]);
+
+  const handleTogglePreference = async (key, val) => {
+    const updated = {
+      ...notifSettings,
+      [key]: val
+    };
+    setNotifSettings(updated);
+    localStorage.setItem(notifStorageKey, JSON.stringify(updated));
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2200);
+
+    try {
+      await axios.put('/api/users/notification-preferences', updated);
+    } catch (err) {
+      console.warn('Could not sync notification preferences:', err.message);
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -168,51 +690,44 @@ const Profile = () => {
     ? (parseFloat(customAmount) || 0)
     : (parseFloat(selectedPreset) || 0);
 
-  const handleCopyAccount = (text) => {
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(text);
-    }
-    setCopiedAccount(true);
-    setTimeout(() => setCopiedAccount(false), 2000);
-  };
-
-  const handleChapaDeposit = async () => {
+  const handleInitiateDeposit = async (overrideParams = {}) => {
     setFundError('');
-    if (!effectiveAmount || effectiveAmount < 10) {
+    const amt = overrideParams.amount !== undefined ? overrideParams.amount : effectiveAmount;
+    const method = overrideParams.method || selectedMethod;
+    const phone = overrideParams.phone !== undefined ? overrideParams.phone : (senderPhone || user?.phone_number || '');
+
+    if (!amt || amt < 10) {
       setFundError('Please select or enter an amount of at least 10 Birr');
       return;
     }
 
     setIsSubmittingFund(true);
     try {
-      const res = await axios.post('/api/payments/chapa/wallet/initialize', {
-        amount: effectiveAmount,
-        method: selectedMethod,
-        phone_number: senderPhone || user?.phone_number || ''
+      const res = await axios.post('/api/payments/chapa/wallet/inline/prepare', {
+        amount: amt,
+        method: method
       });
 
-      if (res.data?.checkout_url) {
-        setChapaCheckoutUrl(res.data.checkout_url);
-        setActiveChapaTxRef(res.data.tx_ref);
-      } else {
-        setFundError('Could not start Chapa payment session.');
-      }
+      setInlineDeposit({
+        txRef: res.data.tx_ref,
+        amount: res.data.amount,
+        selectedPayment: res.data.method || method,
+        mobile: phone
+      });
     } catch (err) {
-      console.error('Failed to initialize deposit:', err);
-      setFundError(err.response?.data?.error || 'Could not connect to payment gateway. Please try again.');
+      console.error('Failed to prepare inline deposit:', err);
+      setFundError(err.response?.data?.error || 'Could not initiate payment. Please try again.');
     } finally {
       setIsSubmittingFund(false);
     }
   };
 
-  const handleChapaSuccess = async ({ tx_ref }) => {
-    const refToVerify = tx_ref || activeChapaTxRef;
-    if (!refToVerify) return;
-
+  const handleInlineDepositSuccess = async ({ txRef }) => {
     setIsSubmittingFund(true);
     try {
       const res = await axios.post('/api/payments/chapa/wallet/verify', {
-        tx_ref: refToVerify
+        tx_ref: txRef,
+        method: selectedMethod
       });
 
       const newBalance = res.data.wallet_balance;
@@ -224,66 +739,32 @@ const Profile = () => {
       setDepositSuccessData({
         amount: res.data.amount || effectiveAmount,
         method: res.data.method || (selectedMethod === 'cbe' ? 'CBE Birr' : 'Telebirr'),
-        transaction_id: refToVerify,
+        transaction_id: txRef,
         newBalance
       });
-      setChapaCheckoutUrl(null);
-      setActiveChapaTxRef(null);
+      setInlineDeposit(null);
     } catch (err) {
-      console.error('Chapa verification error:', err);
-      setFundError(err.response?.data?.error || 'Payment could not be verified by Chapa. No funds were credited.');
-      setChapaCheckoutUrl(null);
+      console.error('Deposit verification error:', err);
+      setFundError(err.response?.data?.error || 'Payment was approved, but could not be verified automatically. Please contact support.');
+      setInlineDeposit(null);
     } finally {
       setIsSubmittingFund(false);
     }
   };
 
-  const handleAddFunds = async (e) => {
-    if (e) e.preventDefault();
+  const handleInlineDepositClose = (msg) => {
+    setInlineDeposit(null);
+    if (msg && typeof msg === 'string') {
+      setFundError(msg);
+      setTimeout(() => setFundError(''), 4500);
+    }
+  };
+
+  const handleCloseDepositModal = () => {
+    setShowDepositModal(false);
+    setInlineDeposit(null);
+    setDepositSuccessData(null);
     setFundError('');
-
-    if (!effectiveAmount || effectiveAmount < 10) {
-      setFundError('Please enter an amount of at least 10 Birr');
-      return;
-    }
-
-    if (!transactionId.trim()) {
-      setFundError(
-        selectedMethod === 'cbe'
-          ? 'Please enter your CBE FT Transaction Reference (from SMS or receipt)'
-          : 'Please enter your Telebirr Transaction Reference / SMS Code'
-      );
-      return;
-    }
-
-    setIsSubmittingFund(true);
-    try {
-      const res = await axios.post('/api/users/add-funds', {
-        amount: effectiveAmount,
-        method: selectedMethod,
-        transaction_id: transactionId.trim(),
-        phone_number: senderPhone || user?.phone_number || ''
-      });
-
-      const newBalance = res.data.wallet_balance;
-      setProfileData(prev => prev ? { ...prev, wallet_balance: newBalance } : null);
-      if (setUser) {
-        setUser(prev => prev ? { ...prev, wallet_balance: newBalance } : null);
-      }
-
-      setDepositSuccessData({
-        amount: effectiveAmount,
-        method: selectedMethod,
-        transaction_id: transactionId.trim(),
-        newBalance
-      });
-      setTransactionId('');
-    } catch (err) {
-      console.error('Failed to add funds:', err);
-      setFundError(err.response?.data?.error || 'Verification failed. Please check your transaction reference and try again.');
-    } finally {
-      setIsSubmittingFund(false);
-    }
   };
 
   // Format member date
@@ -300,23 +781,32 @@ const Profile = () => {
   // Sub-page View 1: Payment Methods & Add Funds to Wallet
   if (activeSubPage === 'payment') {
     const isTelebirr = selectedMethod === 'telebirr';
-    const companyAccount = isTelebirr ? '0943 41 80 20' : '1000 4821 9382 1';
-    const companyAccountHolder = isTelebirr ? 'ትንሽBid (TinishBid Official)' : 'ትንሽBid / Commercial Bank of Ethiopia';
 
     return (
       <div className="w-full pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-4 animate-in fade-in duration-200 min-w-0">
-        {/* Chapa Embedded Checkout Modal */}
-        {chapaCheckoutUrl && (
-          <ChapaEmbeddedModal
-            checkoutUrl={chapaCheckoutUrl}
-            onClose={() => setChapaCheckoutUrl(null)}
-            onSuccess={handleChapaSuccess}
-            onFailure={({ message }) => {
-              setFundError(message || 'Payment cancelled or rejected. No funds were added.');
-              setChapaCheckoutUrl(null);
-            }}
-          />
-        )}
+        {/* Deposit Payment Modal (Inline USSD / App Push - no Chapa site redirect) */}
+        <DepositPaymentModal
+          isOpen={showDepositModal}
+          onClose={handleCloseDepositModal}
+          amount={effectiveAmount}
+          selectedMethod={selectedMethod}
+          phone={senderPhone}
+          onChangePhone={(val) => setSenderPhone(val)}
+          onConfirm={() => {
+            handleInitiateDeposit({
+              amount: effectiveAmount,
+              method: selectedMethod,
+              phone: senderPhone
+            });
+          }}
+          isSubmitting={isSubmittingFund}
+          inlinePayment={inlineDeposit}
+          onInlineClose={handleInlineDepositClose}
+          onInlineSuccess={handleInlineDepositSuccess}
+          successData={depositSuccessData}
+          onSuccessDone={handleCloseDepositModal}
+          errorMessage={fundError}
+        />
 
         {/* Header */}
         <div className="flex items-center justify-between py-2 px-1 border-b border-zinc-800/80">
@@ -329,12 +819,8 @@ const Profile = () => {
             </button>
             <div>
               <h1 className="font-serif font-black text-xl text-white tracking-tight flex items-center gap-2">
-                <span>Add Funds / Deposit</span>
-                <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                  Instant Coins
-                </span>
+                <span>Add Funds</span>
               </h1>
-              <p className="text-[11px] text-zinc-400">Transfer with Telebirr or CBE to receive exact coins</p>
             </div>
           </div>
         </div>
@@ -344,54 +830,25 @@ const Profile = () => {
           <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="flex justify-between items-center relative z-10">
             <div>
-              <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <Wallet size={14} className="text-amber-400" />
+              <p className="text-xs text-zinc-400 font-bold tracking-wider flex items-center gap-1.5">
+                <Wallet size={10} className="text-amber-400" />
                 <span>Available Wallet Balance</span>
               </p>
-              <p className="text-3xl font-black text-amber-400 font-mono tracking-tight mt-1">
+              <p className="text-xl font-black text-amber-400 font-mono tracking-tight mt-1">
                 {(profileData?.wallet_balance ?? user?.wallet_balance ?? 0).toFixed(2)}{' '}
                 <span className="text-lg text-amber-300/80 font-sans font-bold">Birr</span>
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-400/15 border border-amber-400/30 px-2.5 py-0.5 rounded-full">
-                  <Coins size={12} className="text-amber-400" />
+                  <Coins size={10} className="text-amber-400" />
                   1 Birr = 1 Bid Coin
                 </span>
-                <span className="text-[11px] text-zinc-400 font-medium">Automatic balance credit</span>
               </div>
             </div>
             <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/35 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
               <Coins size={28} className="animate-pulse" />
             </div>
           </div>
-        </div>
-
-        {/* Verification Mode Selector: Instant Chapa vs Offline Reference */}
-        <div className="bg-[#141519] border border-zinc-800 p-1.5 rounded-2xl grid grid-cols-2 gap-1.5 shadow-md">
-          <button
-            type="button"
-            onClick={() => { setDepositMode('automatic'); setFundError(''); }}
-            className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              depositMode === 'automatic'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-lg shadow-amber-500/20'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-            }`}
-          >
-            <Zap size={14} className={depositMode === 'automatic' ? 'fill-black' : 'text-amber-400'} />
-            <span>⚡ Instant Telebirr/CBE (Chapa)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => { setDepositMode('manual'); setFundError(''); }}
-            className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              depositMode === 'manual'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-lg shadow-amber-500/20'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-            }`}
-          >
-            <FileText size={14} />
-            <span>Manual Transfer Ref</span>
-          </button>
         </div>
 
         {/* Celebratory Success Screen if payment just completed */}
@@ -435,7 +892,7 @@ const Profile = () => {
               <div className="flex justify-between items-center py-1 pt-2">
                 <span className="text-zinc-300 font-bold uppercase">New Wallet Balance</span>
                 <span className="font-mono text-base font-black text-amber-400">
-                  {depositSuccessData.newBalance.toFixed(2)} Birr
+                  {Number(depositSuccessData.newBalance || 0).toFixed(2)} Birr
                 </span>
               </div>
             </div>
@@ -463,42 +920,39 @@ const Profile = () => {
             {/* Step 1: Choose Payment Method */}
             <div className="bg-[#141519] border border-zinc-800 rounded-3xl p-5 shadow-2xl space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                <h3 className="text-xs font-bold text-zinc-300 tracking-wider flex items-center gap-1.5">
                   <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black flex items-center justify-center">1</span>
                   <span>Select Payment Method</span>
                 </h3>
-                <span className="text-[11px] text-zinc-400">Telebirr or CBE</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {/* Telebirr Option */}
                 <button
                   type="button"
                   onClick={() => { setSelectedMethod('telebirr'); setFundError(''); }}
-                  className={`p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                  className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${
                     isTelebirr 
-                      ? 'bg-[#008FE6]/10 border-[#008FE6] shadow-[0_0_20px_rgba(0,143,230,0.2)] ring-1 ring-[#008FE6]' 
+                      ? 'bg-[#008FE6]/10 border-[#008FE6] shadow-[0_0_15px_rgba(0,143,230,0.2)] ring-1 ring-[#008FE6]' 
                       : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full mb-3">
+                  <div className="flex items-center justify-between w-full">
                     <img 
                       src={telebirrLogo} 
                       alt="Telebirr" 
-                      className="h-7 w-auto object-contain rounded" 
+                      className="h-5.5 w-auto object-contain rounded" 
                     />
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
                       isTelebirr ? 'border-[#008FE6] bg-[#008FE6] text-white' : 'border-zinc-700'
                     }`}>
-                      {isTelebirr && <Check size={12} className="stroke-[3]" />}
+                      {isTelebirr && <Check size={10} className="stroke-[3]" />}
                     </div>
                   </div>
                   <div>
-                    <p className="font-extrabold text-sm text-white flex items-center gap-1">
-                      <span>Telebirr</span>
-                      <span className="text-[10px] text-zinc-400 font-normal">ቴሌብር</span>
+                    <p className="font-extrabold text-xs sm:text-sm text-white">
+                      Telebirr
                     </p>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">Instant Real-time Verification</p>
                   </div>
                 </button>
 
@@ -506,30 +960,28 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={() => { setSelectedMethod('cbe'); setFundError(''); }}
-                  className={`p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                  className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${
                     !isTelebirr 
-                      ? 'bg-[#9B2349]/10 border-[#9B2349] shadow-[0_0_20px_rgba(155,35,73,0.2)] ring-1 ring-[#9B2349]' 
+                      ? 'bg-[#9B2349]/10 border-[#9B2349] shadow-[0_0_15px_rgba(155,35,73,0.2)] ring-1 ring-[#9B2349]' 
                       : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full mb-3">
+                  <div className="flex items-center justify-between w-full">
                     <img 
                       src={cbeLogo} 
                       alt="CBE" 
-                      className="h-7 w-auto object-contain rounded" 
+                      className="h-5.5 w-auto object-contain rounded" 
                     />
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
                       !isTelebirr ? 'border-[#9B2349] bg-[#9B2349] text-white' : 'border-zinc-700'
                     }`}>
-                      {!isTelebirr && <Check size={12} className="stroke-[3]" />}
+                      {!isTelebirr && <Check size={10} className="stroke-[3]" />}
                     </div>
                   </div>
                   <div>
-                    <p className="font-extrabold text-sm text-white flex items-center gap-1">
-                      <span>CBE Birr</span>
-                      <span className="text-[10px] text-zinc-400 font-normal">ንብ / CBE</span>
+                    <p className="font-extrabold text-xs sm:text-sm text-white">
+                      CBE Birr
                     </p>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">Commercial Bank of Ethiopia</p>
                   </div>
                 </button>
               </div>
@@ -538,7 +990,7 @@ const Profile = () => {
             {/* Step 2: Choose Coins / Amount */}
             <div className="bg-[#141519] border border-zinc-800 rounded-3xl p-5 shadow-2xl space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                <h3 className="text-xs font-bold text-zinc-300 tracking-wider flex items-center gap-1.5">
                   <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black flex items-center justify-center">2</span>
                   <span>Amount to Deposit (Coins)</span>
                 </h3>
@@ -548,19 +1000,19 @@ const Profile = () => {
               {/* Preset Chips */}
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 25, label: '25 Br', coins: '25 Coins' },
-                  { value: 50, label: '50 Br', coins: '50 Coins' },
-                  { value: 100, label: '100 Br', coins: '100 Coins', badge: 'POPULAR' },
-                  { value: 250, label: '250 Br', coins: '250 Coins' },
-                  { value: 500, label: '500 Br', coins: '500 Coins' },
-                  { value: 1000, label: '1000 Br', coins: '1000 Coins', badge: 'BEST' },
+                  { value: 27, label: '25 Br', coins: '27 Coins' },
+                  { value: 55, label: '50 Br', coins: '55 Coins' },
+                  { value: 113, label: '100 Br', coins: '113 Coins', badge: 'POPULAR' },
+                  { value: 270, label: '250 Br', coins: '270 Coins' },
+                  { value: 530, label: '500 Br', coins: '530 Coins' },
+                  { value: 1050, label: '1000 Br', coins: '1050 Coins', badge: 'BEST' },
                 ].map((item) => {
                   const isSelected = selectedPreset === item.value;
                   return (
                     <button
                       key={item.value}
                       type="button"
-                      onClick={() => { setSelectedPreset(item.value); setCustomAmount(''); setFundError(''); }}
+                      onClick={() => { setSelectedPreset(item.value); setCustomAmount(`${item.value}`); setFundError(''); }}
                       className={`relative py-2.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${
                         isSelected 
                           ? 'bg-gradient-to-b from-amber-500/20 to-amber-500/5 border-amber-400 text-white shadow-md' 
@@ -593,7 +1045,7 @@ const Profile = () => {
                       min="10"
                       step="1"
                       placeholder="Or enter custom amount..."
-                      value={selectedPreset === 'custom' ? customAmount : ''}
+                      value={selectedPreset === 'custom' ? customAmount : `${effectiveAmount}`}
                       onChange={(e) => {
                         setSelectedPreset('custom');
                         setCustomAmount(e.target.value);
@@ -605,22 +1057,15 @@ const Profile = () => {
                       }`}
                     />
                   </div>
-                  {selectedPreset === 'custom' && customAmount && (
+                  
                     <div className="bg-amber-400/10 border border-amber-400/30 text-amber-400 px-3 py-2 rounded-xl text-xs font-bold shrink-0">
-                      +{parseFloat(customAmount) || 0} Coins
+                      +{parseFloat(effectiveAmount) || 0} Coins
                     </div>
-                  )}
+                  
                 </div>
               </div>
 
-              {/* Live Coins preview */}
-              <div className="bg-[#0E0F12] border border-amber-500/25 rounded-xl p-3 flex items-center justify-between">
-                <span className="text-xs text-zinc-400 font-medium">Exact Coins to be added:</span>
-                <span className="text-base font-black text-amber-400 font-mono flex items-center gap-1">
-                  <Coins size={16} />
-                  +{effectiveAmount} Coins
-                </span>
-              </div>
+              
             </div>
 
             {/* Error banner if any */}
@@ -631,231 +1076,31 @@ const Profile = () => {
               </div>
             )}
 
-            {/* Content for AUTOMATIC (CHAPA) vs MANUAL */}
-            {depositMode === 'automatic' ? (
-              <div className="bg-[#141519] border border-zinc-800 rounded-3xl p-5 shadow-2xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black flex items-center justify-center">3</span>
-                    <span>Direct Real-Time Verification (Chapa)</span>
-                  </h3>
-                  <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full">
-                    Instant Bank Sync
-                  </span>
-                </div>
-
-                <div className="bg-[#0E0F12] border border-zinc-800 rounded-2xl p-4 space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-zinc-300 block">
-                      Phone Number (Telebirr / CBE Birr)
-                    </label>
-                    <div className="relative">
-                      <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                      <input
-                        type="tel"
-                        placeholder="e.g. 0912345678"
-                        value={senderPhone}
-                        onChange={(e) => setSenderPhone(e.target.value)}
-                        className="w-full bg-[#141519] border border-zinc-800 focus:border-amber-400 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none transition-colors"
-                      />
-                    </div>
-                    <p className="text-[11px] text-zinc-400 mt-1">
-                      You will receive the official payment prompt to authorize the exact amount on your phone.
-                    </p>
-                  </div>
-
-                  <div className="border-t border-zinc-800/80 pt-3 space-y-1.5 text-[11px] text-zinc-400">
-                    <p className="flex items-center gap-1.5 text-zinc-300">
-                      <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-                      <span>Authorizes real payment directly through Chapa gateway</span>
-                    </p>
-                    <p className="flex items-center gap-1.5 text-zinc-300">
-                      <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                      <span>Coins are credited automatically as soon as your bank confirms</span>
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleChapaDeposit}
-                  disabled={isSubmittingFund || !effectiveAmount}
-                  className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 active:scale-98 disabled:opacity-50 disabled:pointer-events-none text-black font-black text-sm py-4 px-6 rounded-xl transition-all shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
-                >
-                  {isSubmittingFund ? (
-                    <>
-                      <RefreshCw size={18} className="animate-spin stroke-[2.5]" />
-                      <span>Connecting to Payment Gateway...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap size={18} className="fill-black" />
-                      <span>Pay & Add {effectiveAmount} Coins with {isTelebirr ? 'Telebirr' : 'CBE Birr'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Step 3: Company Transfer Account Details */}
-                <div className="bg-[#141519] border border-zinc-800 rounded-3xl p-5 shadow-2xl space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black flex items-center justify-center">3</span>
-                      <span>Transfer to Our Official Account</span>
-                    </h3>
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                      isTelebirr 
-                        ? 'bg-[#008FE6]/10 border-[#008FE6]/40 text-[#008FE6]' 
-                        : 'bg-[#9B2349]/10 border-[#9B2349]/40 text-rose-300'
-                    }`}>
-                      {isTelebirr ? 'Telebirr Channel' : 'CBE Account'}
-                    </span>
-                  </div>
-
-                  {/* Account Card with 1-click Copy */}
-                  <div className="bg-[#0E0F12] border border-zinc-800 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
-                          {isTelebirr ? 'Recipient Telebirr Phone / Number' : 'Commercial Bank of Ethiopia (CBE) Account'}
-                        </p>
-                        <p className="text-xl font-mono font-black text-white tracking-wider mt-0.5">
-                          {companyAccount}
-                        </p>
-                        <p className="text-[11px] text-amber-400/90 font-medium mt-0.5">
-                          Account Name: <span className="font-bold text-zinc-200">{companyAccountHolder}</span>
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyAccount(companyAccount)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1A1C22] hover:bg-zinc-800 text-amber-400 rounded-xl text-xs font-bold border border-zinc-700 transition-all active:scale-95 cursor-pointer shadow"
-                      >
-                        {copiedAccount ? (
-                          <>
-                            <Check size={14} className="text-emerald-400 stroke-[3]" />
-                            <span className="text-emerald-400">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={14} />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="border-t border-zinc-800/80 pt-2.5 space-y-1.5 text-[11px] text-zinc-400">
-                      <p className="flex items-start gap-1.5">
-                        <span className="font-bold text-amber-400">Step 1:</span>
-                        <span>
-                          Open your {isTelebirr ? 'Telebirr app or dial *127#' : 'CBE Mobile Banking or CBE Birr app'}.
-                        </span>
-                      </p>
-                      <p className="flex items-start gap-1.5">
-                        <span className="font-bold text-amber-400">Step 2:</span>
-                        <span>
-                          Transfer <strong className="text-white font-mono">{effectiveAmount} Birr</strong> to{' '}
-                          <strong className="text-white font-mono">{companyAccount}</strong>.
-                        </span>
-                      </p>
-                      <p className="flex items-start gap-1.5">
-                        <span className="font-bold text-amber-400">Step 3:</span>
-                        <span>
-                          Copy the transaction reference ID from your SMS confirmation and enter it below.
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 4: Verification Form */}
-                <form onSubmit={handleAddFunds} className="bg-[#141519] border border-zinc-800 rounded-3xl p-5 shadow-2xl space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black flex items-center justify-center">4</span>
-                      <span>Confirm Transfer & Credit Coins</span>
-                    </h3>
-                  </div>
-
-                  {/* Sender Phone Number Input */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-zinc-300 block">
-                      Sender Phone Number
-                    </label>
-                    <div className="relative">
-                      <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                      <input
-                        type="tel"
-                        placeholder="e.g. 0912345678"
-                        value={senderPhone}
-                        onChange={(e) => setSenderPhone(e.target.value)}
-                        className="w-full bg-[#0E0F12] border border-zinc-800 focus:border-amber-400 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Transaction Reference / SMS Code Input */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-zinc-300 block">
-                      {isTelebirr 
-                        ? 'Telebirr Transaction Reference / SMS Code' 
-                        : 'CBE Transaction FT Number (from SMS or receipt)'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder={isTelebirr ? 'e.g. TB10823481' : 'e.g. FT261099824'}
-                      value={transactionId}
-                      onChange={(e) => { setTransactionId(e.target.value); setFundError(''); }}
-                      className="w-full bg-[#0E0F12] border border-zinc-800 focus:border-amber-400 rounded-xl px-4 py-2.5 text-sm text-white font-mono placeholder:font-sans focus:outline-none transition-colors"
-                    />
-                    <p className="text-[10px] text-zinc-400">
-                      {isTelebirr 
-                        ? 'Valid 8+ character SMS reference number.' 
-                        : "Must be a valid CBE 'FT' reference code from your SMS receipt."}
-                    </p>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmittingFund || !effectiveAmount}
-                    className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 active:scale-98 disabled:opacity-50 disabled:pointer-events-none text-black font-black text-sm py-3.5 px-6 rounded-xl transition-all shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
-                  >
-                    {isSubmittingFund ? (
-                      <>
-                        <RefreshCw size={18} className="animate-spin stroke-[2.5]" />
-                        <span>Verifying Transfer Code...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Coins size={18} className="stroke-[2.5]" />
-                        <span>Verify & Add {effectiveAmount} Coins</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Support helpline card */}
-            <div className="bg-[#141519] border border-zinc-800/80 rounded-2xl p-4 flex items-center justify-between text-xs text-zinc-400">
-              <div className="flex items-center gap-2.5">
-                <Phone size={16} className="text-amber-400" />
-                <div>
-                  <p className="font-bold text-zinc-300">Need help with your deposit?</p>
-                  <p className="text-[10px] text-zinc-400">24/7 Ethiopian Support line: 0943 41 80 20</p>
-                </div>
-              </div>
-              <a 
-                href="tel:0943418020" 
-                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-[11px] transition-colors"
-              >
-                Call Support
-              </a>
+            {/* Step 3: Trigger Pop-up Modal */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!effectiveAmount || effectiveAmount < 10) {
+                    setFundError('Please select or enter an amount of at least 10 Birr');
+                    return;
+                  }
+                  setFundError('');
+                  setShowDepositModal(true);
+                }}
+                disabled={!effectiveAmount || effectiveAmount < 10}
+                style={{
+                  
+                
+                  boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
+                }}
+                className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+           >
+               
+                <span>Deposit Coins</span>
+              </button>
             </div>
+        
           </div>
         )}
       </div>
@@ -880,49 +1125,53 @@ const Profile = () => {
 
         <div className="bg-[#141519] border border-zinc-800 rounded-3xl p-5 shadow-2xl space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl">
+            <div className="flex items-center justify-between p-4 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl hover:border-zinc-700/80 transition-colors">
               <div>
-                <p className="text-sm font-bold text-white">Unique Bid Drop Alerts</p>
-                <p className="text-xs text-zinc-400 mt-0.5">Get notified immediately when your bid becomes duplicate</p>
+                <p className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>New Bid Post</span>
+                  {notifSettings.bidDrops && (
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      Active
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-zinc-400 mt-0.5">Get notified immediately when a new bid is posted</p>
               </div>
               <input 
                 type="checkbox" 
-                checked={notifSettings.bidDrops}
-                onChange={(e) => setNotifSettings(prev => ({ ...prev, bidDrops: e.target.checked }))}
-                className="w-5 h-5 accent-amber-400 rounded cursor-pointer"
+                checked={Boolean(notifSettings.bidDrops)}
+                onChange={(e) => handleTogglePreference('bidDrops', e.target.checked)}
+                className="w-5 h-5 accent-amber-400 rounded cursor-pointer transition-transform active:scale-95"
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl">
+            <div className="flex items-center justify-between p-4 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl hover:border-zinc-700/80 transition-colors">
               <div>
-                <p className="text-sm font-bold text-white">Outbid Warnings</p>
-                <p className="text-xs text-zinc-400 mt-0.5">Receive alerts if a lower unique bid takes the lead</p>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={notifSettings.outbid}
-                onChange={(e) => setNotifSettings(prev => ({ ...prev, outbid: e.target.checked }))}
-                className="w-5 h-5 accent-amber-400 rounded cursor-pointer"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl">
-              <div>
-                <p className="text-sm font-bold text-white">Auction Win Notifications</p>
+                <p className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Auction Win Notifications</span>
+                  {notifSettings.wins && (
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      Active
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-zinc-400 mt-0.5">Instant notification when timer ends and you win</p>
               </div>
               <input 
                 type="checkbox" 
-                checked={notifSettings.wins}
-                onChange={(e) => setNotifSettings(prev => ({ ...prev, wins: e.target.checked }))}
-                className="w-5 h-5 accent-amber-400 rounded cursor-pointer"
+                checked={Boolean(notifSettings.wins)}
+                onChange={(e) => handleTogglePreference('wins', e.target.checked)}
+                className="w-5 h-5 accent-amber-400 rounded cursor-pointer transition-transform active:scale-95"
               />
             </div>
           </div>
 
-          <p className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 pt-2">
-            <CheckCircle2 size={16} /> Preferences are saved automatically
-          </p>
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-emerald-400 font-bold flex items-center gap-1.5">
+              <CheckCircle2 size={16} className={saveSuccess ? "animate-bounce text-emerald-400" : "text-emerald-500"} />
+              <span>{saveSuccess ? 'Preferences saved successfully!' : 'Preferences are saved automatically'}</span>
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -1158,25 +1407,7 @@ const Profile = () => {
       {/* Action Menu List */}
       <div className="space-y-3 mt-4">
         {/* 1. Secure Payment Methods */}
-        <button
-          onClick={() => setActiveSubPage('payment')}
-          className="w-full bg-[#141519] hover:bg-[#1A1C22] active:bg-[#1f2129] border border-zinc-800/80 hover:border-zinc-700/80 rounded-2xl p-4 transition-all duration-200 text-left flex items-center justify-between group shadow-md cursor-pointer"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
-              <CreditCard size={20} />
-            </div>
-            <div>
-              <h2 className="text-sm md:text-base font-bold text-white group-hover:text-amber-400 transition-colors">
-                Secure Payment Methods
-              </h2>
-              <p className="text-xs text-zinc-400 mt-0.5 font-normal">
-                Configure wallets, banks & digital cards
-              </p>
-            </div>
-          </div>
-          <ChevronRight size={18} className="text-zinc-500 group-hover:text-zinc-300 transition-colors" />
-        </button>
+        
 
         {/* 2. Notification Settings */}
         <button

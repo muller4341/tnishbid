@@ -10,5 +10,7 @@ router.put('/profile-image', authMiddleware, upload.single('image'), userControl
 router.post('/add-funds', authMiddleware, userController.addFunds);
 router.get('/notifications', authMiddleware, userController.getNotifications);
 router.put('/notifications/:id/read', authMiddleware, userController.markNotificationRead);
+router.get('/notification-preferences', authMiddleware, userController.getNotificationPreferences);
+router.put('/notification-preferences', authMiddleware, userController.updateNotificationPreferences);
 
 module.exports = router;
