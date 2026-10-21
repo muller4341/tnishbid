@@ -9,7 +9,7 @@ import {
   Eye, Tag, Gavel, Star, AlertCircle,
   CheckCircle2, ChevronRight, ChevronDown, Minus, Plus, Info, Clock, DollarSign, Grid3X3, CircleDollarSign, Hash,
   Trophy, Repeat2, Target,
-  TrendingDown, Sparkles, Search,
+  TrendingUp, TrendingDown, Sparkles, Search,
   Coins,
   Ticket,
   Check,
@@ -39,20 +39,20 @@ const TRANSLATIONS = {
     bids: 'bids',
     bidAmount: 'Bid amount',
     submitBid: 'Submit a Bid Amount',
-    terms: 'TERMS AND CONDITIONS WILL APPLY',
-    expired: 'EXPIRED',
+    terms: 'Bid fee is none refundable',
+    expired: 'Ended',
     viewDetails: 'View Details',
     noItems: 'No active auctions at the moment.',
     filterTime: 'Time',
     filterPrice: 'Price',
     filterCategory: 'Category',
-    allTimes: 'Time (All)',
-    endingSoon: 'Ending soon',
-    newThisWeek: 'New this week',
-    allPrices: 'Price (All)',
-    under100: 'Under 100 Br',
-    between100and500: '100 - 499 Br',
-    over500: '500+ Br',
+    allTimes: 'ALL',
+    endingIn2Days: 'Ending in 2 days',
+    endingIn5Days: 'Ending in 5 days',
+    endingIn15Days: 'Ending in 15 days',
+    allPrices: 'ALL',
+    lowestToHighest: 'Lowest to Highest',
+    highestToLowest: 'Highest to Lowest',
     allCategories: 'Category (All)',
     clearFilters: 'Clear filters',
     showingResults: 'results found',
@@ -75,19 +75,19 @@ const TRANSLATIONS = {
     bidAmount: '\u12e8\u1328\u1228\u1273 \u1218\u1320\u1295',
     submitBid: '\u1328\u1228\u1273 \u12a0\u1245\u122d\u1265',
     terms: '\u12f0\u1295\u1266\u127d\u1293 \u1201\u1294\u1273\u12ce\u127d \u1270\u1348\u133b\u121a \u12ed\u1206\u1293\u1209',
-    expired: '\u130a\u12dc\u12cd \u12a0\u120d\u134f\u120d',
+    expired: 'ተጠናቋል',
     viewDetails: '\u12dd\u122d\u12dd\u122d \u12ed\u1218\u120d\u12a8\u1271',
     noItems: '\u1260\u12da\u1205 \u130a\u12dc \u1295\u1261 \u1328\u1228\u1273\u12ce\u127d \u12e8\u1209\u121d\u1362',
     filterTime: '\u130a\u12dc',
     filterPrice: '\u12cb\u130b',
     filterCategory: '\u121d\u12f5\u1265',
-    allTimes: '\u130a\u12dc (\u1201\u1209\u121d)',
-    endingSoon: '\u1260\u1245\u122d\u1265 \u12e8\u121a\u12a0\u120d\u1241',
-    newThisWeek: '\u12a0\u12f3\u12f2\u1235 \u1328\u1228\u1273\u12ce\u127d',
-    allPrices: '\u12cb\u130b (\u1201\u1209\u121d)',
-    under100: '\u12a8 100 \u1265\u122d \u1260\u1273\u127d',
-    between100and500: '100 - 499 \u1265\u122d',
-    over500: '500+ \u1265\u122d',
+    allTimes: 'ALL',
+    endingIn2Days: 'በ 2 ቀናት የሚያልቁ',
+    endingIn5Days: 'በ 5 ቀናት የሚያልቁ',
+    endingIn15Days: 'በ 15 ቀናት የሚያልቁ',
+    allPrices: 'ALL',
+    lowestToHighest: 'ከዝቅተኛ ወደ ከፍተኛ',
+    highestToLowest: 'ከከፍተኛ ወደ ዝቅተኛ',
     allCategories: '\u121d\u12f5\u1265 (\u1201\u1209\u121d)',
     clearFilters: '\u12a0\u1323\u122b\u12ce\u127d\u1295 \u12a0\u1325\u134b',
     showingResults: '\u12e8\u1270\u1308\u1299 \u1328\u1228\u1273\u12ce\u127d',
@@ -100,7 +100,7 @@ const formatCountdown = (endTime) => {
   const now = Date.now();
   const end = new Date(endTime).getTime();
   const dist = end - now;
-  if (dist <= 0) return 'EXPIRED';
+  if (dist <= 0) return 'Ended';
   const d = Math.floor(dist / (1000 * 60 * 60 * 24));
   const h = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
@@ -110,10 +110,11 @@ const formatCountdown = (endTime) => {
   return `${pad(h)}h : ${pad(m)}m : ${pad(s)}s`;
 };
 
-const countdownColor = (endTime) => {
-  if (!endTime) return 'text-red-400';
+const countdownColor = (endTime, isClosed) => {
+  if (isClosed) return 'text-red-500';
+  if (!endTime) return 'text-red-500';
   const dist = new Date(endTime).getTime() - Date.now();
-  if (dist <= 0) return 'text-red-400';
+  if (dist <= 0) return 'text-red-500';
   if (dist / (1000 * 60 * 60 * 24) <= 5) return 'text-yellow-400';
   return 'text-emerald-400';
 };
@@ -160,8 +161,8 @@ const HeroSection = ({ t, onScrollToItems }) => (
 
       <button
         onClick={onScrollToItems}
-        className="home-primary-action w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all active:scale-95 text-white"
-      >
+        className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+           >
         {t.startBid} <Sparkles size={16} />
       </button>
     </div>
@@ -273,7 +274,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
     }
   };
 
-  const cdColor = countdownColor(item.end_time);
+  const cdColor = isExpired ? 'text-red-500' : countdownColor(item.end_time, isExpired);
   const bidCount = localBidCount;
 
   return (
@@ -314,47 +315,42 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         </Link>
 
         <div className="text-center">
-          <span className={`text-2xl font-black font-outfit ${cdColor}`}>
-            {isExpired ? t.expired : countdown}
+          <span className={`text-xl font-black font-outfit ${isExpired ? 'text-red-500' : cdColor}`}>
+            {isExpired ? (t.expired || 'Ended') : countdown}
           </span>
         </div>
 
         {/* Bid Fee & Bid Count */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="home-card-panel flex  gap-2 rounded-xl p-2.5 flex-col">
-            <div className=" flex  gap-1 flex-row">
-              <Coins size={15} className="text-amber-400 shrink-0" />
-              <p className="text-[10px] text-amber-400 ">{t.bidFee}</p>
+          <div className="home-card-panel flex gap-1 rounded-xl p-2 flex-col">
+            <div className="flex items-center gap-1 flex-row">
+              <Coins size={13} className="text-amber-400 shrink-0" />
+              <p className="text-[10px] text-amber-400 font-bold">{t.bidFee}</p>
             </div>
-
-            <p className="text-sm font-black text-white font-mono">
+            <p className="text-xs sm:text-sm font-black text-white font-mono">
               {(item.base_price || 0).toFixed(2)} Br
             </p>
-
           </div>
 
-          <div className="home-card-panel flex  gap-2 rounded-xl p-2.5 flex-col">
-
-
-            <div className=" flex  gap-1 flex-row">
-              <Ticket size={15} className="text-amber-400 shrink-0" />
-              <p className="text-[10px] text-amber-400 ">{t.bids}</p>
-
+          <div className="home-card-panel flex gap-1 rounded-xl p-2 flex-col">
+            <div className="flex items-center gap-1 flex-row">
+              <Ticket size={13} className="text-amber-400 shrink-0" />
+              <p className="text-[10px] text-amber-400 font-bold">{t.bids}</p>
             </div>
-            <p className="text-sm font-black text-white font-mono">{bidCount}</p>
+            <p className="text-xs sm:text-sm font-black text-white font-mono">{bidCount}</p>
           </div>
         </div>
 
         {/* Bid input + submit */}
         {!isExpired ? (
           <>
-            <div className="home-bid-input flex items-center rounded-2xl overflow-hidden">
+            <div className="home-bid-input flex items-center rounded-xl overflow-hidden">
               <button
                 onClick={handleDecrement}
-                className="w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0"
+                className="w-9 h-9 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0"
                 aria-label="Decrease"
               >
-                <Minus size={18} />
+                <Minus size={15} />
               </button>
               <input
                 type="number"
@@ -365,25 +361,25 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
                 placeholder={t.bidAmount}
                 min="0"
                 step="0.01"
-                className="flex-1 bg-transparent text-center text-white text-[16px] font-bold placeholder-zinc-500 focus:outline-none py-3"
-                style={{ fontSize: '16px' }}
+                className="flex-1 bg-transparent text-center text-white text-[15px] font-bold placeholder-zinc-500 focus:outline-none py-2"
+                style={{ fontSize: '15px' }}
               />
               <button
                 onClick={handleIncrement}
-                className="w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0"
+                className="w-9 h-9 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0"
                 aria-label="Increase"
               >
-                <Plus size={18} />
+                <Plus size={15} />
               </button>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 text-xs text-red-400 font-bold bg-red-950/50 border border-red-500/30 rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2 text-xs text-red-400 font-bold bg-red-950/50 border border-red-500/30 rounded-xl px-2.5 py-1.5">
                 <AlertCircle size={13} /> {error}
               </div>
             )}
             {success && (
-              <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-500/30 rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-500/30 rounded-xl px-2.5 py-1.5">
                 <CheckCircle2 size={13} /> {success}
               </div>
             )}
@@ -391,23 +387,23 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="home-primary-action w-full py-3.5 rounded-2xl font-black text-sm text-white uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
+              className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
             >
               {submitting ? (
-                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
               ) : t.submitBid}
             </button>
 
             <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-500 font-bold">
-              <Info size={11} className="text-emerald-500" />
+              <Info size={11} className="text-red-400" />
               {t.terms}
             </div>
           </>
         ) : (
           <Link
             to={`/item/${item.id}`}
-            className="home-primary-action w-full py-3 rounded-2xl font-black text-sm text-center text-white flex items-center justify-center gap-1.5 transition-all active:scale-95"
-          >
+            className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+           >
             {t.viewDetails} <ChevronRight size={16} />
           </Link>
         )}
@@ -639,15 +635,15 @@ const Home = () => {
 
   const timeFilterLabels = {
     all: t.filterTime || 'Time',
-    ending: t.endingSoon || 'Ending soon',
-    newest: t.newThisWeek || 'Newest',
+    '2days': t.endingIn2Days || 'Ending in 2 days',
+    '5days': t.endingIn5Days || 'Ending in 5 days',
+    '15days': t.endingIn15Days || 'Ending in 15 days',
   };
 
   const priceFilterLabels = {
     all: t.filterPrice || 'Price',
-    low: '< 100 Br',
-    medium: '100-500 Br',
-    high: '500+ Br',
+    low_to_high: t.lowestToHighest || 'Lowest to Highest',
+    high_to_low: t.highestToLowest || 'Highest to Lowest',
   };
 
   const categoryFilterLabel = categoryFilter === 'all' ? (t.filterCategory || 'Category') : categoryFilter;
@@ -706,16 +702,16 @@ const Home = () => {
   const categories = [...new Set(items.map((item) => item.category).filter(Boolean))].sort();
 
   const timeOptions = [
-    { value: 'all', label: t.allTimes || 'Time (All)', icon: <Clock size={13} /> },
-    { value: 'ending', label: t.endingSoon || 'Ending soon', icon: <Clock size={13} className="text-amber-400" /> },
-    { value: 'newest', label: t.newThisWeek || 'New this week', icon: <Sparkles size={13} className="text-emerald-400" /> },
+    { value: 'all', label: t.allTimes || 'ALL', icon: <Clock size={13} /> },
+    { value: '2days', label: t.endingIn2Days || 'Ending in 2 days', icon: <Clock size={13} className="text-red-400" /> },
+    { value: '5days', label: t.endingIn5Days || 'Ending in 5 days', icon: <Clock size={13} className="text-amber-400" /> },
+    { value: '15days', label: t.endingIn15Days || 'Ending in 15 days', icon: <Clock size={13} className="text-emerald-400" /> },
   ];
 
   const priceOptions = [
-    { value: 'all', label: t.allPrices || 'Price (All)', icon: <DollarSign size={13} /> },
-    { value: 'low', label: t.under100 || 'Under 100 Br', icon: <Coins size={13} className="text-emerald-400" /> },
-    { value: 'medium', label: t.between100and500 || '100 - 499 Br', icon: <DollarSign size={13} className="text-amber-400" /> },
-    { value: 'high', label: t.over500 || '500+ Br', icon: <CircleDollarSign size={13} className="text-purple-400" /> },
+    { value: 'all', label: t.allPrices || 'ALL', icon: <DollarSign size={13} /> },
+    { value: 'low_to_high', label: t.lowestToHighest || 'Lowest to Highest', icon: <TrendingUp size={13} className="text-emerald-400" /> },
+    { value: 'high_to_low', label: t.highestToLowest || 'Highest to Lowest', icon: <TrendingDown size={13} className="text-purple-400" /> },
   ];
 
   const categoryOptions = [
@@ -732,11 +728,22 @@ const Home = () => {
       const query = searchQuery.toLowerCase();
       const matchesSearch = item.title.toLowerCase().includes(query) || item.description?.toLowerCase().includes(query);
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-      const price = Number(item.base_price || 0);
-      const matchesPrice = priceFilter === 'all' || (priceFilter === 'low' ? price < 100 : priceFilter === 'medium' ? price >= 100 && price < 500 : price >= 500);
       const remaining = new Date(item.end_time).getTime() - Date.now();
-      const matchesTime = timeFilter === 'all' || (timeFilter === 'ending' && remaining > 0 && remaining <= 24 * 60 * 60 * 1000) || (timeFilter === 'newest' && Date.now() - new Date(item.created_at).getTime() <= 7 * 24 * 60 * 60 * 1000);
-      return matchesSearch && matchesCategory && matchesPrice && matchesTime;
+      const matchesTime =
+        timeFilter === 'all' ||
+        (timeFilter === '2days' && remaining > 0 && remaining <= 2 * 24 * 60 * 60 * 1000) ||
+        (timeFilter === '5days' && remaining > 0 && remaining <= 5 * 24 * 60 * 60 * 1000) ||
+        (timeFilter === '15days' && remaining > 0 && remaining <= 15 * 24 * 60 * 60 * 1000);
+      return matchesSearch && matchesCategory && matchesTime;
+    })
+    .sort((a, b) => {
+      if (priceFilter === 'low_to_high') {
+        return Number(a.base_price || 0) - Number(b.base_price || 0);
+      }
+      if (priceFilter === 'high_to_low') {
+        return Number(b.base_price || 0) - Number(a.base_price || 0);
+      }
+      return 0;
     });
 
   if (loading) {
@@ -755,7 +762,7 @@ const Home = () => {
       <HeroSection t={t} onScrollToItems={handleScrollToItems} />
 
       {/* Search */}
-      <div className="home-toolbar flex items-center gap-2 mb-3 sticky top-[56px] z-30 backdrop-blur-md py-2">
+      <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1 min-w-0">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input

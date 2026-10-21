@@ -6,6 +6,30 @@ import axios from 'axios';
 import { ArrowLeft, Trophy, Clock, Package } from 'lucide-react';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
 
+const formatActiveRemaining = (distance) => {
+  if (distance <= 0) return 'Ended';
+  const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+  const pad = (n) => (n < 10 ? '0' + n : n);
+  return `${days}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`;
+};
+
+const formatEndDate = (dateStr) => {
+  if (!dateStr) return 'Ended';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Ended';
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
 const MyBids = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -80,20 +104,8 @@ const MyBids = () => {
             const end = g.endTime ? new Date(g.endTime).getTime() : 0;
             const distance = end - now;
 
-            let timeStr = 'Ended';
-            if (distance > 0) {
-              const hours = Math.floor(distance / (1000 * 60 * 60));
-              const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-              const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-              const pad = (n) => (n < 10 ? '0' + n : n);
-              timeStr = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-            } else if (g.endTime) {
-              timeStr = new Date(g.endTime).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
-            }
+            const timeStr = formatActiveRemaining(distance);
+            const endDateStr = formatEndDate(g.endTime);
 
             // Sort individual bids by amount ascending
             const sortedBids = [...g.bids].sort((a, b) => a.amount - b.amount);
@@ -105,6 +117,7 @@ const MyBids = () => {
               basePrice: g.basePrice,
               status,
               timeRemaining: timeStr,
+              endDateFormatted: endDateStr,
               bidStatus: isWon ? 'won' : isEnded ? 'ended' : 'active',
               image: g.image,
               bids: sortedBids,
@@ -143,17 +156,14 @@ const MyBids = () => {
             return {
               ...g,
               timeRemaining: 'Ended',
+              endDateFormatted: formatEndDate(g.endTime),
               status: g.bidStatus === 'won' ? 'WINNER' : 'ENDED',
               bidStatus: g.bidStatus === 'won' ? 'won' : 'ended',
             };
           }
-          const hours = Math.floor(distance / (1000 * 60 * 60));
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-          const pad = (n) => (n < 10 ? '0' + n : n);
           return {
             ...g,
-            timeRemaining: `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`,
+            timeRemaining: formatActiveRemaining(distance),
           };
         })
       );
@@ -201,9 +211,7 @@ const MyBids = () => {
           >
             My Bids
           </h1>
-          <p className={`text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'} truncate`}>
-            Track your bids across all ongoing and past auctions
-          </p>
+          
         </div>
       </div>
 
@@ -424,8 +432,8 @@ const MyBids = () => {
                       <span
                         className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-lg uppercase border ${
                           isLight
-                            ? 'bg-orange-50 border-orange-200 text-orange-600'
-                            : 'bg-orange-500/15 border-orange-500/30 text-orange-400'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                            : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                         }`}
                       >
                         ACTIVE
@@ -434,8 +442,8 @@ const MyBids = () => {
                       <span
                         className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-lg uppercase border ${
                           isLight
-                            ? 'bg-zinc-100 border-zinc-200 text-zinc-500'
-                            : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
+                            ? 'bg-red-50 border-red-200 text-red-600'
+                            : 'bg-red-500/15 border-red-500/30 text-red-400'
                         }`}
                       >
                         ENDED
@@ -504,29 +512,29 @@ const MyBids = () => {
                     </p>
                   </div>
 
-                  {/* TIME REMAINING */}
+                  {/* TIME REMAINING / END DATE */}
                   <div>
                     <p
                       className={`text-[10px] uppercase font-bold tracking-wider ${
                         isLight ? 'text-zinc-400' : 'text-zinc-500'
                       }`}
                     >
-                      Time Remaining
+                      {itemGroup.bidStatus === 'active' ? 'Time Remaining' : 'End Date'}
                     </p>
                     <p
                       className={`text-xs sm:text-sm font-bold mt-0.5 font-mono ${
                         itemGroup.status === 'WINNER'
                           ? 'text-emerald-500'
-                          : itemGroup.status === 'ACTIVE'
+                          : itemGroup.bidStatus === 'active'
                           ? isLight
-                            ? 'text-orange-600'
-                            : 'text-orange-400'
+                            ? 'text-emerald-600'
+                            : 'text-emerald-400'
                           : isLight
-                          ? 'text-zinc-500'
-                          : 'text-zinc-400'
+                          ? 'text-red-600'
+                          : 'text-red-400'
                       }`}
                     >
-                      {itemGroup.timeRemaining}
+                      {itemGroup.bidStatus === 'active' ? itemGroup.timeRemaining : itemGroup.endDateFormatted}
                     </p>
                   </div>
 

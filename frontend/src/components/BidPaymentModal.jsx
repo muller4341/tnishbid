@@ -143,7 +143,7 @@ export const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, s
             >
               <div className="flex items-center justify-between w-full">
                 <div
-                  className={`w-7 h-7 rounded-lg p-1 flex items-center justify-center shrink-0 ${isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-[#1a1b22] border border-white/5'
+                  className={`w-8 h-8 rounded-lg  flex items-center justify-center shrink-0 ${isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-[#1a1b22] border border-white/5'
                     }`}
                 >
                   {opt.logo}
@@ -373,9 +373,7 @@ export const ConfirmBidModal = memo(({
               >
                 {paymentSuccess ? 'Payment Successful' : 'Payment Summary'}
               </h2>
-              <p className={`text-xs sm:text-[13px] font-normal leading-tight mt-0.5 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                {paymentSuccess ? 'Your bid has been successfully placed' : 'Review your bid before confirming'}
-              </p>
+             
             </div>
           </div>
           {!paymentSuccess && !(inlinePayment && !isWallet) && (
@@ -492,7 +490,7 @@ export const ConfirmBidModal = memo(({
               >
                 <Package size={16} className={`mt-0.5 shrink-0 ${isLight ? 'text-orange-600' : 'text-zinc-400'}`} />
                 <div className="min-w-0 flex-1 flex items-center justify-between">
-                  <p className={`text-xs sm:text-[13px] font-medium truncate ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <p className={`text-md sm:text-[14px] font-medium truncate ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
                     Item: <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>{itemTitle || 'Auction Item'}</span>
                   </p>
                 </div>
