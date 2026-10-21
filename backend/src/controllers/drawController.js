@@ -22,6 +22,19 @@ const getAuctionCode = (item) => {
   return `#${hex}`;
 };
 
+// Calculate net bid amount: additional amount paid beyond the bid service fee (base_price)
+// E.g. base_price = 65.00, amount = 65.10 -> net = 0.10
+// If amount is already the increment (e.g. 0.10), net = 0.10
+const getNetBid = (amt, basePrice = 0) => {
+  const a = parseFloat(amt || 0);
+  const bp = parseFloat(basePrice || 0);
+  if (bp > 0 && a >= bp) {
+    const net = parseFloat((a - bp).toFixed(2));
+    return net > 0 ? net : parseFloat(a.toFixed(2));
+  }
+  return parseFloat(a.toFixed(2));
+};
+
 exports.getDraws = async (req, res) => {
   try {
     const items = await prisma.item.findMany({
@@ -54,13 +67,13 @@ exports.getDraws = async (req, res) => {
 
       const itemBids = item.bids || [];
       const totalBids = itemBids.length;
+      const basePrice = parseFloat(item.base_price || 0);
 
-      // Group bids to find unique amounts
-      const amountCounts = {};
-      // Group all bids by formatted 2-decimal amount to guarantee exact uniqueness
+      // Group all bids by net formatted 2-decimal amount to guarantee exact uniqueness
       const amountMap = {};
       itemBids.forEach((b) => {
-        const amtKey = parseFloat(b.amount).toFixed(2);
+        const netVal = getNetBid(b.amount, basePrice);
+        const amtKey = netVal.toFixed(2);
         if (!amountMap[amtKey]) amountMap[amtKey] = [];
         amountMap[amtKey].push(b);
       });
@@ -68,7 +81,7 @@ exports.getDraws = async (req, res) => {
       const uniqueAmounts = Object.keys(amountMap).filter((amt) => amountMap[amt].length === 1);
       const uniqueAmountsCount = uniqueAmounts.length;
 
-      // Determine winning bid: GUARANTEED LOWEST UNIQUE BID
+      // Determine winning bid: ONLY IF THERE IS A UNIQUE BID
       let winnerUser = null;
       let winningAmount = null;
 
@@ -78,18 +91,11 @@ exports.getDraws = async (req, res) => {
         const lowestUniqueKey = uniqueAmounts[0];
         winningAmount = parseFloat(lowestUniqueKey);
         const winBid = amountMap[lowestUniqueKey][0];
-        winnerUser = winBid.user || item.winner;
-      } else if (itemBids.length > 0) {
-        // If no unique bid exists, fallback to lowest bid placed earliest
-        const sorted = [...itemBids].sort((a, b) => 
-          parseFloat(a.amount) - parseFloat(b.amount) || 
-          new Date(a.created_at) - new Date(b.created_at)
-        );
-        winningAmount = parseFloat(sorted[0].amount);
-        winnerUser = sorted[0].user || item.winner;
-      } else if (item.winner) {
-        winnerUser = item.winner;
-        winningAmount = parseFloat(item.base_price || 0.1);
+        winnerUser = winBid.user;
+      } else {
+        // IF THERE IS NO UNIQUE BID, THERE IS NO WINNER!
+        winnerUser = null;
+        winningAmount = null;
       }
 
       const auctionCode = getAuctionCode(item);
@@ -111,7 +117,8 @@ exports.getDraws = async (req, res) => {
           announced_at: item.end_time,
           total_bids: totalBids,
           unique_amounts_count: uniqueAmountsCount,
-          winning_amount: winningAmount !== null ? Number(winningAmount) : Number(item.base_price || 0.1),
+          winning_amount: winningAmount !== null ? Number(winningAmount) : null,
+          has_winner: !!winnerUser,
           winner: winnerUser
             ? {
                 id: winnerUser.id,
@@ -119,12 +126,7 @@ exports.getDraws = async (req, res) => {
                 masked_phone: maskPhoneNumber(winnerUser.phone_number),
                 phone_number: winnerUser.phone_number
               }
-            : {
-                id: null,
-                name: 'Winner Announced',
-                masked_phone: '2519039***11',
-                phone_number: ''
-              }
+            : null
         });
       } else {
         upcomingDraws.push({
@@ -179,11 +181,13 @@ exports.getDrawDetails = async (req, res) => {
 
     const itemBids = item.bids || [];
     const totalBids = itemBids.length;
+    const basePrice = parseFloat(item.base_price || 0);
 
-    // Group bids by amount
+    // Group bids by net amount (amount beyond base_price)
     const grouped = {};
     itemBids.forEach((b) => {
-      const amtKey = parseFloat(b.amount).toFixed(2);
+      const netVal = getNetBid(b.amount, basePrice);
+      const amtKey = netVal.toFixed(2);
       if (!grouped[amtKey]) {
         grouped[amtKey] = {
           amount: parseFloat(amtKey),
@@ -200,7 +204,7 @@ exports.getDrawDetails = async (req, res) => {
       if (b.user_id) grouped[amtKey].userIds.add(b.user_id);
     });
 
-    // Find winning bid: GUARANTEED LOWEST UNIQUE BID
+    // Find winning bid: GUARANTEED LOWEST UNIQUE BID ONLY
     let winnerUser = null;
     let winningAmount = null;
 
@@ -210,19 +214,12 @@ exports.getDrawDetails = async (req, res) => {
       uniqueKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
       const lowestUniqueKey = uniqueKeys[0];
       winningAmount = parseFloat(lowestUniqueKey).toFixed(2);
-      const winBid = itemBids.find((b) => parseFloat(b.amount).toFixed(2) === lowestUniqueKey);
+      const winBid = itemBids.find((b) => getNetBid(b.amount, basePrice).toFixed(2) === lowestUniqueKey);
       winnerUser = winBid?.user || item.winner;
-    } else if (itemBids.length > 0) {
-      // If no unique bid exists across all amounts, fallback to lowest bid earliest created
-      const sortedBids = [...itemBids].sort((a, b) => 
-        parseFloat(a.amount) - parseFloat(b.amount) || 
-        new Date(a.created_at) - new Date(b.created_at)
-      );
-      winningAmount = parseFloat(sortedBids[0].amount).toFixed(2);
-      winnerUser = sortedBids[0].user || item.winner;
-    } else if (item.winner) {
-      winnerUser = item.winner;
-      winningAmount = parseFloat(item.base_price || 0.1).toFixed(2);
+    } else {
+      // IF THERE IS NO UNIQUE BID, THERE IS NO WINNER!
+      winnerUser = null;
+      winningAmount = null;
     }
 
     // Build amount breakdown list
@@ -267,19 +264,21 @@ exports.getDrawDetails = async (req, res) => {
         entry_code: `Entry ${auctionCode}`,
         announced_at: item.end_time
       },
-      winner: {
-        id: winnerUser?.id || null,
-        name: winnerUser?.name || 'Winner',
-        masked_phone: maskPhoneNumber(winnerUser?.phone_number || '2519039***11'),
-        winning_amount: winningAmount ? parseFloat(winningAmount) : item.base_price,
-        entry_code: `Entry ${auctionCode}`
-      },
+      winner: winnerUser
+        ? {
+            id: winnerUser.id,
+            name: winnerUser.name || 'Winner',
+            masked_phone: maskPhoneNumber(winnerUser.phone_number || '2519039***11'),
+            winning_amount: parseFloat(winningAmount),
+            entry_code: `Entry ${auctionCode}`
+          }
+        : null,
       stats: {
         bidFee: `${(item.base_price || 0).toFixed(2)} ETB`,
         totalBids: totalBids,
         uniqueAmountsCount: uniqueAmountsCount,
         auctionCode: auctionCode,
-        winningAmount: winningAmount ? `${parseFloat(winningAmount).toFixed(2)} ETB` : `${(item.base_price || 0).toFixed(2)} ETB`,
+        winningAmount: winningAmount ? `${parseFloat(winningAmount).toFixed(2)} ETB` : null,
         maxBidsPerAmount: maxBidsPerAmount
       },
       amountBreakdown

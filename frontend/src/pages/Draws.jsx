@@ -56,7 +56,9 @@ const TRANSLATIONS = {
     noUpcomingDraws: 'No upcoming draws at the moment.',
     viewAndBid: 'View & Place Bid',
     loading: 'Loading draws...',
-    back: 'Back'
+    back: 'Back',
+    noWinner: 'No Winner',
+    noUniqueBid: 'No unique bid found in this draw'
   },
   am: {
     draws: 'ዕጣዎች',
@@ -86,7 +88,9 @@ const TRANSLATIONS = {
     noUpcomingDraws: 'በአሁኑ ጊዜ ቀጣይ ዕጣዎች የሉም።',
     viewAndBid: 'ይመልከቱና ይጫረቱ',
     loading: 'ዕጣዎችን በመጫን ላይ...',
-    back: 'ተመለስ'
+    back: 'ተመለስ',
+    noWinner: 'አሸናፊ የለም',
+    noUniqueBid: 'በዚህ ዕጣ ውስጥ ልዩ ጨረታ አልተገኘም'
   }
 };
 
@@ -218,8 +222,14 @@ const Draws = () => {
   const [sortBreakdownBy, setSortBreakdownBy] = useState('amount'); // 'amount' | 'most_picked'
   const [selectedAmountData, setSelectedAmountData] = useState(null);
   const [isWinningHighlighted, setIsWinningHighlighted] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const winningRowRef = useRef(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3200);
+  };
 
   // Fetch Draws
   useEffect(() => {
@@ -266,18 +276,35 @@ const Draws = () => {
     if (!drawDetails?.amountBreakdown) return [];
     const list = [...drawDetails.amountBreakdown];
     if (sortBreakdownBy === 'most_picked') {
-      list.sort((a, b) => b.bidsCount - a.bidsCount || a.amount - b.amount);
+      // Most repeated bids to the lowest
+      list.sort((a, b) => Number(b.bidsCount) - Number(a.bidsCount) || Number(a.amount) - Number(b.amount));
     } else {
-      list.sort((a, b) => a.amount - b.amount);
+      // Lowest to highest bid order
+      list.sort((a, b) => Number(a.amount) - Number(b.amount));
     }
     return list;
   }, [drawDetails?.amountBreakdown, sortBreakdownBy]);
 
   const handleScrollToWinningAmount = () => {
+    const hasWinner = Boolean(drawDetails?.winner && drawDetails?.amountBreakdown?.some((r) => r.isWinning));
+    if (!hasWinner) {
+      showToast(t.noUniqueBid || 'No winner (No unique bid found in this draw)');
+      return;
+    }
+
     if (winningRowRef.current) {
       winningRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setIsWinningHighlighted(true);
       setTimeout(() => setIsWinningHighlighted(false), 2400);
+    } else {
+      setSortBreakdownBy('amount');
+      setTimeout(() => {
+        if (winningRowRef.current) {
+          winningRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setIsWinningHighlighted(true);
+          setTimeout(() => setIsWinningHighlighted(false), 2400);
+        }
+      }, 100);
     }
   };
 
@@ -285,6 +312,14 @@ const Draws = () => {
     <div className="w-full max-w-lg mx-auto pb-20 min-w-0 relative">
       {/* Continuous Congratulations / Celebratory Falling Animation (Only on Past Draws tab) */}
       {activeTab === 'past' && <CelebrationRain />}
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-2xl bg-zinc-900/95 text-amber-400 border border-amber-500/40 shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs font-bold animate-in fade-in slide-in-from-top duration-300 pointer-events-none">
+          <Info size={16} className="text-amber-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {/* Top Header Centered */}
       <div className="relative flex items-center justify-center mb-4 pt-1">
@@ -383,11 +418,18 @@ const Draws = () => {
                   {/* Gradient overlays */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-                  {/* WINNER Badge top-left */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500 text-black font-black text-[11px] shadow-lg tracking-wide uppercase">
-                    <Trophy size={13} className="fill-black" />
-                    <span>{t.winner}</span>
-                  </div>
+                  {/* Badge top-left */}
+                  {draw.has_winner !== false && draw.winner ? (
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500 text-black font-black text-[11px] shadow-lg tracking-wide uppercase">
+                      <Trophy size={13} className="fill-black" />
+                      <span>{t.winner}</span>
+                    </div>
+                  ) : (
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-800/90 text-zinc-300 font-bold text-[11px] shadow-lg tracking-wide border border-zinc-700/60 uppercase">
+                      <AlertCircle size={13} className="text-zinc-400" />
+                      <span>{t.noWinner}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Details */}
@@ -402,36 +444,56 @@ const Draws = () => {
                   </h2>
 
                   {/* Winner Spotlight Card */}
-                  <div
-                    className={`rounded-2xl p-3 sm:p-3.5 border flex items-center gap-3.5 transition-all ${isLight
-                        ? 'bg-gradient-to-r from-amber-50/90 via-amber-50/50 to-white border-amber-300/80 shadow-xs'
-                        : 'bg-gradient-to-r from-[#14151D] via-[#101117] to-[#0D0E12] border-amber-500/40 shadow-lg shadow-black/40'
-                      }`}
-                  >
-                    {/* Golden Circle with Winning Bid text, Amount, and Birr */}
-                    <div className="w-12 h-12 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 text-black flex flex-col items-center justify-center font-black shadow-lg shadow-amber-500/30  shrink-0 text-center p-1 select-none">
+                  {draw.has_winner !== false && draw.winner ? (
+                    <div
+                      className={`rounded-2xl p-3 sm:p-3.5 border flex items-center gap-3.5 transition-all ${isLight
+                          ? 'bg-gradient-to-r from-amber-50/90 via-amber-50/50 to-white border-amber-300/80 shadow-xs'
+                          : 'bg-gradient-to-r from-[#14151D] via-[#101117] to-[#0D0E12] border-amber-500/40 shadow-lg shadow-black/40'
+                        }`}
+                    >
+                      {/* Golden Circle with Winning Bid text, Amount, and Birr */}
+                      <div className="w-12 h-12 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 text-black flex flex-col items-center justify-center font-black shadow-lg shadow-amber-500/30 shrink-0 text-center p-1 select-none">
+                        <span className="text-xs sm:text-sm font-black font-mono leading-tight my-0.5">
+                          {Number(draw.winning_amount || 0).toFixed(2)}
+                        </span>
+                        <span className="text-[8px] sm:text-[9px] font-black uppercase leading-none">
+                          Birr
+                        </span>
+                      </div>
 
-                      <span className="text-xs sm:text-sm font-black font-mono leading-tight my-0.5">
-                        {Number(draw.winning_amount || 0).toFixed(2)}
-                      </span>
-                      <span className="text-[8px] sm:text-[9px] font-black uppercase leading-none">
-                        Birr
-                      </span>
-                    </div>
-
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      {draw.winner?.name && draw.winner.name !== 'Winner Announced' && draw.winner.name !== draw.winner.masked_phone && (
-                        <p className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 truncate ${isLight ? 'text-zinc-700' : 'text-zinc-200'}`}>
-                          <User size={13} className="text-amber-400 shrink-0" />
-                          <span className="truncate">{draw.winner.name}</span>
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        {draw.winner?.name && draw.winner.name !== 'Winner Announced' && draw.winner.name !== draw.winner.masked_phone && (
+                          <p className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 truncate ${isLight ? 'text-zinc-700' : 'text-zinc-200'}`}>
+                            <User size={13} className="text-amber-400 shrink-0" />
+                            <span className="truncate">{draw.winner.name}</span>
+                          </p>
+                        )}
+                        <p className={`text-xs sm:text-sm font-black flex items-center gap-1.5 font-mono ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                          <Phone size={13} className="text-amber-400 shrink-0" />
+                          <span>{draw.winner?.masked_phone || 'Winner'}</span>
                         </p>
-                      )}
-                      <p className={`text-xs sm:text-sm font-black flex items-center gap-1.5 font-mono ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                        <Phone size={13} className="text-amber-400 shrink-0" />
-                        <span>{draw.winner?.masked_phone || 'Winner'}</span>
-                      </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      className={`rounded-2xl p-3 sm:p-3.5 border flex items-center gap-3 transition-all ${isLight
+                          ? 'bg-zinc-50 border-zinc-200'
+                          : 'bg-[#101116] border-zinc-800'
+                        }`}
+                    >
+                      <div className="w-11 h-11 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center shrink-0 border border-zinc-700">
+                        <AlertCircle size={20} className="text-zinc-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-xs font-black ${isLight ? 'text-zinc-800' : 'text-zinc-200'}`}>
+                          {t.noWinner}
+                        </p>
+                        <p className={`text-[11px] truncate ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                          {t.noUniqueBid}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className={`flex items-center gap-1.5 text-[11px] font-medium pt-0.5 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                     <Calendar size={12} className="text-zinc-500 shrink-0" />
@@ -573,35 +635,56 @@ const Draws = () => {
                   </div>
 
                   {/* Winner Spotlight Card matching Screenshot 2 */}
-                  <div
-                    className={`rounded-2xl p-4 border flex items-center gap-3.5 transition-all ${isLight
-                        ? 'bg-gradient-to-r from-amber-50/90 via-amber-50/50 to-white border-amber-300/80 shadow-xs'
-                        : 'bg-[#0E0F14] border-amber-500/40 shadow-lg shadow-amber-500/10'
-                      }`}
-                  >
-                    {/* Golden Circle with Winning Bid text, Amount, and Birr */}
-                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 text-black flex flex-col items-center justify-center font-black shadow-lg shadow-amber-500/30 shrink-0 text-center p-1 select-none">
-                      <span className="text-xs sm:text-sm font-black font-mono leading-tight my-0.5">
-                        {Number(drawDetails.winner.winning_amount || 0).toFixed(2)}
-                      </span>
-                      <span className="text-[8px] sm:text-[9px] font-black uppercase leading-none">
-                        Birr
-                      </span>
-                    </div>
+                  {drawDetails.winner ? (
+                    <div
+                      className={`rounded-2xl p-4 border flex items-center gap-3.5 transition-all ${isLight
+                          ? 'bg-gradient-to-r from-amber-50/90 via-amber-50/50 to-white border-amber-300/80 shadow-xs'
+                          : 'bg-[#0E0F14] border-amber-500/40 shadow-lg shadow-amber-500/10'
+                        }`}
+                    >
+                      {/* Golden Circle with Winning Bid text, Amount, and Birr */}
+                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 text-black flex flex-col items-center justify-center font-black shadow-lg shadow-amber-500/30 shrink-0 text-center p-1 select-none">
+                        <span className="text-xs sm:text-sm font-black font-mono leading-tight my-0.5">
+                          {Number(drawDetails.winner.winning_amount || 0).toFixed(2)}
+                        </span>
+                        <span className="text-[8px] sm:text-[9px] font-black uppercase leading-none">
+                          Birr
+                        </span>
+                      </div>
 
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      {drawDetails.winner.name && drawDetails.winner.name !== 'Winner' && (
-                        <p className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 truncate ${isLight ? 'text-zinc-700' : 'text-zinc-200'}`}>
-                          <User size={13} className="text-amber-400 shrink-0" />
-                          <span className="truncate">{drawDetails.winner.name}</span>
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        {drawDetails.winner.name && drawDetails.winner.name !== 'Winner' && (
+                          <p className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 truncate ${isLight ? 'text-zinc-700' : 'text-zinc-200'}`}>
+                            <User size={13} className="text-amber-400 shrink-0" />
+                            <span className="truncate">{drawDetails.winner.name}</span>
+                          </p>
+                        )}
+                        <p className={`text-xs sm:text-sm font-black flex items-center gap-1.5 font-mono ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                          <Phone size={13} className="text-amber-400 shrink-0" />
+                          <span>{drawDetails.winner.masked_phone}</span>
                         </p>
-                      )}
-                      <p className={`text-xs sm:text-sm font-black flex items-center gap-1.5 font-mono ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                        <Phone size={13} className="text-amber-400 shrink-0" />
-                        <span>{drawDetails.winner.masked_phone}</span>
-                      </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      className={`rounded-2xl p-4 border flex items-center gap-3.5 transition-all ${isLight
+                          ? 'bg-zinc-100 border-zinc-200'
+                          : 'bg-[#101116] border-zinc-800'
+                        }`}
+                    >
+                      <div className="w-14 h-14 rounded-full bg-zinc-800 text-zinc-400 flex flex-col items-center justify-center font-black shrink-0 text-center p-1 border border-zinc-700">
+                        <AlertCircle size={22} className="text-zinc-400" />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className={`text-sm font-black ${isLight ? 'text-zinc-800' : 'text-zinc-200'}`}>
+                          {t.noWinner}
+                        </p>
+                        <p className={`text-xs ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                          {t.noUniqueBid}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* 3 Stat Pills matching Screenshot 2 */}
                   <div className="grid grid-cols-3 gap-2 text-center">
@@ -666,7 +749,11 @@ const Draws = () => {
                       <button
                         type="button"
                         onClick={handleScrollToWinningAmount}
-                        className="ml-auto shrink-0 inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold text-amber-500 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 border border-amber-500/30 transition-all shadow-xs whitespace-nowrap"
+                        className={`ml-auto shrink-0 inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold active:scale-95 border transition-all shadow-xs whitespace-nowrap ${
+                          drawDetails.winner
+                            ? 'text-amber-500 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30'
+                            : 'text-zinc-400 bg-zinc-800/40 hover:bg-zinc-800/70 border-zinc-700/50'
+                        }`}
                       >
                         <Trophy size={12} className="shrink-0" />
                         <span>{t.showWinningAmount}</span>

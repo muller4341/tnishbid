@@ -213,10 +213,20 @@ exports.endAuction = async (req, res) => {
     if (!item) return res.status(404).json({ error: 'Item not found' });
     if (item.status === 'closed') return res.status(400).json({ error: 'Auction is already closed' });
 
+    const basePrice = parseFloat(item.base_price || 0);
+    const getNetBid = (amt) => {
+      const a = parseFloat(amt || 0);
+      if (basePrice > 0 && a >= basePrice) {
+        const net = parseFloat((a - basePrice).toFixed(2));
+        return net > 0 ? net : a;
+      }
+      return parseFloat(a.toFixed(2));
+    };
+
     // Calculate winner: Strictly Lowest Unique Bid
     const amountMap = {};
     item.bids.forEach((b) => {
-      const amtKey = parseFloat(b.amount).toFixed(2);
+      const amtKey = getNetBid(b.amount).toFixed(2);
       if (!amountMap[amtKey]) amountMap[amtKey] = [];
       amountMap[amtKey].push(b);
     });
@@ -230,15 +240,7 @@ exports.endAuction = async (req, res) => {
       uniqueKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
       const winningBid = amountMap[uniqueKeys[0]][0];
       winnerId = winningBid.user_id;
-      winningAmount = winningBid.amount;
-    } else if (item.bids.length > 0) {
-      // Fallback to lowest earliest bid if no unique bid exists
-      const sortedBids = [...item.bids].sort((a, b) => 
-        parseFloat(a.amount) - parseFloat(b.amount) || 
-        new Date(a.created_at) - new Date(b.created_at)
-      );
-      winnerId = sortedBids[0].user_id;
-      winningAmount = sortedBids[0].amount;
+      winningAmount = getNetBid(winningBid.amount);
     }
 
     const updated = await prisma.item.update({
