@@ -62,7 +62,7 @@ const MobileNav = () => {
 
   return (
     <div
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl px-2 xs:px-4 pt-2 pb-[max(0.6rem,calc(0.4rem+env(safe-area-inset-bottom,0px)))] transition-colors duration-300"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[110] backdrop-blur-xl px-2 xs:px-4 pt-2 pb-[max(0.6rem,calc(0.4rem+env(safe-area-inset-bottom,0px)))] transition-colors duration-300"
       style={{
         backgroundColor: theme === 'light' ? 'rgba(255,255,255,0.97)' : 'rgba(14,15,18,0.95)',
         borderTop: theme === 'light' ? '1px solid #D4D5DA' : '1px solid rgba(39,39,42,0.8)',

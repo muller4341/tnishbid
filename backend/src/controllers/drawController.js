@@ -57,35 +57,39 @@ exports.getDraws = async (req, res) => {
 
       // Group bids to find unique amounts
       const amountCounts = {};
+      // Group all bids by formatted 2-decimal amount to guarantee exact uniqueness
+      const amountMap = {};
       itemBids.forEach((b) => {
-        const amt = parseFloat(b.amount).toFixed(2);
-        amountCounts[amt] = (amountCounts[amt] || 0) + 1;
+        const amtKey = parseFloat(b.amount).toFixed(2);
+        if (!amountMap[amtKey]) amountMap[amtKey] = [];
+        amountMap[amtKey].push(b);
       });
 
-      const uniqueAmounts = Object.keys(amountCounts).filter((amt) => amountCounts[amt] === 1);
+      const uniqueAmounts = Object.keys(amountMap).filter((amt) => amountMap[amt].length === 1);
       const uniqueAmountsCount = uniqueAmounts.length;
 
-      // Determine winning bid
-      let winnerUser = item.winner;
+      // Determine winning bid: GUARANTEED LOWEST UNIQUE BID
+      let winnerUser = null;
       let winningAmount = null;
 
-      if (winnerUser) {
-        // Find winning user's bid
-        const userBid = itemBids.find((b) => b.user_id === winnerUser.id);
-        winningAmount = userBid ? userBid.amount : item.base_price;
+      if (uniqueAmounts.length > 0) {
+        // Sort ascending to get the lowest unique bid
+        uniqueAmounts.sort((a, b) => parseFloat(a) - parseFloat(b));
+        const lowestUniqueKey = uniqueAmounts[0];
+        winningAmount = parseFloat(lowestUniqueKey);
+        const winBid = amountMap[lowestUniqueKey][0];
+        winnerUser = winBid.user || item.winner;
       } else if (itemBids.length > 0) {
-        // Compute lowest unique bid
-        if (uniqueAmounts.length > 0) {
-          const sorted = uniqueAmounts.map(Number).sort((a, b) => a - b);
-          winningAmount = sorted[0];
-          const winBid = itemBids.find((b) => Number(b.amount) === winningAmount);
-          if (winBid && winBid.user) winnerUser = winBid.user;
-        } else {
-          // If no unique bid, lowest earliest bid
-          const sorted = [...itemBids].sort((a, b) => a.amount - b.amount || new Date(a.created_at) - new Date(b.created_at));
-          winningAmount = sorted[0].amount;
-          winnerUser = sorted[0].user;
-        }
+        // If no unique bid exists, fallback to lowest bid placed earliest
+        const sorted = [...itemBids].sort((a, b) => 
+          parseFloat(a.amount) - parseFloat(b.amount) || 
+          new Date(a.created_at) - new Date(b.created_at)
+        );
+        winningAmount = parseFloat(sorted[0].amount);
+        winnerUser = sorted[0].user || item.winner;
+      } else if (item.winner) {
+        winnerUser = item.winner;
+        winningAmount = parseFloat(item.base_price || 0.1);
       }
 
       const auctionCode = getAuctionCode(item);
@@ -196,27 +200,29 @@ exports.getDrawDetails = async (req, res) => {
       if (b.user_id) grouped[amtKey].userIds.add(b.user_id);
     });
 
-    // Find winning bid
-    let winnerUser = item.winner;
+    // Find winning bid: GUARANTEED LOWEST UNIQUE BID
+    let winnerUser = null;
     let winningAmount = null;
 
-    if (winnerUser) {
-      const userBid = itemBids.find((b) => b.user_id === winnerUser.id);
-      winningAmount = userBid ? parseFloat(userBid.amount).toFixed(2) : parseFloat(item.base_price).toFixed(2);
+    const uniqueKeys = Object.keys(grouped).filter((k) => grouped[k].bids.length === 1);
+    if (uniqueKeys.length > 0) {
+      // Strictly sort by amount ascending -> lowest unique bid
+      uniqueKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
+      const lowestUniqueKey = uniqueKeys[0];
+      winningAmount = parseFloat(lowestUniqueKey).toFixed(2);
+      const winBid = itemBids.find((b) => parseFloat(b.amount).toFixed(2) === lowestUniqueKey);
+      winnerUser = winBid?.user || item.winner;
     } else if (itemBids.length > 0) {
-      // Find lowest unique bid
-      const uniqueKeys = Object.keys(grouped).filter((k) => grouped[k].bids.length === 1);
-      if (uniqueKeys.length > 0) {
-        uniqueKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
-        winningAmount = uniqueKeys[0];
-        const winBid = itemBids.find((b) => parseFloat(b.amount).toFixed(2) === winningAmount);
-        if (winBid && winBid.user) winnerUser = winBid.user;
-      } else {
-        const sortedKeys = Object.keys(grouped).sort((a, b) => parseFloat(a) - parseFloat(b));
-        winningAmount = sortedKeys[0];
-        const winBid = itemBids.find((b) => parseFloat(b.amount).toFixed(2) === winningAmount);
-        if (winBid && winBid.user) winnerUser = winBid.user;
-      }
+      // If no unique bid exists across all amounts, fallback to lowest bid earliest created
+      const sortedBids = [...itemBids].sort((a, b) => 
+        parseFloat(a.amount) - parseFloat(b.amount) || 
+        new Date(a.created_at) - new Date(b.created_at)
+      );
+      winningAmount = parseFloat(sortedBids[0].amount).toFixed(2);
+      winnerUser = sortedBids[0].user || item.winner;
+    } else if (item.winner) {
+      winnerUser = item.winner;
+      winningAmount = parseFloat(item.base_price || 0.1).toFixed(2);
     }
 
     // Build amount breakdown list
