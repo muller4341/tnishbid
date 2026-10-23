@@ -24,6 +24,7 @@ import heroIphoneImg from '../assets/hero_iphone.jpg';
 import heroCarImg from '../assets/hero_car.jpg';
 import heroLaptopImg from '../assets/hero_laptop.jpg';
 import heroWatchImg from '../assets/hero_watch.jpg';
+import heroAwardImg from '../assets/hero_award.jpg';
 
 /* Translations */
 const TRANSLATIONS = {
@@ -137,8 +138,16 @@ const HERO_SLIDES = [
     badge: 'WIN PREMIUM PHONES',
     title: 'Bid Small,\nWin Big',
     subtitle: 'Place the lowest unique bid and take home the latest smartphones.',
-    highlight: { label: 'Starting from', value: '1 Birr' },
+    highlight: { label: 'Starting from', value: '0.01 Birr' },
     accentColor: 'rgba(251, 191, 36, 0.6)',
+  },
+  {
+    image: heroAwardImg,
+    badge: 'TOP BIDDER AWARDS',
+    title: 'Bid More,\nWin Bonus Awards',
+    subtitle: 'Place more bids to top the leaderboard — most active bidders win exclusive champion awards!',
+    highlight: { label: 'Top Bidders', value: 'Bonus Awards' },
+    accentColor: 'rgba(251, 191, 36, 0.65)',
   },
   {
     image: heroCarImg,
@@ -191,14 +200,14 @@ const HeroSection = ({ t, onScrollToItems }) => {
 
   // Auto-play
   useEffect(() => {
-    autoPlayRef.current = setInterval(nextSlide, 5000);
+    autoPlayRef.current = setInterval(nextSlide, 7000);
     return () => clearInterval(autoPlayRef.current);
   }, [nextSlide]);
 
   // Reset auto-play on manual interaction
   const resetAutoPlay = useCallback(() => {
     clearInterval(autoPlayRef.current);
-    autoPlayRef.current = setInterval(nextSlide, 5000);
+    autoPlayRef.current = setInterval(nextSlide, 7000);
   }, [nextSlide]);
 
   // Touch handlers
