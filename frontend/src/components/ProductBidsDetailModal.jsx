@@ -297,7 +297,8 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
                   placeholder="Search bidder name, phone, email, or amount..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#101216] border border-zinc-800 focus:border-amber-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none"
+                  style={{ fontSize: '16px' }}
+                  className="w-full bg-[#101216] border border-zinc-800 focus:border-amber-400 rounded-xl pl-9 pr-3 py-2 text-[16px] text-white focus:outline-none"
                 />
                 {searchQuery && (
                   <button

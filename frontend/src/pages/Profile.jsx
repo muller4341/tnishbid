@@ -157,7 +157,7 @@ const DepositPaymentModal = memo(({
     <div
       className={`fixed inset-0 z-[100] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${successData || inlinePayment
           ? 'items-center p-4'
-          : 'items-end p-0 sm:items-center sm:p-4 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
+          : 'items-end p-0 sm:items-center sm:p-4'
         } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'}`}
       role="presentation"
       onClick={(e) => {
@@ -165,9 +165,9 @@ const DepositPaymentModal = memo(({
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${successData || inlinePayment
+        className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${successData || inlinePayment
             ? 'rounded-3xl zoom-in-95'
-            : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
+            : 'rounded-t-[28px] rounded-b-none sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
           } ${isLight
             ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
             : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
@@ -412,7 +412,8 @@ const DepositPaymentModal = memo(({
                   value={String(phone || '').replace(/^(\+?251|0)/, '')}
                   onChange={(event) => onChangePhone?.(event.target.value.replace(/\D/g, ''))}
                   placeholder="91 234 5678"
-                  className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${isLight
+                  style={{ fontSize: '16px' }}
+                  className={`min-w-0 flex-1 bg-transparent pl-3 text-[16px] sm:text-base font-bold outline-none ${isLight
                       ? 'text-zinc-900 placeholder:text-zinc-400'
                       : 'text-white placeholder:text-zinc-600'
                     }`}
@@ -1027,7 +1028,8 @@ const Profile = () => {
                         setFundError('');
                       }}
                       onFocus={() => setSelectedPreset('custom')}
-                      className={`w-full bg-[#0E0F12] border rounded-xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none transition-colors ${selectedPreset === 'custom' ? 'border-amber-400' : 'border-zinc-800 focus:border-amber-400'
+                      style={{ fontSize: '16px' }}
+                      className={`w-full bg-[#0E0F12] border rounded-xl pl-12 pr-4 py-2.5 text-[16px] text-white focus:outline-none transition-colors ${selectedPreset === 'custom' ? 'border-amber-400' : 'border-zinc-800 focus:border-amber-400'
                         }`}
                     />
                   </div>

@@ -77,7 +77,8 @@ const Register = () => {
               <input
                 type="text"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm font-medium text-white transition-all"
+                style={{ fontSize: '16px' }}
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all"
                 placeholder="Abebe Bikila"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -95,7 +96,8 @@ const Register = () => {
                 type="tel"
                 required
                 maxLength={10}
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm font-mono font-bold text-white transition-all"
+                style={{ fontSize: '16px' }}
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-mono font-bold text-white transition-all"
                 placeholder="09xxxxxxxx"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
@@ -113,7 +115,8 @@ const Register = () => {
               <input
                 type="password"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm font-medium text-white transition-all"
+                style={{ fontSize: '16px' }}
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

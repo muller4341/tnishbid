@@ -176,7 +176,8 @@ const Discover = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Filter by keyword..."
-          className="w-full pl-10 pr-4 py-2.5 bg-[#141417] border border-zinc-800/80 rounded-xl text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
+          style={{ fontSize: '16px' }}
+          className="w-full pl-10 pr-4 py-2.5 bg-[#141417] border border-zinc-800/80 rounded-xl text-[16px] font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
         />
       </div>
 

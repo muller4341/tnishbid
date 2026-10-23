@@ -15,6 +15,22 @@ html {
     min-width: 320px;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Prevent Mobile Auto-Zoom on Input Focus */
+  input,
+  textarea,
+  select,
+  button {
+    touch-action: manipulation;
+  }
+
+  @media screen and (max-width: 768px) {
+    input:not(.text-2xl):not(.text-3xl):not(.text-4xl),
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* Suppress default Chapa SDK popup container so our custom success screen is displayed cleanly */

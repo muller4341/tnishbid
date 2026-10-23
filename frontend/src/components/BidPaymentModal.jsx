@@ -326,7 +326,7 @@ export const ConfirmBidModal = memo(({
     <div
       className={`fixed inset-0 z-[100] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${paymentSuccess || (inlinePayment && !isWallet)
         ? 'items-center p-4'
-        : 'items-end p-0 sm:items-center sm:p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
+        : 'items-end p-0 sm:items-center sm:p-4'
         } ${isLight ? 'bg-zinc-950/45' : 'bg-black/75'
         }`}
       role="presentation"
@@ -335,9 +335,9 @@ export const ConfirmBidModal = memo(({
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[calc(100vh-5.5rem)] sm:max-h-[90vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-4 sm:pb-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
+        className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
           ? 'rounded-3xl zoom-in-95'
-          : 'rounded-t-[28px] rounded-b-2xl sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95 shadow-2xl'
+          : 'rounded-t-[28px] rounded-b-none sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95 shadow-2xl'
           } ${isLight
             ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
             : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
@@ -614,7 +614,8 @@ export const ConfirmBidModal = memo(({
                     value={phoneNumber.replace(/^0/, '')}
                     onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, ''))}
                     placeholder="91 234 5678"
-                    className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${isLight
+                    style={{ fontSize: '16px' }}
+                    className={`min-w-0 flex-1 bg-transparent pl-3 text-[16px] sm:text-base font-bold outline-none ${isLight
                       ? 'text-zinc-900 placeholder:text-zinc-400'
                       : 'text-white placeholder:text-zinc-600'
                       }`}
