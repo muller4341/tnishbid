@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, memo, lazy } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -204,10 +204,7 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
           {categoryLabel}
         </span>
 
-        {/* Pool Badge */}
-        <span className={`absolute top-4 right-4 backdrop-blur-md border font-extrabold text-[10px] tracking-wider px-3 py-1 rounded-full uppercase shadow-md z-10 ${badgeColorClass}`}>
-          {badgeText}
-        </span>
+       
 
         {/* Left Navigation Arrow */}
         <button
@@ -316,6 +313,20 @@ const maskPhoneNumber = (phone) => {
     return `${prefix}xxxx${suffix}`;
   }
   return '0978xxxx90';
+};
+
+// Sanitize bid input: non-negative and maximum 2 decimal places
+const sanitizeBidAmount = (val) => {
+  if (val === '' || val === null || val === undefined) return '';
+  let cleaned = String(val).replace(/[^0-9.]/g, '');
+  const parts = cleaned.split('.');
+  if (parts.length > 2) {
+    cleaned = parts[0] + '.' + parts.slice(1).join('');
+  }
+  if (parts.length > 1 && parts[1].length > 2) {
+    cleaned = `${parts[0]}.${parts[1].slice(0, 2)}`;
+  }
+  return cleaned;
 };
 
 // Falling Confetti & Sparkles Celebration Component
@@ -1053,6 +1064,7 @@ const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, walletBa
 const ItemDetails = memo(() => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, socket, setUser } = useAuth();
 
   const [item, setItem] = useState(null);
@@ -1093,6 +1105,39 @@ const ItemDetails = memo(() => {
     window.scrollTo(0, 0);
     fetchItemDetails();
   }, [id]);
+
+  // Restore and hold bid amount registered before login (from state or sessionStorage)
+  useEffect(() => {
+    let savedBid = location.state?.bidAmount;
+    if (!savedBid && id) {
+      try {
+        savedBid = sessionStorage.getItem(`pending_bid_${id}`);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (savedBid) {
+      const parsed = parseFloat(savedBid);
+      if (!isNaN(parsed) && parsed > 0) {
+        const formatted = parsed.toFixed(2);
+        setLubBidAmount(formatted);
+        setCustomBidInput(formatted);
+
+        // If user is authenticated and item details are loaded, pop open the confirmation modal directly
+        if (user && item && (location.state?.autoOpenConfirm || location.state?.bidAmount)) {
+          setPendingBidAmount(parsed);
+          setShowConfirmModal(true);
+
+          try {
+            sessionStorage.removeItem(`pending_bid_${id}`);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+  }, [id, user, item, location.state]);
 
   const fetchItemDetails = async () => {
     try {
@@ -1282,23 +1327,38 @@ const ItemDetails = memo(() => {
     setError('');
     setSuccess('');
 
+    const amount = parseFloat(bidAmountToPlace);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Bid amount must be at least 0.01 Birr (cannot be negative or zero)');
+      return;
+    }
+
+    const decimalParts = String(bidAmountToPlace || '').split('.');
+    if (decimalParts.length > 1 && decimalParts[1].length > 2) {
+      setError('Bid amount cannot have more than 2 decimal places');
+      return;
+    }
+
+    const cleanBid = parseFloat(amount.toFixed(2)).toString();
+
     if (!user) {
+      try {
+        sessionStorage.setItem(`pending_bid_${id}`, cleanBid);
+      } catch (e) {
+        console.error(e);
+      }
       navigate('/login', {
         state: {
           from: `/item/${id}`,
+          bidAmount: cleanBid,
+          autoOpenConfirm: true,
           message: 'Please sign in with your phone number to place a bid.'
         }
       });
       return;
     }
 
-    const amount = parseFloat(bidAmountToPlace);
-    if (isNaN(amount) || amount <= 0) {
-      setError('Bid amount must be at least 0.01 Birr');
-      return;
-    }
-
-    setPendingBidAmount(amount);
+    setPendingBidAmount(parseFloat(cleanBid));
     setShowConfirmModal(true);
   };
 
@@ -1607,7 +1667,12 @@ const ItemDetails = memo(() => {
                     value={customBidInput}
                     onFocus={() => setIsOpenInputFocused(true)}
                     onBlur={() => setTimeout(() => setIsOpenInputFocused(false), 200)}
-                    onChange={(e) => setCustomBidInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (['-', '+', 'e', 'E'].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => setCustomBidInput(sanitizeBidAmount(e.target.value))}
                     className="w-full bg-transparent font-mono font-black text-2xl md:text-3xl text-white focus:outline-none"
                     placeholder="e.g. 0.01 or 50.00"
                     style={{ fontSize: '24px' }}
@@ -1677,7 +1742,7 @@ const ItemDetails = memo(() => {
               <ArrowLeft size={18} />
             </button>
             <h1 className="font-serif font-black text-xl text-white tracking-tight">
-              Premium LUB Pool
+             Item Detail
             </h1>
             <div className="w-9 h-9" />
           </div>
@@ -1685,8 +1750,8 @@ const ItemDetails = memo(() => {
           {/* Hero Image - Multi Image Animated Carousel */}
           <ProductGalleryCarousel
             item={item}
-            badgeText="PREMIUM LUB POOL"
-            badgeColorClass="bg-purple-950/80 text-purple-400 border-purple-500/40"
+            
+            
           />
 
           {/* Bidding Panel */}
@@ -1793,19 +1858,24 @@ const ItemDetails = memo(() => {
                           disabled={timeLeft === 'EXPIRED'}
                           onFocus={() => setIsLubInputFocused(true)}
                           onBlur={() => setTimeout(() => setIsLubInputFocused(false), 200)}
+                          onKeyDown={(e) => {
+                            if (['-', '+', 'e', 'E'].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
                           className="w-full pl-12 pr-3 py-3 bg-[#111113] border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-mono font-bold text-[16px] text-white transition-all"
                           placeholder="e.g. 0.01 or 15.20"
                           value={lubBidAmount}
-                          onChange={(e) => setLubBidAmount(e.target.value)}
+                          onChange={(e) => setLubBidAmount(sanitizeBidAmount(e.target.value))}
                           style={{ fontSize: '16px' }}
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={timeLeft === 'EXPIRED'}
-                        className="px-5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-xl font-black text-xs uppercase shadow-md transition-all active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600 cursor-pointer"
+                        className="px-5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-xl font-black font-bold text-xs shadow-md transition-all active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600 cursor-pointer"
                       >
-                        Bid LUB
+                        Submit Bid
                       </button>
                     </form>
 

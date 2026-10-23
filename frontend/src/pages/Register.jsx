@@ -34,7 +34,12 @@ const Register = () => {
 
     try {
       await register(name, cleanPhone, password);
-      navigate(redirectPath);
+      navigate(redirectPath, {
+        state: {
+          bidAmount: location.state?.bidAmount,
+          autoOpenConfirm: location.state?.autoOpenConfirm,
+        }
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed');
     }
@@ -150,7 +155,15 @@ const Register = () => {
 
         <div className="text-center text-xs text-zinc-400 pt-4 border-t border-zinc-800/80">
           Already have an account?{' '}
-          <Link to="/login" state={{ from: redirectPath }} className="text-amber-400 font-extrabold hover:underline">
+          <Link
+            to="/login"
+            state={{
+              from: redirectPath,
+              bidAmount: location.state?.bidAmount,
+              autoOpenConfirm: location.state?.autoOpenConfirm,
+            }}
+            className="text-amber-400 font-extrabold hover:underline"
+          >
             Sign in
           </Link>
         </div>

@@ -59,10 +59,10 @@ exports.initializeBidPayment = async (req, res) => {
 
   try {
     const config = getConfig();
-    const parsedBidAmount = parseFloat(amount);
+    const parsedBidAmount = parseFloat(parseFloat(amount).toFixed(2));
     const itemId = parseInt(item_id, 10);
     if (!Number.isInteger(itemId) || !Number.isFinite(parsedBidAmount) || parsedBidAmount <= 0) {
-      return res.status(400).json({ error: 'A valid item and bid amount are required' });
+      return res.status(400).json({ error: 'A valid item and positive bid amount are required' });
     }
 
     const [item, user] = await Promise.all([
@@ -134,10 +134,10 @@ exports.prepareInlineBidPayment = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const parsedBidAmount = parseFloat(amount);
+    const parsedBidAmount = parseFloat(parseFloat(amount).toFixed(2));
     const itemId = parseInt(item_id, 10);
     if (!Number.isInteger(itemId) || !Number.isFinite(parsedBidAmount) || parsedBidAmount <= 0) {
-      return res.status(400).json({ error: 'A valid item and bid amount are required' });
+      return res.status(400).json({ error: 'A valid item and positive bid amount are required' });
     }
 
     const [item, user] = await Promise.all([

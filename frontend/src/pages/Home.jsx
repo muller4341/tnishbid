@@ -154,7 +154,7 @@ const HeroSection = ({ t, onScrollToItems }) => (
                 <RuleIcon size={15} />
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-black text-amber-300">{rule.title}</p>
+                <p className="text-xs font-semibold text-amber-300">{rule.title}</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-white/75">{rule.text}</p>
               </div>
             </div>
@@ -166,7 +166,7 @@ const HeroSection = ({ t, onScrollToItems }) => (
 
       <button
         onClick={onScrollToItems}
-        className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+        className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 font-bold"
       >
         {t.startBid} <Sparkles size={16} />
       </button>
@@ -174,6 +174,22 @@ const HeroSection = ({ t, onScrollToItems }) => (
   </div>
 );
 
+
+const sanitizeBidAmount = (val) => {
+  if (val === '' || val === null || val === undefined) return '';
+  // Strip any character that is not a digit or decimal point
+  let cleaned = String(val).replace(/[^0-9.]/g, '');
+  // Keep only the first decimal point
+  const parts = cleaned.split('.');
+  if (parts.length > 2) {
+    cleaned = parts[0] + '.' + parts.slice(1).join('');
+  }
+  // Allow at most 2 decimal places
+  if (parts.length > 1 && parts[1].length > 2) {
+    cleaned = `${parts[0]}.${parts[1].slice(0, 2)}`;
+  }
+  return cleaned;
+};
 
 /* Single Product Bid Card */
 const ProductBidCard = ({ item, t, user, navigate }) => {
@@ -206,7 +222,11 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
 
   const handleDecrement = () => {
     const cur = parseFloat(bidInput) || 0;
-    if (cur > 0) setBidInput((cur - 1).toFixed(2));
+    if (cur > 1) {
+      setBidInput((cur - 1).toFixed(2));
+    } else {
+      setBidInput('0.01');
+    }
   };
 
   const handleIncrement = () => {
@@ -215,17 +235,38 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   };
 
   const handleSubmit = () => {
-    if (!user) {
-      navigate('/login', { state: { from: `/item/${item.id}` } });
-      return;
-    }
     const amount = parseFloat(bidInput);
     if (isNaN(amount) || amount <= 0) {
-      setError('Enter a valid bid amount');
+      setError('Enter a valid bid amount (must be positive)');
       setTimeout(() => setError(''), 3000);
       return;
     }
-    setPendingBidAmount(amount);
+    const decimalParts = String(bidInput).split('.');
+    if (decimalParts.length > 1 && decimalParts[1].length > 2) {
+      setError('Bid amount can have at most 2 decimal places');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    const cleanBid = parseFloat(amount.toFixed(2)).toString();
+
+    if (!user) {
+      try {
+        sessionStorage.setItem(`pending_bid_${item.id}`, cleanBid);
+      } catch (e) {
+        console.error(e);
+      }
+      navigate('/login', {
+        state: {
+          from: `/item/${item.id}`,
+          bidAmount: cleanBid,
+          autoOpenConfirm: true,
+        }
+      });
+      return;
+    }
+
+    setPendingBidAmount(parseFloat(cleanBid));
     setShowConfirmModal(true);
   };
 
@@ -362,11 +403,17 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
                 value={bidInput}
                 onFocus={() => setIsBidInputFocused(true)}
                 onBlur={() => setTimeout(() => setIsBidInputFocused(false), 200)}
-                onChange={(e) => setBidInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (['-', '+', 'e', 'E'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onChange={(e) => setBidInput(sanitizeBidAmount(e.target.value))}
                 placeholder={t.bidAmount}
-                min="0"
+                min="0.01"
                 step="0.01"
-                className="flex-1 bg-transparent text-center text-white text-[16px] font-bold placeholder-zinc-500 focus:outline-none py-2"
+                className="flex-1 bg-transparent text-center text-white text-[16px] font-bold placeholder-zinc-500 focus:outline-none py-2 placeholder:text-sm
+                "
                 style={{ fontSize: '16px' }}
               />
               <button
@@ -392,7 +439,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+              className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 font-bold hover:brightness-110 text-black rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
             >
               {submitting ? (
                 <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />

@@ -8,9 +8,9 @@ const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
   if (!item) throw new Error('Item not found');
   if (item.status !== 'active') throw new Error('Auction is not active');
 
-  const parsedAmount = parseFloat(amount);
+  const parsedAmount = parseFloat(parseFloat(amount).toFixed(2));
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
-    throw new Error('Bid amount must be at least 0.01 Birr');
+    throw new Error('Bid amount must be at least 0.01 Birr (cannot be negative or zero)');
   }
 
   const existingBids = await tx.bid.findMany({

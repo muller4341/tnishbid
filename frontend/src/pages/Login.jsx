@@ -30,7 +30,12 @@ const Login = () => {
       if (loggedUser && loggedUser.role === 'admin') {
         navigate('/admin');
       } else {
-        navigate(redirectPath);
+        navigate(redirectPath, {
+          state: {
+            bidAmount: location.state?.bidAmount,
+            autoOpenConfirm: location.state?.autoOpenConfirm,
+          }
+        });
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please check phone number and password.');
@@ -121,7 +126,15 @@ const Login = () => {
 
         <div className="text-center text-xs text-zinc-400 pt-4 border-t border-zinc-800/80">
           Don't have a phone account?{' '}
-          <Link to="/register" state={{ from: redirectPath }} className="text-amber-400 font-extrabold hover:underline">
+          <Link
+            to="/register"
+            state={{
+              from: redirectPath,
+              bidAmount: location.state?.bidAmount,
+              autoOpenConfirm: location.state?.autoOpenConfirm,
+            }}
+            className="text-amber-400 font-extrabold hover:underline"
+          >
             Register Phone
           </Link>
         </div>
