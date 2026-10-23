@@ -134,6 +134,13 @@ const ruleIcons = { trophy: Trophy, repeat: Repeat2, target: Target, gavel: Gave
 
 const HERO_SLIDES = [
   {
+    isRules: true,
+    image: heroAwardImg,
+    badge: 'HOW TO PLAY & WIN',
+    title: 'How to Win \u1275\u1295\u123dBid',
+    accentColor: 'rgba(251, 191, 36, 0.65)',
+  },
+  {
     image: heroIphoneImg,
     badge: 'WIN PREMIUM PHONES',
     title: 'Bid Small,\nWin Big',
@@ -200,14 +207,14 @@ const HeroSection = ({ t, onScrollToItems }) => {
 
   // Auto-play
   useEffect(() => {
-    autoPlayRef.current = setInterval(nextSlide, 7000);
+    autoPlayRef.current = setInterval(nextSlide, 10000);
     return () => clearInterval(autoPlayRef.current);
   }, [nextSlide]);
 
   // Reset auto-play on manual interaction
   const resetAutoPlay = useCallback(() => {
     clearInterval(autoPlayRef.current);
-    autoPlayRef.current = setInterval(nextSlide, 7000);
+    autoPlayRef.current = setInterval(nextSlide, 10000);
   }, [nextSlide]);
 
   // Touch handlers
@@ -234,7 +241,7 @@ const HeroSection = ({ t, onScrollToItems }) => {
   return (
     <div
       className="light-theme-hero home-hero relative rounded-[1rem] overflow-hidden mb-6"
-      style={{ minHeight: '280px' }}
+      style={{ minHeight: '320px' }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -259,7 +266,7 @@ const HeroSection = ({ t, onScrollToItems }) => {
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.3) 100%)`,
+              background: `linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 50%, rgba(0,0,0,0.4) 100%)`,
             }}
           />
           {/* Accent color glow per slide */}
@@ -271,7 +278,7 @@ const HeroSection = ({ t, onScrollToItems }) => {
       ))}
 
       {/* Content overlay */}
-      <div className="relative z-10 p-5 sm:p-6 flex flex-col justify-between" style={{ minHeight: '280px' }}>
+      <div className="relative z-10 p-5 sm:p-6 flex flex-col justify-between" style={{ minHeight: '320px' }}>
         {/* Top: Badge */}
         <div
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase w-fit transition-all duration-500"
@@ -288,45 +295,86 @@ const HeroSection = ({ t, onScrollToItems }) => {
           {slide.badge}
         </div>
 
-        {/* Middle: Title + Subtitle */}
-        <div className="flex-1 flex flex-col justify-center py-3">
-          <h1
-            className="text-[1.75rem] sm:text-3xl md:text-4xl font-black leading-[1.1] tracking-tight transition-all duration-500 whitespace-pre-line"
-            style={{
-              color: '#fff',
-              textShadow: '0 2px 30px rgba(0,0,0,0.5)',
-              opacity: isTransitioning ? 0 : 1,
-              transform: isTransitioning ? 'translateY(16px)' : 'translateY(0)',
-            }}
-          >
-            {slide.title}
-          </h1>
-          <p
-            className="mt-2 text-xs sm:text-sm leading-relaxed max-w-[280px] transition-all duration-500 delay-75"
-            style={{
-              color: 'rgba(255,255,255,0.75)',
-              opacity: isTransitioning ? 0 : 1,
-              transform: isTransitioning ? 'translateY(12px)' : 'translateY(0)',
-            }}
-          >
-            {slide.subtitle}
-          </p>
+        {/* Middle: Either Rules steps OR Title + Subtitle */}
+        {slide.isRules ? (
+          <div className="flex-1 flex flex-col justify-center py-2">
+            <h1
+              className="text-xl sm:text-2xl font-black leading-tight tracking-tight mb-2.5 transition-all duration-500"
+              style={{
+                color: '#fff',
+                textShadow: '0 2px 20px rgba(249,115,22,0.4)',
+                opacity: isTransitioning ? 0 : 1,
+                transform: isTransitioning ? 'translateY(12px)' : 'translateY(0)',
+              }}
+            >
+              {t.heroTitle || slide.title}
+            </h1>
 
-          {/* Highlight chip */}
-          <div
-            className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl w-fit transition-all duration-500 delay-100"
-            style={{
-              background: 'rgba(251, 191, 36, 0.1)',
-              border: '1px solid rgba(251, 191, 36, 0.2)',
-              backdropFilter: 'blur(8px)',
-              opacity: isTransitioning ? 0 : 1,
-              transform: isTransitioning ? 'translateY(10px)' : 'translateY(0)',
-            }}
-          >
-            <span className="text-[10px] text-amber-300/70 font-medium uppercase tracking-wider">{slide.highlight.label}</span>
-            <span className="text-xs text-amber-300 font-black">{slide.highlight.value}</span>
+            <div
+              className="grid gap-2 transition-all duration-500 delay-75"
+              style={{
+                opacity: isTransitioning ? 0 : 1,
+                transform: isTransitioning ? 'translateY(8px)' : 'translateY(0)',
+              }}
+            >
+              {(slide.rules || t.heroRules).map((rule) => {
+                const RuleIcon = ruleIcons[rule.icon] || Sparkles;
+                return (
+                  <div key={rule.title} className="flex items-start gap-2.5 rounded-xl px-1 py-0.5">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 shadow-sm shadow-amber-500/10">
+                      <RuleIcon size={14} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-amber-300">{rule.title}</p>
+                      <p className="mt-0.5 text-[11px] sm:text-xs leading-relaxed text-white/75">{rule.text}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex flex-col justify-center py-3">
+            <h1
+              className="text-[1.75rem] sm:text-3xl md:text-4xl font-black leading-[1.1] tracking-tight transition-all duration-500 whitespace-pre-line"
+              style={{
+                color: '#fff',
+                textShadow: '0 2px 30px rgba(0,0,0,0.5)',
+                opacity: isTransitioning ? 0 : 1,
+                transform: isTransitioning ? 'translateY(16px)' : 'translateY(0)',
+              }}
+            >
+              {slide.title}
+            </h1>
+            <p
+              className="mt-2 text-xs sm:text-sm leading-relaxed max-w-[280px] transition-all duration-500 delay-75"
+              style={{
+                color: 'rgba(255,255,255,0.75)',
+                opacity: isTransitioning ? 0 : 1,
+                transform: isTransitioning ? 'translateY(12px)' : 'translateY(0)',
+              }}
+            >
+              {slide.subtitle}
+            </p>
+
+            {/* Highlight chip */}
+            {slide.highlight && (
+              <div
+                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl w-fit transition-all duration-500 delay-100"
+                style={{
+                  background: 'rgba(251, 191, 36, 0.1)',
+                  border: '1px solid rgba(251, 191, 36, 0.2)',
+                  backdropFilter: 'blur(8px)',
+                  opacity: isTransitioning ? 0 : 1,
+                  transform: isTransitioning ? 'translateY(10px)' : 'translateY(0)',
+                }}
+              >
+                <span className="text-[10px] text-amber-300/70 font-medium uppercase tracking-wider">{slide.highlight.label}</span>
+                <span className="text-xs text-amber-300 font-black">{slide.highlight.value}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Bottom: CTA + dots */}
         <div className="space-y-3">
