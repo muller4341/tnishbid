@@ -324,8 +324,10 @@ export const ConfirmBidModal = memo(({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${paymentSuccess || (inlinePayment && !isWallet) ? 'items-center p-4' : 'items-end p-0 sm:items-center sm:p-4'
-        } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'
+      className={`fixed inset-0 z-[100] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${paymentSuccess || (inlinePayment && !isWallet)
+        ? 'items-center p-4'
+        : 'items-end p-0 sm:items-center sm:p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
+        } ${isLight ? 'bg-zinc-950/45' : 'bg-black/75'
         }`}
       role="presentation"
       onClick={(e) => {
@@ -333,9 +335,9 @@ export const ConfirmBidModal = memo(({
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
+        className={`max-w-lg w-full max-h-[calc(100vh-5.5rem)] sm:max-h-[90vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-4 sm:pb-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
           ? 'rounded-3xl zoom-in-95'
-          : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
+          : 'rounded-t-[28px] rounded-b-2xl sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95 shadow-2xl'
           } ${isLight
             ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
             : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
@@ -694,37 +696,39 @@ export const ConfirmBidModal = memo(({
             </div>
 
             {/* Confirm Button */}
-            <button
-              type="button"
-              onClick={handleConfirmClick}
-              disabled={!agreed || isSubmitting || (isWallet && !hasSufficientBalance)}
-              style={
-                agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
-                  ? {
-                    background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
-                    color: '#ffffff',
-                    boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
-                  }
-                  : undefined
-              }
-              className={`w-full font-black text-sm sm:text-base py-3.5 sm:py-4 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
-                ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
-                : isLight
-                  ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
-                  : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
-                }`}
-            >
-              {isSubmitting ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-              ) : (
-                <>
-                  <CheckCircle2 size={18} style={{ color: agreed && (!isWallet || hasSufficientBalance) ? '#ffffff' : undefined }} />
-                  <span style={{ color: agreed && (!isWallet || hasSufficientBalance) ? '#ffffff' : undefined }}>
-                    {isWallet ? 'Pay with Wallet & Place Bid' : 'Confirm & Continue'}
-                  </span>
-                </>
-              )}
-            </button>
+            <div className="pt-2 pb-2">
+              <button
+                type="button"
+                onClick={handleConfirmClick}
+                disabled={!agreed || isSubmitting || (isWallet && !hasSufficientBalance)}
+                style={
+                  agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
+                    ? {
+                      background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                      color: '#ffffff',
+                      boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
+                    }
+                    : undefined
+                }
+                className={`w-full font-black text-sm sm:text-base py-3.5 sm:py-4 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
+                  ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
+                  : isLight
+                    ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
+                    : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
+                  }`}
+              >
+                {isSubmitting ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} style={{ color: agreed && (!isWallet || hasSufficientBalance) ? '#ffffff' : undefined }} />
+                    <span style={{ color: agreed && (!isWallet || hasSufficientBalance) ? '#ffffff' : undefined }}>
+                      {isWallet ? 'Pay with Wallet & Place Bid' : 'Confirm & Continue'}
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
           </>
         )}
       </div>
