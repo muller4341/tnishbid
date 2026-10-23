@@ -4,32 +4,32 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ProductBidsDetailModal from '../components/ProductBidsDetailModal';
-import { 
-  Users, 
+import {
+  Users,
   User,
-  Flame, 
-  DollarSign, 
-  Trophy, 
-  TrendingUp, 
-  PlusCircle, 
-  Search, 
-  Filter, 
-  Edit3, 
-  Trash2, 
-  CheckCircle2, 
-  AlertCircle, 
-  X, 
-  RefreshCw, 
-  ShieldCheck, 
-  Eye, 
-  Wallet, 
-  Clock, 
-  Tag, 
-  Layers, 
-  BarChart3, 
-  Calendar, 
-  Smartphone, 
-  UserCheck, 
+  Flame,
+  DollarSign,
+  Trophy,
+  TrendingUp,
+  PlusCircle,
+  Search,
+  Filter,
+  Edit3,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  RefreshCw,
+  ShieldCheck,
+  Eye,
+  Wallet,
+  Clock,
+  Tag,
+  Layers,
+  BarChart3,
+  Calendar,
+  Smartphone,
+  UserCheck,
   ArrowUpRight,
   Sparkles,
   Award,
@@ -206,8 +206,8 @@ const AdminDashboard = () => {
 
       // Filter valid subtitles
       const validSubtitles = subtitles.filter(s => s.title.trim() || s.description.trim());
-      const finalDescription = validSubtitles.length > 0 
-        ? JSON.stringify(validSubtitles) 
+      const finalDescription = validSubtitles.length > 0
+        ? JSON.stringify(validSubtitles)
         : (formData.description || '');
 
       const payload = {
@@ -216,7 +216,7 @@ const AdminDashboard = () => {
       };
 
       Object.keys(payload).forEach(key => data.append(key, payload[key]));
-      
+
       if (imageFiles.length > 0) {
         imageFiles.forEach(file => {
           data.append('images', file);
@@ -302,7 +302,7 @@ const AdminDashboard = () => {
     if (!statsData?.productStats) return [];
     return statsData.productStats.filter(item => {
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
@@ -313,7 +313,7 @@ const AdminDashboard = () => {
   const activeTrendData = useMemo(() => {
     if (!statsData) return [];
     if (selectedTrendProductId === 'all') {
-      return timeframe === '7d' 
+      return timeframe === '7d'
         ? (statsData.biddingTrend7 || statsData.biddingTrend || [])
         : (statsData.biddingTrend30 || statsData.biddingTrend || []);
     }
@@ -407,11 +407,10 @@ const AdminDashboard = () => {
         <div className="container mx-auto px-4 flex gap-2 overflow-x-auto border-t border-zinc-800/60 pt-2 pb-1 scrollbar-none">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'overview'
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'overview'
                 ? 'bg-amber-500 text-black shadow-md'
                 : 'text-zinc-400 hover:text-white bg-[#15171D]/60 hover:bg-[#1C1E26]'
-            }`}
+              }`}
           >
             <BarChart3 size={15} />
             Overview Analytics
@@ -419,11 +418,10 @@ const AdminDashboard = () => {
 
           <button
             onClick={() => setActiveTab('products')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'products'
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'products'
                 ? 'bg-amber-500 text-black shadow-md'
                 : 'text-zinc-400 hover:text-white bg-[#15171D]/60 hover:bg-[#1C1E26]'
-            }`}
+              }`}
           >
             <Layers size={15} />
             Products & Bids ({statsData?.productStats?.length || 0})
@@ -431,11 +429,10 @@ const AdminDashboard = () => {
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'users'
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'users'
                 ? 'bg-amber-500 text-black shadow-md'
                 : 'text-zinc-400 hover:text-white bg-[#15171D]/60 hover:bg-[#1C1E26]'
-            }`}
+              }`}
           >
             <Users size={15} />
             User Roster ({statsData?.users?.length || 0})
@@ -443,11 +440,10 @@ const AdminDashboard = () => {
 
           <button
             onClick={() => setActiveTab('winners')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'winners'
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'winners'
                 ? 'bg-amber-500 text-black shadow-md'
                 : 'text-zinc-400 hover:text-white bg-[#15171D]/60 hover:bg-[#1C1E26]'
-            }`}
+              }`}
           >
             <Trophy size={15} />
             Winners Circle ({summary.totalWinners})
@@ -455,11 +451,10 @@ const AdminDashboard = () => {
 
           <button
             onClick={() => setActiveTab('create')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'create'
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'create'
                 ? 'bg-amber-500 text-black shadow-md'
                 : 'text-zinc-400 hover:text-white bg-[#15171D]/60 hover:bg-[#1C1E26]'
-            }`}
+              }`}
           >
             <PlusCircle size={15} />
             Publish Item
@@ -609,19 +604,17 @@ const AdminDashboard = () => {
 
                     {/* Timeframe Buttons */}
                     <div className="flex gap-1 bg-[#0E0F12] border border-zinc-800 p-1 rounded-xl">
-                      <button 
+                      <button
                         onClick={() => setTimeframe('7d')}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                          timeframe === '7d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
-                        }`}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${timeframe === '7d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
+                          }`}
                       >
                         7 Days
                       </button>
-                      <button 
+                      <button
                         onClick={() => setTimeframe('30d')}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                          timeframe === '30d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
-                        }`}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${timeframe === '30d' ? 'bg-amber-400 text-black shadow' : 'text-zinc-400 hover:text-white'
+                          }`}
                       >
                         30 Days
                       </button>
@@ -632,8 +625,8 @@ const AdminDashboard = () => {
                 {/* SVG Line / Bar Visualizer */}
                 <div className="h-56 w-full pt-4 relative flex items-end gap-1.5 md:gap-3 px-2 border-b border-zinc-800 overflow-x-auto">
                   {activeTrendData?.map((pt, idx) => {
-                    const heightPercent = pt.bids > 0 
-                      ? Math.min(Math.max((pt.bids / activeMaxBids) * 100, 12), 100) 
+                    const heightPercent = pt.bids > 0
+                      ? Math.min(Math.max((pt.bids / activeMaxBids) * 100, 12), 100)
                       : 4;
 
                     return (
@@ -653,13 +646,12 @@ const AdminDashboard = () => {
                         )}
 
                         {/* Bar Visualizer */}
-                        <div 
+                        <div
                           style={{ height: `${heightPercent}%` }}
-                          className={`w-full max-w-[36px] rounded-t-lg transition-all duration-300 relative ${
-                            pt.bids > 0 
-                              ? 'bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400 group-hover:brightness-125 shadow-[0_0_12px_rgba(245,158,11,0.3)]' 
+                          className={`w-full max-w-[36px] rounded-t-lg transition-all duration-300 relative ${pt.bids > 0
+                              ? 'bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400 group-hover:brightness-125 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
                               : 'bg-zinc-800/60 border-t border-zinc-700/50'
-                          }`}
+                            }`}
                         >
                           {pt.bids > 0 && <div className="w-full h-1 bg-white/40 rounded-t-lg"></div>}
                         </div>
@@ -708,8 +700,8 @@ const AdminDashboard = () => {
                       const totalBids = prod.totalBids || 1;
                       const uniquePct = Math.round(((prod.uniqueBidsCount || 0) / totalBids) * 100);
                       return (
-                        <div 
-                          key={prod.id} 
+                        <div
+                          key={prod.id}
                           onClick={() => setSelectedProductLog(prod)}
                           className="space-y-1 bg-[#0E0F12] hover:bg-[#16181F] border border-zinc-800/80 hover:border-amber-500/40 p-3 rounded-xl cursor-pointer transition-all"
                           title="Click to view detailed bid information"
@@ -721,12 +713,12 @@ const AdminDashboard = () => {
                             </span>
                           </div>
                           <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden flex">
-                            <div 
+                            <div
                               style={{ width: `${uniquePct}%` }}
                               className="bg-emerald-500 h-full rounded-l-full"
                               title={`Unique Bids: ${prod.uniqueBidsCount}`}
                             ></div>
-                            <div 
+                            <div
                               style={{ width: `${100 - uniquePct}%` }}
                               className="bg-rose-500/80 h-full rounded-r-full"
                               title={`Duplicates: ${prod.duplicatedBidsCount}`}
@@ -766,15 +758,15 @@ const AdminDashboard = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {statsData?.productStats?.slice(0, 3).map(item => (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     onClick={() => setSelectedProductLog(item)}
                     className="bg-[#0E0F12] hover:bg-[#16181F] border border-zinc-800 hover:border-amber-500/40 p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer transition-all group"
                     title="Click to view detailed bid information"
                   >
-                    <img 
-                      src={item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'} 
-                      alt={item.title} 
+                    <img
+                      src={item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'}
+                      alt={item.title}
                       className="w-14 h-14 object-cover rounded-xl border border-zinc-800 bg-zinc-900"
                     />
                     <div className="flex-1 min-w-0">
@@ -800,8 +792,8 @@ const AdminDashboard = () => {
             <div className="bg-[#141519] border border-zinc-800/80 p-4 rounded-2xl flex flex-col md:flex-row gap-3 justify-between items-center shadow-lg">
               <div className="relative w-full md:w-80">
                 <Search size={16} className="absolute left-3.5 top-3 text-zinc-500" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Search product title or category..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -826,34 +818,31 @@ const AdminDashboard = () => {
                     onClick={() => setIsCategoryOpen(!isCategoryOpen)}
                     aria-haspopup="listbox"
                     aria-expanded={isCategoryOpen}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all duration-200 cursor-pointer select-none active:scale-[0.98] ${
-                      isCategoryOpen
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all duration-200 cursor-pointer select-none active:scale-[0.98] ${isCategoryOpen
                         ? isLight
                           ? 'bg-amber-50 border-amber-500 text-amber-900 shadow-md ring-2 ring-amber-400/40'
                           : 'bg-[#1C1E28] border-amber-500/80 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/50'
                         : categoryFilter !== 'all'
-                        ? isLight
-                          ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
-                          : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
-                        : isLight
-                        ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
-                        : 'bg-[#0E0F12] hover:bg-[#161720] border-zinc-800 text-zinc-300 hover:text-white'
-                    }`}
+                          ? isLight
+                            ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30'
+                            : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40'
+                          : isLight
+                            ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+                            : 'bg-[#0E0F12] hover:bg-[#161720] border-zinc-800 text-zinc-300 hover:text-white'
+                      }`}
                   >
                     <Filter
                       size={13}
-                      className={`shrink-0 transition-colors ${
-                        categoryFilter !== 'all' || isCategoryOpen ? 'text-amber-400' : 'text-zinc-400'
-                      }`}
+                      className={`shrink-0 transition-colors ${categoryFilter !== 'all' || isCategoryOpen ? 'text-amber-400' : 'text-zinc-400'
+                        }`}
                     />
                     <span className="truncate max-w-[130px] sm:max-w-[180px]">
                       {categoryFilter === 'all' ? 'All Categories' : categoryFilter}
                     </span>
                     <ChevronDown
                       size={12}
-                      className={`shrink-0 transition-transform duration-200 ml-0.5 ${
-                        isCategoryOpen ? 'rotate-180 text-amber-400' : categoryFilter !== 'all' ? 'text-amber-400' : 'text-zinc-500'
-                      }`}
+                      className={`shrink-0 transition-transform duration-200 ml-0.5 ${isCategoryOpen ? 'rotate-180 text-amber-400' : categoryFilter !== 'all' ? 'text-amber-400' : 'text-zinc-500'
+                        }`}
                     />
                   </button>
 
@@ -861,15 +850,13 @@ const AdminDashboard = () => {
                   {isCategoryOpen && (
                     <div
                       role="listbox"
-                      className={`absolute top-full right-0 mt-2 w-56 sm:w-64 max-w-[calc(100vw-32px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${
-                        isLight
+                      className={`absolute top-full right-0 mt-2 w-56 sm:w-64 max-w-[calc(100vw-32px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${isLight
                           ? 'bg-white/98 border-zinc-200 shadow-2xl shadow-zinc-900/15'
                           : 'bg-[#161720]/98 border-zinc-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)]'
-                      }`}
+                        }`}
                     >
-                      <div className={`px-2.5 py-1.5 mb-1 text-[10px] font-black uppercase tracking-wider flex items-center justify-between border-b ${
-                        isLight ? 'text-zinc-400 border-zinc-100' : 'text-zinc-400 border-zinc-800/60'
-                      }`}>
+                      <div className={`px-2.5 py-1.5 mb-1 text-[10px] font-black uppercase tracking-wider flex items-center justify-between border-b ${isLight ? 'text-zinc-400 border-zinc-100' : 'text-zinc-400 border-zinc-800/60'
+                        }`}>
                         <span>Category Filter</span>
                         <span className="text-[9px] font-normal lowercase opacity-70">
                           {availableCategories.length + 1} options
@@ -886,24 +873,22 @@ const AdminDashboard = () => {
                             setCategoryFilter('all');
                             setIsCategoryOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${
-                            categoryFilter === 'all'
+                          className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${categoryFilter === 'all'
                               ? isLight
                                 ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
                                 : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
                               : isLight
-                              ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
-                              : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
-                          }`}
+                                ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
+                                : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
+                            }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <Filter size={13} className={categoryFilter === 'all' ? 'text-amber-400' : 'text-zinc-400'} />
                             <span className="truncate">All Categories</span>
                           </div>
                           {categoryFilter === 'all' && (
-                            <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
-                              isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
-                            }`}>
+                            <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
+                              }`}>
                               <Check size={10} strokeWidth={3} />
                             </span>
                           )}
@@ -922,24 +907,22 @@ const AdminDashboard = () => {
                                 setCategoryFilter(cat);
                                 setIsCategoryOpen(false);
                               }}
-                              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${
-                                isSelected
+                              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${isSelected
                                   ? isLight
                                     ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
                                     : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
                                   : isLight
-                                  ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
-                                  : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
-                              }`}
+                                    ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
+                                    : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
+                                }`}
                             >
                               <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <Tag size={13} className={isSelected ? 'text-amber-400' : 'text-zinc-400'} />
                                 <span className="truncate">{cat}</span>
                               </div>
                               {isSelected && (
-                                <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
-                                  isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
-                                }`}>
+                                <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
+                                  }`}>
                                   <Check size={10} strokeWidth={3} />
                                 </span>
                               )}
@@ -997,9 +980,9 @@ const AdminDashboard = () => {
                       filteredProducts.map(prod => (
                         <tr key={prod.id} className="hover:bg-[#1A1C22] transition-colors">
                           <td className="py-3.5 px-4 flex items-center gap-3">
-                            <img 
-                              src={prod.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'} 
-                              alt={prod.title} 
+                            <img
+                              src={prod.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'}
+                              alt={prod.title}
                               className="w-12 h-12 object-cover rounded-xl border border-zinc-800 bg-zinc-900"
                             />
                             <div>
@@ -1011,9 +994,8 @@ const AdminDashboard = () => {
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                              (prod.is_lub || prod.pool_type === 'lub' || prod.pool_type === 'premium') ? 'bg-purple-950/80 text-purple-400 border border-purple-500/30' : 'bg-blue-950/80 text-blue-400 border border-blue-500/30'
-                            }`}>
+                            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${(prod.is_lub || prod.pool_type === 'lub' || prod.pool_type === 'premium') ? 'bg-purple-950/80 text-purple-400 border border-purple-500/30' : 'bg-blue-950/80 text-blue-400 border border-blue-500/30'
+                              }`}>
                               {(prod.is_lub || prod.pool_type === 'lub' || prod.pool_type === 'premium') ? 'LUB Pool' : 'Open Pool'}
                             </span>
                             <p className="font-black text-amber-400 mt-1">{prod.base_price} ETB</p>
@@ -1126,9 +1108,9 @@ const AdminDashboard = () => {
                       <tr key={u.id} className="hover:bg-[#1A1C22] transition-colors">
                         <td className="py-3.5 px-4 flex items-center gap-2.5">
                           {u.image_url || u.avatar_url || u.image || localStorage.getItem(`user_avatar_${u.id}`) ? (
-                            <img 
-                              src={u.image_url || u.avatar_url || u.image || localStorage.getItem(`user_avatar_${u.id}`)} 
-                              alt={u.name} 
+                            <img
+                              src={u.image_url || u.avatar_url || u.image || localStorage.getItem(`user_avatar_${u.id}`)}
+                              alt={u.name}
                               className="w-9 h-9 rounded-full object-cover border border-amber-500/40 bg-zinc-800"
                             />
                           ) : (
@@ -1143,9 +1125,8 @@ const AdminDashboard = () => {
                         </td>
 
                         <td className="py-3.5 px-4">
-                          <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                            u.role === 'admin' ? 'bg-amber-400/20 text-amber-400 border border-amber-400/30' : 'bg-zinc-800 text-zinc-400'
-                          }`}>
+                          <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-amber-400/20 text-amber-400 border border-amber-400/30' : 'bg-zinc-800 text-zinc-400'
+                            }`}>
                             {u.role}
                           </span>
                         </td>
@@ -1218,9 +1199,9 @@ const AdminDashboard = () => {
                     <div className="bg-[#0E0F12] border border-zinc-800 p-3 rounded-xl flex justify-between items-center">
                       <div className="flex items-center gap-2.5">
                         {win.winnerImage || win.image_url ? (
-                          <img 
-                            src={win.winnerImage || win.image_url} 
-                            alt={win.winnerName} 
+                          <img
+                            src={win.winnerImage || win.image_url}
+                            alt={win.winnerName}
                             className="w-9 h-9 rounded-full object-cover border border-amber-400 bg-zinc-800"
                           />
                         ) : (
@@ -1259,8 +1240,8 @@ const AdminDashboard = () => {
             <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="font-bold text-zinc-300 block mb-1">Product Title</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   placeholder="e.g. iPhone 15 Pro Max 256GB Gold"
                   value={formData.title}
@@ -1357,8 +1338,8 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="font-bold text-zinc-300 block mb-1">Base Price (ETB)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     required
                     min="1"
                     placeholder="e.g. 50"
@@ -1370,8 +1351,8 @@ const AdminDashboard = () => {
 
                 <div>
                   <label className="font-bold text-zinc-300 block mb-1">Start Time</label>
-                  <input 
-                    type="datetime-local" 
+                  <input
+                    type="datetime-local"
                     required
                     value={formData.start_time}
                     onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
@@ -1381,8 +1362,8 @@ const AdminDashboard = () => {
 
                 <div>
                   <label className="font-bold text-zinc-300 block mb-1">End Time</label>
-                  <input 
-                    type="datetime-local" 
+                  <input
+                    type="datetime-local"
                     required
                     value={formData.end_time}
                     onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
@@ -1395,8 +1376,8 @@ const AdminDashboard = () => {
                 <label className="font-bold text-zinc-300 block mb-1">
                   Product Images (Select 1 or Multiple Files)
                 </label>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*"
                   multiple
                   onChange={(e) => {
@@ -1419,10 +1400,10 @@ const AdminDashboard = () => {
                     <div className="flex flex-wrap gap-2">
                       {imagePreviews.map((src, idx) => (
                         <div key={idx} className="relative group">
-                          <img 
-                            src={src} 
-                            alt={`Preview ${idx + 1}`} 
-                            className="w-20 h-20 object-cover rounded-xl border border-amber-400/60 bg-zinc-900 shadow-md" 
+                          <img
+                            src={src}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-20 h-20 object-cover rounded-xl border border-amber-400/60 bg-zinc-900 shadow-md"
                           />
                           <button
                             type="button"
@@ -1492,7 +1473,7 @@ const AdminDashboard = () => {
                 <label className="text-xs font-bold text-zinc-300 block mb-1">
                   Adjustment Amount (+ to add, - to deduct)
                 </label>
-                <input 
+                <input
                   type="number"
                   step="1"
                   required
@@ -1504,14 +1485,14 @@ const AdminDashboard = () => {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button 
+                <button
                   type="button"
                   onClick={() => setWalletModalUser(null)}
                   className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 rounded-xl text-xs"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-extrabold py-2.5 rounded-xl text-xs"
                 >
@@ -1539,14 +1520,14 @@ const AdminDashboard = () => {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <button 
+              <button
                 type="button"
                 onClick={() => setDeletingItem(null)}
                 className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 rounded-xl text-xs"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={handleDeleteItem}
                 className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-2.5 rounded-xl text-xs"

@@ -7,17 +7,17 @@ import axios from 'axios';
 import telebirrLogo from '../assets/telebirr.png';
 import cbeLogo from '../assets/cbe.png';
 import '@chapa_et/inline.js/lib/inline.js';
-import { 
-  CreditCard, 
-  Bell, 
-  HelpCircle, 
-  FileText, 
-  LogOut, 
-  CheckCircle2, 
-  ChevronRight, 
-  X, 
-  Plus, 
-  ShieldCheck, 
+import {
+  CreditCard,
+  Bell,
+  HelpCircle,
+  FileText,
+  LogOut,
+  CheckCircle2,
+  ChevronRight,
+  X,
+  Plus,
+  ShieldCheck,
   Sparkles,
   Wifi,
   Signal,
@@ -155,26 +155,23 @@ const DepositPaymentModal = memo(({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[100] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${
-        successData || inlinePayment
+      className={`fixed inset-0 z-[100] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${successData || inlinePayment
           ? 'items-center p-4'
           : 'items-end p-0 sm:items-center sm:p-4 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
-      } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'}`}
+        } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'}`}
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSubmitting && !inlinePayment) onClose?.();
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${
-          successData || inlinePayment
+        className={`max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${successData || inlinePayment
             ? 'rounded-3xl zoom-in-95'
             : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
-        } ${
-          isLight
+          } ${isLight
             ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
             : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
-        }`}
+          }`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="deposit-summary-title"
@@ -186,28 +183,25 @@ const DepositPaymentModal = memo(({
 
         {/* Header */}
         <div
-          className={`flex items-center justify-between pb-3 border-b shrink-0 ${
-            isLight ? 'border-orange-500/15' : 'border-zinc-800'
-          }`}
+          className={`flex items-center justify-between pb-3 border-b shrink-0 ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
+            }`}
         >
           <div className="flex items-center gap-3">
             <div
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${
-                successData
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${successData
                   ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
                   : isLight
                     ? 'bg-orange-50 border border-orange-200 text-orange-600'
                     : 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
-              }`}
+                }`}
             >
               {successData ? <CheckCircle2 size={18} /> : <Wallet size={18} />}
             </div>
             <div>
               <h2
                 id="deposit-summary-title"
-                className={`font-black text-lg sm:text-xl tracking-tight ${
-                  isLight ? 'text-zinc-900' : 'text-white'
-                }`}
+                className={`font-black text-lg sm:text-xl tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'
+                  }`}
               >
                 {successData ? 'Deposit Successful' : inlinePayment ? 'Payment Push Sent' : 'Deposit Summary'}
               </h2>
@@ -221,11 +215,10 @@ const DepositPaymentModal = memo(({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border shrink-0 ${
-                isLight
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border shrink-0 ${isLight
                   ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border-zinc-200'
                   : 'bg-[#1f2026] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
-              }`}
+                }`}
               aria-label="Close"
             >
               <X size={15} />
@@ -262,9 +255,8 @@ const DepositPaymentModal = memo(({
                 have been added to your wallet automatically.
               </p>
             </div>
-            <div className={`border rounded-2xl p-3.5 text-xs text-left space-y-2 ${
-              isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#0E0F12] border-zinc-800'
-            }`}>
+            <div className={`border rounded-2xl p-3.5 text-xs text-left space-y-2 ${isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#0E0F12] border-zinc-800'
+              }`}>
               <div className={`flex justify-between items-center py-0.5 border-b ${isLight ? 'border-zinc-200' : 'border-zinc-800/80'}`}>
                 <span className={isLight ? 'text-zinc-500' : 'text-zinc-400'}>Payment Channel</span>
                 <span className={`font-bold flex items-center gap-1.5 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
@@ -305,11 +297,10 @@ const DepositPaymentModal = memo(({
         ) : inlinePayment ? (
           <div className="py-4 px-2 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
             <div
-              className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md ${
-                isLight
+              className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md ${isLight
                   ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
                   : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
-              }`}
+                }`}
             >
               <Smartphone size={28} className="animate-pulse" />
             </div>
@@ -343,9 +334,8 @@ const DepositPaymentModal = memo(({
             <button
               type="button"
               onClick={() => onInlineClose?.()}
-              className={`mt-2 text-xs underline cursor-pointer transition-colors block mx-auto ${
-                isLight ? 'text-zinc-500 hover:text-zinc-800' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
+              className={`mt-2 text-xs underline cursor-pointer transition-colors block mx-auto ${isLight ? 'text-zinc-500 hover:text-zinc-800' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
             >
               Cancel Payment
             </button>
@@ -354,16 +344,14 @@ const DepositPaymentModal = memo(({
           <>
             {/* Deposit Details Card */}
             <div
-              className={`rounded-2xl border p-3.5 sm:p-4 text-sm transition-colors space-y-2.5 ${
-                isLight
+              className={`rounded-2xl border p-3.5 sm:p-4 text-sm transition-colors space-y-2.5 ${isLight
                   ? 'bg-[#FFF9F5] border-orange-500/20 shadow-xs'
                   : 'bg-[#111216] border-zinc-800/80'
-              }`}
+                }`}
             >
               <div
-                className={`flex items-start gap-2.5 border-b pb-2.5 ${
-                  isLight ? 'border-orange-500/15' : 'border-zinc-800'
-                }`}
+                className={`flex items-start gap-2.5 border-b pb-2.5 ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
+                  }`}
               >
                 <Coins size={16} className={`mt-0.5 shrink-0 ${isLight ? 'text-orange-600' : 'text-amber-400'}`} />
                 <div className="min-w-0 flex-1 flex items-center justify-between">
@@ -386,19 +374,17 @@ const DepositPaymentModal = memo(({
                     Total Payable:
                   </span>
                   <span
-                    className={`ml-2 inline-block rounded-md px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider border ${
-                      isLight
+                    className={`ml-2 inline-block rounded-md px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider border ${isLight
                         ? 'bg-orange-50 border-orange-200 text-orange-600'
                         : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                    }`}
+                      }`}
                   >
                     INSTANT SYNC
                   </span>
                 </div>
                 <span
-                  className={`font-mono font-black text-lg sm:text-xl ${
-                    isLight ? 'text-[#ea580c]' : 'text-orange-400'
-                  }`}
+                  className={`font-mono font-black text-lg sm:text-xl ${isLight ? 'text-[#ea580c]' : 'text-orange-400'
+                    }`}
                 >
                   {parseFloat(amount || 0).toFixed(2)} Birr
                 </span>
@@ -411,15 +397,13 @@ const DepositPaymentModal = memo(({
                 {selectedMethod === 'cbe' ? 'CBE Birr Phone' : 'Telebirr Phone'}
               </label>
               <div
-                className={`flex items-center rounded-2xl border px-3.5 py-2.5 sm:py-3 transition-colors focus-within:border-orange-500 focus-within:ring-1.5 focus-within:ring-orange-500/30 ${
-                  isLight ? 'bg-white border-zinc-300' : 'bg-[#111216] border-zinc-800'
-                }`}
+                className={`flex items-center rounded-2xl border px-3.5 py-2.5 sm:py-3 transition-colors focus-within:border-orange-500 focus-within:ring-1.5 focus-within:ring-orange-500/30 ${isLight ? 'bg-white border-zinc-300' : 'bg-[#111216] border-zinc-800'
+                  }`}
               >
                 <Smartphone size={16} className="mr-2.5 text-zinc-400 shrink-0" />
                 <span
-                  className={`border-r pr-3 text-sm font-bold ${
-                    isLight ? 'border-zinc-200 text-zinc-600' : 'border-zinc-800 text-zinc-300'
-                  }`}
+                  className={`border-r pr-3 text-sm font-bold ${isLight ? 'border-zinc-200 text-zinc-600' : 'border-zinc-800 text-zinc-300'
+                    }`}
                 >
                   +251
                 </span>
@@ -428,11 +412,10 @@ const DepositPaymentModal = memo(({
                   value={String(phone || '').replace(/^(\+?251|0)/, '')}
                   onChange={(event) => onChangePhone?.(event.target.value.replace(/\D/g, ''))}
                   placeholder="91 234 5678"
-                  className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${
-                    isLight
+                  className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${isLight
                       ? 'text-zinc-900 placeholder:text-zinc-400'
                       : 'text-white placeholder:text-zinc-600'
-                  }`}
+                    }`}
                 />
               </div>
             </div>
@@ -451,30 +434,28 @@ const DepositPaymentModal = memo(({
               className="flex items-center gap-2.5 py-1 cursor-pointer select-none group"
             >
               <div
-                className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all shrink-0 ${
-                  agreed
+                className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all shrink-0 ${agreed
                     ? 'border-orange-500 text-white shadow-xs'
                     : isLight
                       ? 'bg-white border-zinc-300 group-hover:border-orange-400'
                       : 'bg-[#111216] border-zinc-700 group-hover:border-zinc-500'
-                }`}
+                  }`}
                 style={
                   agreed
                     ? {
-                        background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
-                        color: '#ffffff',
-                      }
+                      background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                      color: '#ffffff',
+                    }
                     : undefined
                 }
               >
                 {agreed && <Check size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />}
               </div>
               <span
-                className={`text-xs sm:text-sm font-semibold transition-colors ${
-                  isLight
+                className={`text-xs sm:text-sm font-semibold transition-colors ${isLight
                     ? 'text-zinc-700 group-hover:text-zinc-900'
                     : 'text-zinc-300 group-hover:text-white'
-                }`}
+                  }`}
               >
                 I agree to continue and deposit {parseFloat(amount || 0).toFixed(2)} Br
               </span>
@@ -488,19 +469,18 @@ const DepositPaymentModal = memo(({
               style={
                 agreed && !isSubmitting && amount >= 10
                   ? {
-                      background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
-                      color: '#ffffff',
-                      boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
-                    }
+                    background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
+                    color: '#ffffff',
+                    boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
+                  }
                   : undefined
               }
-              className={`w-full font-black text-sm sm:text-base py-3 sm:py-3.5 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${
-                agreed && !isSubmitting && amount >= 10
+              className={`w-full font-black text-sm sm:text-base py-3 sm:py-3.5 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && amount >= 10
                   ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
                   : isLight
                     ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
                     : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
-              }`}
+                }`}
             >
               {isSubmitting ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
@@ -525,7 +505,7 @@ const Profile = () => {
   const { user, logout, setUser, socket } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  
+
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeSubPage, setActiveSubPage] = useState(null); // 'payment', 'notifications', 'faq', 'legal' | null
@@ -596,7 +576,7 @@ const Profile = () => {
     try {
       const saved = localStorage.getItem(notifStorageKey);
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch { }
     return {
       bidDrops: true,
       wins: true
@@ -768,7 +748,7 @@ const Profile = () => {
   };
 
   // Format member date
-  const memberSince = profileData?.created_at 
+  const memberSince = profileData?.created_at
     ? new Date(profileData.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : 'Oct 2023';
 
@@ -811,7 +791,7 @@ const Profile = () => {
         {/* Header */}
         <div className="flex items-center justify-between py-2 px-1 border-b border-zinc-800/80">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => { setActiveSubPage(null); setDepositSuccessData(null); }}
               className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white hover:border-amber-500/40 transition-colors cursor-pointer"
             >
@@ -873,10 +853,10 @@ const Profile = () => {
               <div className="flex justify-between items-center py-1 border-b border-zinc-800/80">
                 <span className="text-zinc-400 font-medium">Payment Channel</span>
                 <span className="font-bold text-white flex items-center gap-1.5">
-                  <img 
-                    src={depositSuccessData.method?.toLowerCase().includes('cbe') ? cbeLogo : telebirrLogo} 
-                    alt="channel" 
-                    className="w-4 h-4 object-contain rounded" 
+                  <img
+                    src={depositSuccessData.method?.toLowerCase().includes('cbe') ? cbeLogo : telebirrLogo}
+                    alt="channel"
+                    className="w-4 h-4 object-contain rounded"
                   />
                   {depositSuccessData.method}
                 </span>
@@ -931,21 +911,19 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={() => { setSelectedMethod('telebirr'); setFundError(''); }}
-                  className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${
-                    isTelebirr 
-                      ? 'bg-[#008FE6]/10 border-[#008FE6] shadow-[0_0_15px_rgba(0,143,230,0.2)] ring-1 ring-[#008FE6]' 
+                  className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${isTelebirr
+                      ? 'bg-[#008FE6]/10 border-[#008FE6] shadow-[0_0_15px_rgba(0,143,230,0.2)] ring-1 ring-[#008FE6]'
                       : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <img 
-                      src={telebirrLogo} 
-                      alt="Telebirr" 
-                      className="h-5.5 w-auto object-contain rounded" 
+                    <img
+                      src={telebirrLogo}
+                      alt="Telebirr"
+                      className="h-5.5 w-auto object-contain rounded"
                     />
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      isTelebirr ? 'border-[#008FE6] bg-[#008FE6] text-white' : 'border-zinc-700'
-                    }`}>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isTelebirr ? 'border-[#008FE6] bg-[#008FE6] text-white' : 'border-zinc-700'
+                      }`}>
                       {isTelebirr && <Check size={10} className="stroke-[3]" />}
                     </div>
                   </div>
@@ -960,21 +938,19 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={() => { setSelectedMethod('cbe'); setFundError(''); }}
-                  className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${
-                    !isTelebirr 
-                      ? 'bg-[#9B2349]/10 border-[#9B2349] shadow-[0_0_15px_rgba(155,35,73,0.2)] ring-1 ring-[#9B2349]' 
+                  className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${!isTelebirr
+                      ? 'bg-[#9B2349]/10 border-[#9B2349] shadow-[0_0_15px_rgba(155,35,73,0.2)] ring-1 ring-[#9B2349]'
                       : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <img 
-                      src={cbeLogo} 
-                      alt="CBE" 
-                      className="h-5.5 w-auto object-contain rounded" 
+                    <img
+                      src={cbeLogo}
+                      alt="CBE"
+                      className="h-5.5 w-auto object-contain rounded"
                     />
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      !isTelebirr ? 'border-[#9B2349] bg-[#9B2349] text-white' : 'border-zinc-700'
-                    }`}>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${!isTelebirr ? 'border-[#9B2349] bg-[#9B2349] text-white' : 'border-zinc-700'
+                      }`}>
                       {!isTelebirr && <Check size={10} className="stroke-[3]" />}
                     </div>
                   </div>
@@ -1013,11 +989,10 @@ const Profile = () => {
                       key={item.value}
                       type="button"
                       onClick={() => { setSelectedPreset(item.value); setCustomAmount(`${item.value}`); setFundError(''); }}
-                      className={`relative py-2.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${
-                        isSelected 
-                          ? 'bg-gradient-to-b from-amber-500/20 to-amber-500/5 border-amber-400 text-white shadow-md' 
+                      className={`relative py-2.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${isSelected
+                          ? 'bg-gradient-to-b from-amber-500/20 to-amber-500/5 border-amber-400 text-white shadow-md'
                           : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
-                      }`}
+                        }`}
                     >
                       {item.badge && (
                         <span className="absolute -top-2 right-2 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black text-[8px] px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow">
@@ -1052,20 +1027,19 @@ const Profile = () => {
                         setFundError('');
                       }}
                       onFocus={() => setSelectedPreset('custom')}
-                      className={`w-full bg-[#0E0F12] border rounded-xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none transition-colors ${
-                        selectedPreset === 'custom' ? 'border-amber-400' : 'border-zinc-800 focus:border-amber-400'
-                      }`}
+                      className={`w-full bg-[#0E0F12] border rounded-xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none transition-colors ${selectedPreset === 'custom' ? 'border-amber-400' : 'border-zinc-800 focus:border-amber-400'
+                        }`}
                     />
                   </div>
-                  
-                    <div className="bg-amber-400/10 border border-amber-400/30 text-amber-400 px-3 py-2 rounded-xl text-xs font-bold shrink-0">
-                      +{parseFloat(effectiveAmount) || 0} Coins
-                    </div>
-                  
+
+                  <div className="bg-amber-400/10 border border-amber-400/30 text-amber-400 px-3 py-2 rounded-xl text-xs font-bold shrink-0">
+                    +{parseFloat(effectiveAmount) || 0} Coins
+                  </div>
+
                 </div>
               </div>
 
-              
+
             </div>
 
             {/* Error banner if any */}
@@ -1090,17 +1064,17 @@ const Profile = () => {
                 }}
                 disabled={!effectiveAmount || effectiveAmount < 10}
                 style={{
-                  
-                
+
+
                   boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
                 }}
                 className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
-           >
-               
+              >
+
                 <span>Deposit Coins</span>
               </button>
             </div>
-        
+
           </div>
         )}
       </div>
@@ -1112,7 +1086,7 @@ const Profile = () => {
     return (
       <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200 min-w-0">
         <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80">
-          <button 
+          <button
             onClick={() => setActiveSubPage(null)}
             className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
@@ -1137,8 +1111,8 @@ const Profile = () => {
                 </p>
                 <p className="text-xs text-zinc-400 mt-0.5">Get notified immediately when a new bid is posted</p>
               </div>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={Boolean(notifSettings.bidDrops)}
                 onChange={(e) => handleTogglePreference('bidDrops', e.target.checked)}
                 className="w-5 h-5 accent-amber-400 rounded cursor-pointer transition-transform active:scale-95"
@@ -1157,8 +1131,8 @@ const Profile = () => {
                 </p>
                 <p className="text-xs text-zinc-400 mt-0.5">Instant notification when timer ends and you win</p>
               </div>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={Boolean(notifSettings.wins)}
                 onChange={(e) => handleTogglePreference('wins', e.target.checked)}
                 className="w-5 h-5 accent-amber-400 rounded cursor-pointer transition-transform active:scale-95"
@@ -1182,7 +1156,7 @@ const Profile = () => {
     return (
       <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200 min-w-0">
         <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80">
-          <button 
+          <button
             onClick={() => setActiveSubPage(null)}
             className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
@@ -1231,7 +1205,7 @@ const Profile = () => {
     return (
       <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased space-y-5 animate-in fade-in duration-200 min-w-0">
         <div className="flex items-center gap-3 py-2 px-1 border-b border-zinc-800/80">
-          <button 
+          <button
             onClick={() => setActiveSubPage(null)}
             className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
@@ -1277,28 +1251,28 @@ const Profile = () => {
   return (
     <div className="w-full pb-8 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-1 max-w-lg mx-auto font-sans antialiased min-w-0">
       {/* Top Mobile Status Header (matching Screenshot frame aesthetic) */}
-     
+
 
       {/* User Header Section */}
       <div className="flex flex-col items-center text-center mt-2 mb-6">
-        <div 
-          className="relative group cursor-pointer" 
+        <div
+          className="relative group cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
           title="Click to upload profile photo"
         >
           {/* Hidden File Input for Custom Image Upload */}
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            accept="image/*" 
-            onChange={handleAvatarUpload} 
-            className="hidden" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleAvatarUpload}
+            className="hidden"
           />
 
           <div className="w-24 h-24 md:w-28 md:h-28 rounded-full p-1 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 shadow-[0_0_25px_rgba(251,191,36,0.35)] flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
             {avatarUrl ? (
-              <img 
-                src={avatarUrl} 
+              <img
+                src={avatarUrl}
                 alt={displayName}
                 className="w-full h-full object-cover rounded-full bg-zinc-900 border-2 border-[#0A0B0E]"
               />
@@ -1316,7 +1290,7 @@ const Profile = () => {
           </div>
 
           {/* Camera Badge Icon on bottom right */}
-          <button 
+          <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
@@ -1338,7 +1312,7 @@ const Profile = () => {
           <span className="text-zinc-300 font-semibold">{memberSince}</span>
         </p>
 
-        <p 
+        <p
           onClick={() => fileInputRef.current?.click()}
           className="text-[11px] font-semibold text-amber-400/80 hover:text-amber-400 cursor-pointer mt-1 flex items-center gap-1 transition-colors"
         >
@@ -1407,7 +1381,7 @@ const Profile = () => {
       {/* Action Menu List */}
       <div className="space-y-3 mt-4">
         {/* 1. Secure Payment Methods */}
-        
+
 
         {/* 2. Notification Settings */}
         <button
@@ -1496,11 +1470,11 @@ const Profile = () => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setShowLogoutConfirm(false)}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm bg-[#141519] border border-zinc-800/90 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200"
           >

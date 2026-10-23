@@ -38,7 +38,7 @@ const CATEGORY_MAP = [
 const Discover = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPool = searchParams.get('pool') === 'premium' ? 'premium' : 'open';
-  
+
   const cached = getCachedItems();
   const [activePool, setActivePool] = useState(initialPool); // 'premium' | 'open'
   const [activeCategory, setActiveCategory] = useState('All');
@@ -77,8 +77,8 @@ const Discover = () => {
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       // 1. Pool filter
-      const matchesPool = activePool === 'premium' 
-        ? (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium') 
+      const matchesPool = activePool === 'premium'
+        ? (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium')
         : (!item.is_lub && (item.pool_type === 'open' || !item.pool_type || (item.pool_type !== 'lub' && item.pool_type !== 'premium')));
 
       // 2. Category filter
@@ -96,7 +96,7 @@ const Discover = () => {
       }
 
       // 3. Search query
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -106,12 +106,12 @@ const Discover = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 pb-8">
-      
+
       {/* Top Bar Header */}
       <div className="flex justify-between items-center pt-1 px-1">
         <div className="flex items-center gap-3">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="w-9 h-9 rounded-full bg-[#16161A] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-all"
           >
             <ArrowLeft size={18} />
@@ -130,22 +130,20 @@ const Discover = () => {
       <div className="bg-[#141417] p-1.5 rounded-2xl border border-zinc-800/90 grid grid-cols-2 gap-2 shadow-xl">
         <button
           onClick={() => handlePoolChange('premium')}
-          className={`py-3 rounded-xl text-xs md:text-sm font-black transition-all ${
-            activePool === 'premium'
+          className={`py-3 rounded-xl text-xs md:text-sm font-black transition-all ${activePool === 'premium'
               ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/10 scale-[1.01]'
               : 'text-zinc-400 hover:text-white'
-          }`}
+            }`}
         >
           Active premium Bids
         </button>
 
         <button
           onClick={() => handlePoolChange('open')}
-          className={`py-3 rounded-xl text-xs md:text-sm font-black transition-all ${
-            activePool === 'open'
+          className={`py-3 rounded-xl text-xs md:text-sm font-black transition-all ${activePool === 'open'
               ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/10 scale-[1.01]'
               : 'text-zinc-400 hover:text-white'
-          }`}
+            }`}
         >
           Open Bids
         </button>
@@ -159,11 +157,10 @@ const Discover = () => {
             <button
               key={cat.label}
               onClick={() => setActiveCategory(cat.label)}
-              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
-                isActive
+              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${isActive
                   ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500 shadow-md shadow-emerald-500/10 scale-105'
                   : 'bg-[#16161A] text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700'
-              }`}
+                }`}
             >
               {cat.label}
             </button>

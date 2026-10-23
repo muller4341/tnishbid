@@ -1,22 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  X, 
-  Search, 
-  Filter, 
-  Trophy, 
-  Flame, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  User, 
-  Phone, 
-  Mail, 
-  Wallet, 
-  ArrowUpDown, 
-  Sparkles, 
-  Tag, 
-  Layers, 
-  DollarSign, 
+import {
+  X,
+  Search,
+  Filter,
+  Trophy,
+  Flame,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  User,
+  Phone,
+  Mail,
+  Wallet,
+  ArrowUpDown,
+  Sparkles,
+  Tag,
+  Layers,
+  DollarSign,
   RefreshCw,
   Award
 } from 'lucide-react';
@@ -61,7 +61,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
     // Filter by Search Query
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
-      result = result.filter(b => 
+      result = result.filter(b =>
         (b.user_name && b.user_name.toLowerCase().includes(q)) ||
         (b.user_phone && b.user_phone.toLowerCase().includes(q)) ||
         (b.user_email && b.user_email.toLowerCase().includes(q)) ||
@@ -100,23 +100,22 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-[#12141A] border border-zinc-800 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-        
+
         {/* MODAL HEADER */}
         <div className="bg-[#181A22] border-b border-zinc-800/90 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <img 
-              src={product.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'} 
-              alt={product.title} 
+            <img
+              src={product.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'}
+              alt={product.title}
               className="w-14 h-14 object-cover rounded-2xl border border-zinc-700 bg-zinc-900 shadow-md"
             />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-black text-white tracking-tight">{product.title}</h2>
-                <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
-                  product.status === 'closed' 
-                    ? 'bg-rose-950/80 text-rose-400 border-rose-500/40' 
+                <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${product.status === 'closed'
+                    ? 'bg-rose-950/80 text-rose-400 border-rose-500/40'
                     : 'bg-emerald-950/80 text-emerald-400 border-emerald-500/40'
-                }`}>
+                  }`}>
                   {product.status === 'closed' ? 'Closed' : 'Active Auction'}
                 </span>
                 <span className="text-[10px] font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/30 px-2.5 py-0.5 rounded-full">
@@ -135,7 +134,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
             {onRefresh && (
-              <button 
+              <button
                 onClick={handleRefreshClick}
                 disabled={refreshing}
                 className="bg-[#222530] hover:bg-[#2C303E] text-zinc-300 border border-zinc-700/80 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
@@ -145,7 +144,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
                 <span>Refresh</span>
               </button>
             )}
-            <button 
+            <button
               onClick={onClose}
               className="w-9 h-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors border border-zinc-700/50"
               title="Close detailed view"
@@ -157,7 +156,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
 
         {/* MODAL BODY (Scrollable) */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
-          
+
           {/* PRODUCT METRICS CARDS */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {/* Card 1: Total Bids & Revenue */}
@@ -186,11 +185,11 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
                 <span className="text-xs text-zinc-500 font-bold">Dup</span>
               </div>
               <div className="w-full bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden flex">
-                <div 
+                <div
                   style={{ width: `${product.totalBids ? (product.uniqueBidsCount / product.totalBids) * 100 : 0}%` }}
                   className="bg-emerald-500 h-full"
                 ></div>
-                <div 
+                <div
                   style={{ width: `${product.totalBids ? (product.duplicatedBidsCount / product.totalBids) * 100 : 0}%` }}
                   className="bg-rose-500 h-full"
                 ></div>
@@ -257,36 +256,33 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
 
           {/* SEARCH & FILTERS BAR FOR BIDS */}
           <div className="bg-[#171922] border border-zinc-800/90 p-4 rounded-2xl space-y-3 md:space-y-0 md:flex md:items-center md:justify-between gap-4">
-            
+
             {/* Filter Tabs */}
             <div className="flex items-center gap-1 bg-[#101216] p-1 rounded-xl border border-zinc-800">
               <button
                 onClick={() => setFilterType('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  filterType === 'all'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterType === 'all'
                     ? 'bg-amber-500 text-black shadow-md'
                     : 'text-zinc-400 hover:text-white'
-                }`}
+                  }`}
               >
                 All Bids ({bids.length})
               </button>
               <button
                 onClick={() => setFilterType('unique')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  filterType === 'unique'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterType === 'unique'
                     ? 'bg-emerald-500 text-black shadow-md'
                     : 'text-zinc-400 hover:text-white'
-                }`}
+                  }`}
               >
                 Unique Only ({product.uniqueBidsCount})
               </button>
               <button
                 onClick={() => setFilterType('duplicated')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  filterType === 'duplicated'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterType === 'duplicated'
                     ? 'bg-rose-500 text-white shadow-md'
                     : 'text-zinc-400 hover:text-white'
-                }`}
+                  }`}
               >
                 Duplicated Only ({product.duplicatedBidsCount})
               </button>
@@ -296,7 +292,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
               {/* Search Bar */}
               <div className="relative flex-1">
                 <Search size={15} className="absolute left-3 top-2.5 text-zinc-500" />
-                <input 
+                <input
                   type="text"
                   placeholder="Search bidder name, phone, email, or amount..."
                   value={searchQuery}
@@ -304,7 +300,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
                   className="w-full bg-[#101216] border border-zinc-800 focus:border-amber-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none"
                 />
                 {searchQuery && (
-                  <button 
+                  <button
                     onClick={() => setSearchQuery('')}
                     className="absolute right-2.5 top-2.5 text-zinc-500 hover:text-white"
                   >
@@ -360,11 +356,10 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
                       const isLub = lowestUniqueBid && bid.is_unique && bid.amount === lowestUniqueBid;
 
                       return (
-                        <tr 
-                          key={bid.id} 
-                          className={`hover:bg-[#1E212D] transition-colors ${
-                            isLub ? 'bg-amber-500/5 hover:bg-amber-500/10' : ''
-                          }`}
+                        <tr
+                          key={bid.id}
+                          className={`hover:bg-[#1E212D] transition-colors ${isLub ? 'bg-amber-500/5 hover:bg-amber-500/10' : ''
+                            }`}
                         >
                           {/* Row Index */}
                           <td className="py-3.5 px-4 text-center font-mono text-zinc-500 text-[11px]">
@@ -375,9 +370,9 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2.5">
                               {bid.user_image || bid.user_avatar || bid.image_url || localStorage.getItem(`user_avatar_${bid.user_id}`) ? (
-                                <img 
-                                  src={bid.user_image || bid.user_avatar || bid.image_url || localStorage.getItem(`user_avatar_${bid.user_id}`)} 
-                                  alt={bid.user_name} 
+                                <img
+                                  src={bid.user_image || bid.user_avatar || bid.image_url || localStorage.getItem(`user_avatar_${bid.user_id}`)}
+                                  alt={bid.user_name}
                                   className="w-8 h-8 rounded-full object-cover border border-zinc-700 bg-zinc-800"
                                 />
                               ) : (
@@ -462,7 +457,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
                 </tbody>
               </table>
             </div>
-            
+
             {/* Footer Summary */}
             <div className="bg-[#101216] border-t border-zinc-800 px-4 py-3 text-xs text-zinc-400 flex flex-col sm:flex-row justify-between items-center gap-2 font-medium">
               <span>Showing {processedBids.length} of {bids.length} total bids for this product</span>
@@ -482,7 +477,7 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
         {/* MODAL FOOTER */}
         <div className="bg-[#181A22] border-t border-zinc-800/90 px-6 py-3.5 flex justify-between items-center">
           <span className="text-xs text-zinc-500 font-mono">Product ID: #{product.id}</span>
-          <button 
+          <button
             onClick={onClose}
             className="bg-amber-500 hover:bg-amber-400 text-black text-xs font-black px-6 py-2 rounded-xl transition-all shadow-md active:scale-95"
           >

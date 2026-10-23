@@ -19,6 +19,7 @@ import { getCachedItems, setCachedItems } from '../utils/cache';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
 import { ConfirmBidModal } from '../components/BidPaymentModal';
 import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
+import HomeSupportButton from '../components/HomeSupportButton';
 
 /* Translations */
 const TRANSLATIONS = {
@@ -162,7 +163,7 @@ const HeroSection = ({ t, onScrollToItems }) => (
       <button
         onClick={onScrollToItems}
         className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
-           >
+      >
         {t.startBid} <Sparkles size={16} />
       </button>
     </div>
@@ -361,8 +362,8 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
                 placeholder={t.bidAmount}
                 min="0"
                 step="0.01"
-                className="flex-1 bg-transparent text-center text-white text-[15px] font-bold placeholder-zinc-500 focus:outline-none py-2"
-                style={{ fontSize: '15px' }}
+                className="flex-1 bg-transparent text-center text-white text-[16px] font-bold placeholder-zinc-500 focus:outline-none py-2"
+                style={{ fontSize: '16px' }}
               />
               <button
                 onClick={handleIncrement}
@@ -403,7 +404,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           <Link
             to={`/item/${item.id}`}
             className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
-           >
+          >
             {t.viewDetails} <ChevronRight size={16} />
           </Link>
         )}
@@ -487,30 +488,28 @@ const FilterDropdown = ({
         onClick={onToggle}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`w-full rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none active:scale-[0.98] ${
-          isOpen
+        className={`w-full rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none active:scale-[0.98] ${isOpen
             ? isLight
               ? 'bg-amber-50/90 border-amber-500 text-amber-900 shadow-md ring-2 ring-amber-400/40'
               : 'bg-[#1C1E28] border-amber-500/80 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/50'
             : isActive
-            ? isLight
-              ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30 font-bold'
-              : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40 font-bold'
-            : isLight
-            ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
-            : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
-        }`}
+              ? isLight
+                ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30 font-bold'
+                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40 font-bold'
+              : isLight
+                ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+                : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
+          }`}
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <Icon
             size={13}
-            className={`shrink-0 transition-colors ${
-              isActive || isOpen
+            className={`shrink-0 transition-colors ${isActive || isOpen
                 ? 'text-amber-400'
                 : isLight
-                ? 'text-zinc-500'
-                : 'text-zinc-400'
-            }`}
+                  ? 'text-zinc-500'
+                  : 'text-zinc-400'
+              }`}
           />
           <span className="text-[11px] sm:text-xs font-bold truncate">
             {label}
@@ -518,9 +517,8 @@ const FilterDropdown = ({
         </div>
         <ChevronDown
           size={12}
-          className={`shrink-0 transition-transform duration-200 ml-1 ${
-            isOpen ? 'rotate-180 text-amber-400' : isActive ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500'
-          }`}
+          className={`shrink-0 transition-transform duration-200 ml-1 ${isOpen ? 'rotate-180 text-amber-400' : isActive ? 'text-amber-400' : isLight ? 'text-zinc-400' : 'text-zinc-500'
+            }`}
         />
       </button>
 
@@ -528,16 +526,14 @@ const FilterDropdown = ({
       {isOpen && (
         <div
           role="listbox"
-          className={`absolute top-full mt-2 ${getAlignClass()} w-52 sm:w-56 max-w-[calc(100vw-24px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${
-            isLight
+          className={`absolute top-full mt-2 ${getAlignClass()} w-52 sm:w-56 max-w-[calc(100vw-24px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${isLight
               ? 'bg-white/98 border-zinc-200 shadow-2xl shadow-zinc-900/15'
               : 'bg-[#161720]/98 border-zinc-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)]'
-          }`}
+            }`}
         >
           {dropdownTitle && (
-            <div className={`px-2.5 py-1.5 mb-1 text-[10px] font-black uppercase tracking-wider flex items-center justify-between border-b ${
-              isLight ? 'text-zinc-400 border-zinc-100' : 'text-zinc-400 border-zinc-800/60'
-            }`}>
+            <div className={`px-2.5 py-1.5 mb-1 text-[10px] font-black uppercase tracking-wider flex items-center justify-between border-b ${isLight ? 'text-zinc-400 border-zinc-100' : 'text-zinc-400 border-zinc-800/60'
+              }`}>
               <span>{dropdownTitle}</span>
               <span className="text-[9px] font-normal lowercase opacity-70">
                 {options.length} {options.length === 1 ? 'option' : 'options'}
@@ -555,15 +551,14 @@ const FilterDropdown = ({
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => onSelect(opt.value)}
-                  className={`w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${
-                    isSelected
+                  className={`w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${isSelected
                       ? isLight
                         ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
                         : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
                       : isLight
-                      ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
-                      : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
-                  }`}
+                        ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
+                        : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
+                    }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     {opt.icon && (
@@ -575,9 +570,8 @@ const FilterDropdown = ({
                   </div>
 
                   {isSelected && (
-                    <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
-                      isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
-                    }`}>
+                    <span className={`flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${isLight ? 'bg-amber-500 text-white' : 'bg-amber-400 text-black'
+                      }`}>
                       <Check size={10} strokeWidth={3} />
                     </span>
                   )}
@@ -887,6 +881,9 @@ const Home = () => {
           ))
         )}
       </div>
+
+      {/* Floating Support & Social Media Button (Home Page Only) */}
+      <HomeSupportButton />
     </div>
   );
 };

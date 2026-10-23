@@ -43,8 +43,8 @@ const Register = () => {
   return (
     <div className="max-w-md mx-auto py-4 sm:py-8 space-y-4">
       {/* Back to Home Button */}
-      <Link 
-        to="/" 
+      <Link
+        to="/"
         className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-300 hover:text-white bg-[#16161A] px-3.5 py-2 rounded-2xl border border-zinc-800 shadow-sm transition-all"
       >
         <ArrowLeft size={14} className="text-amber-400" />
@@ -59,14 +59,14 @@ const Register = () => {
           <h1 className="text-2xl font-black text-white tracking-tight">Register Phone Account</h1>
           <p className="text-xs text-zinc-400">Create your phone-based account for BidWin auctions</p>
         </div>
-        
+
         {error && (
           <div className="p-3.5 bg-red-950/40 text-red-300 rounded-2xl text-xs border border-red-800/50 flex items-start gap-2">
             <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-400" />
             <span>{error}</span>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-zinc-300 mb-1.5">Full Name</label>
@@ -84,7 +84,7 @@ const Register = () => {
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-xs font-bold text-zinc-300 mb-1.5">Phone Number (Ethiopian)</label>
             <div className="relative">
@@ -103,7 +103,7 @@ const Register = () => {
             </div>
             <p className="mt-1 text-[10px] text-zinc-500">Must start with 09  (10 digits total)</p>
           </div>
-          
+
           <div>
             <label className="block text-xs font-bold text-zinc-300 mb-1.5">Password</label>
             <div className="relative">
@@ -120,7 +120,7 @@ const Register = () => {
               />
             </div>
           </div>
-          
+
           {/* Privacy Policy & Terms Checkbox */}
           <div className="flex items-start gap-2.5 pt-1">
             <input
@@ -135,7 +135,7 @@ const Register = () => {
               I agree to the <span className="text-amber-400 font-bold hover:underline">Privacy Policy</span> & <span className="text-amber-400 font-bold hover:underline">Terms of Service</span>
             </label>
           </div>
-          
+
           <button
             type="submit"
             className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
@@ -144,7 +144,7 @@ const Register = () => {
             Create Phone Account
           </button>
         </form>
-        
+
         <div className="text-center text-xs text-zinc-400 pt-4 border-t border-zinc-800/80">
           Already have an account?{' '}
           <Link to="/login" state={{ from: redirectPath }} className="text-amber-400 font-extrabold hover:underline">

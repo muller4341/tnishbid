@@ -7,14 +7,6 @@ html {
   overflow-x: hidden;
 }
 
-/* Prevent iOS Safari from zooming in when focusing input fields.
-   Any font-size below 16px on inputs triggers auto-zoom on iOS. */
-@media screen and (max-width: 768px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-}
-
 @layer base {
   body {
     @apply bg-[#0A0B0D] text-slate-100 antialiased selection:bg-amber-500 selection:text-black;
@@ -66,17 +58,21 @@ html {
   scrollbar-width: thin;
   scrollbar-color: rgba(245, 158, 11, 0.45) rgba(255, 255, 255, 0.05);
 }
+
 .modal-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
+
 .modal-scrollbar::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 9999px;
 }
+
 .modal-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(245, 158, 11, 0.45);
   border-radius: 9999px;
 }
+
 .modal-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(245, 158, 11, 0.75);
 }
@@ -389,6 +385,12 @@ html {
 
 [data-theme="light"] .home-card-body {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), transparent 42%);
+}
+
+[data-theme="light"] .home-card-panel,
+[data-theme="light"] .home-bid-input {
+  background: rgba(255, 245, 235, 0.7);
+  border-color: rgba(249, 115, 22, 0.18);
 }
 
 [data-theme="light"] .home-card-panel,

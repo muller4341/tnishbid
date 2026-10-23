@@ -123,7 +123,7 @@ export const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, s
           Payment Option
         </label>
       )}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2.5">
         {options.map((opt) => {
           const isSelected = selectedPayment === opt.id;
           return (
@@ -132,18 +132,18 @@ export const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, s
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelectPayment?.(opt.id)}
-              className={`p-2 sm:p-3 rounded-xl border transition-all text-left flex flex-col justify-between cursor-pointer relative min-h-[58px] ${isSelected
-                  ? isLight
-                    ? 'bg-[#FFF5ED] border-[#ea580c] ring-1.5 ring-[#ea580c]/35 shadow-xs'
-                    : 'bg-[#1e150d] border-[#f97316] ring-1.5 ring-[#f97316]/45 shadow-xs'
-                  : isLight
-                    ? 'bg-white border-zinc-200 hover:border-orange-300 hover:bg-orange-50/30 text-zinc-700'
-                    : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 hover:bg-[#16171d] text-zinc-300'
+              className={`p-2.5 sm:p-3 rounded-2xl border transition-all text-left flex flex-col justify-between cursor-pointer relative min-h-[66px] ${isSelected
+                ? isLight
+                  ? 'bg-[#FFF5ED] border-[#ea580c] ring-1.5 ring-[#ea580c]/35 shadow-xs'
+                  : 'bg-[#1e150d] border-[#f97316] ring-1.5 ring-[#f97316]/45 shadow-xs'
+                : isLight
+                  ? 'bg-white border-zinc-200 hover:border-orange-300 hover:bg-orange-50/30 text-zinc-700'
+                  : 'bg-[#111216] border-zinc-800/80 hover:border-zinc-700 hover:bg-[#16171d] text-zinc-300'
                 }`}
             >
               <div className="flex items-center justify-between w-full">
                 <div
-                  className={`w-7 h-7 rounded-lg  flex items-center justify-center shrink-0 ${isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-[#1a1b22] border border-white/5'
+                  className={`w-8 h-8 rounded-lg  flex items-center justify-center shrink-0 ${isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-[#1a1b22] border border-white/5'
                     }`}
                 >
                   {opt.logo}
@@ -163,13 +163,13 @@ export const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, s
                 )}
               </div>
               <span
-                className={`mt-1 text-[11px] sm:text-[13px] font-bold tracking-tight block truncate ${isSelected
-                    ? isLight
-                      ? 'text-[#ea580c]'
-                      : 'text-orange-400'
-                    : isLight
-                      ? 'text-zinc-800'
-                      : 'text-zinc-200'
+                className={`mt-1.5 text-xs sm:text-[13px] font-bold tracking-tight block truncate ${isSelected
+                  ? isLight
+                    ? 'text-[#ea580c]'
+                    : 'text-orange-400'
+                  : isLight
+                    ? 'text-zinc-800'
+                    : 'text-zinc-200'
                   }`}
               >
                 {opt.name}
@@ -324,7 +324,7 @@ export const ConfirmBidModal = memo(({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[105] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${paymentSuccess || (inlinePayment && !isWallet) ? 'items-center p-4' : 'items-end pb-[70px] p-0 sm:items-center sm:pb-0 sm:p-4'
+      className={`fixed inset-0 z-50 flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${paymentSuccess || (inlinePayment && !isWallet) ? 'items-center p-4' : 'items-end p-0 sm:items-center sm:p-4'
         } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'
         }`}
       role="presentation"
@@ -333,9 +333,9 @@ export const ConfirmBidModal = memo(({
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[92vh] sm:max-h-[92vh] flex flex-col px-3.5 py-3 sm:py-5 sm:px-6 relative text-left space-y-2 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
-            ? 'rounded-3xl zoom-in-95'
-            : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
+        className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
+          ? 'rounded-3xl zoom-in-95'
+          : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
           } ${isLight
             ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
             : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
@@ -346,21 +346,21 @@ export const ConfirmBidModal = memo(({
       >
         {/* Top Handle (bottom sheet only) */}
         {!paymentSuccess && !(inlinePayment && !isWallet) && (
-          <div className={`mx-auto mb-0.5 h-1 w-10 rounded-full ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
+          <div className={`mx-auto mb-1.5 h-1.5 w-12 rounded-full ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
         )}
 
         {/* Header */}
         <div
-          className={`flex items-center justify-between pb-2 border-b ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
+          className={`flex items-center justify-between pb-3 border-b ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
             }`}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div
-              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${paymentSuccess
-                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
-                  : isLight
-                    ? 'bg-orange-50 border border-orange-200 text-orange-600'
-                    : 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${paymentSuccess
+                ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
+                : isLight
+                  ? 'bg-orange-50 border border-orange-200 text-orange-600'
+                  : 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
                 }`}
             >
               {paymentSuccess ? <CheckCircle2 size={18} /> : <Gavel size={18} />}
@@ -368,12 +368,12 @@ export const ConfirmBidModal = memo(({
             <div>
               <h2
                 id="payment-summary-title"
-                className={`font-black text-base sm:text-xl tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'
+                className={`font-black text-lg sm:text-xl tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'
                   }`}
               >
                 {paymentSuccess ? 'Payment Successful' : 'Payment Summary'}
               </h2>
-             
+
             </div>
           </div>
           {!paymentSuccess && !(inlinePayment && !isWallet) && (
@@ -381,8 +381,8 @@ export const ConfirmBidModal = memo(({
               type="button"
               onClick={handleModalClose}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border shrink-0 ${isLight
-                  ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border-zinc-200'
-                  : 'bg-[#1f2026] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
+                ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border-zinc-200'
+                : 'bg-[#1f2026] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
                 }`}
               aria-label="Close"
             >
@@ -433,8 +433,8 @@ export const ConfirmBidModal = memo(({
           <div className="py-5 px-3 text-center space-y-3 animate-in fade-in zoom-in-95 duration-200">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto shadow-md ${isLight
-                  ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
-                  : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
+                ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
+                : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
                 }`}
             >
               <Smartphone size={24} className="animate-pulse" />
@@ -477,17 +477,15 @@ export const ConfirmBidModal = memo(({
           </div>
         ) : (
           <>
-            {/* Scrollable content area */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 sm:space-y-4 pb-1">
             {/* Bid Details Card */}
             <div
-              className={`rounded-xl border p-3 sm:p-4 text-sm transition-colors space-y-1.5 ${isLight
-                  ? 'bg-[#FFF9F5] border-orange-500/20 shadow-xs'
-                  : 'bg-[#111216] border-zinc-800/80'
+              className={`rounded-2xl border p-3.5 sm:p-4 text-sm transition-colors space-y-2.5 ${isLight
+                ? 'bg-[#FFF9F5] border-orange-500/20 shadow-xs'
+                : 'bg-[#111216] border-zinc-800/80'
                 }`}
             >
               <div
-                className={`flex items-start gap-2 border-b pb-2 ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
+                className={`flex items-start gap-2.5 border-b pb-2.5 ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
                   }`}
               >
                 <Package size={16} className={`mt-0.5 shrink-0 ${isLight ? 'text-orange-600' : 'text-zinc-400'}`} />
@@ -512,8 +510,8 @@ export const ConfirmBidModal = memo(({
                   </span>
                   <span
                     className={`ml-2 inline-block rounded-md px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider border ${isLight
-                        ? 'bg-rose-50 border-rose-200 text-rose-600'
-                        : 'bg-rose-950/60 border-rose-500/30 text-rose-400'
+                      ? 'bg-rose-50 border-rose-200 text-rose-600'
+                      : 'bg-rose-950/60 border-rose-500/30 text-rose-400'
                       }`}
                   >
                     NON-REFUNDABLE
@@ -530,7 +528,7 @@ export const ConfirmBidModal = memo(({
 
             {/* Payment Option Selector */}
             <div>
-              <p className={`mb-1 text-xs sm:text-sm font-bold ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+              <p className={`mb-1.5 text-xs sm:text-sm font-bold ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
                 Payment Option
               </p>
               <PaymentMethodSelector
@@ -543,21 +541,21 @@ export const ConfirmBidModal = memo(({
             {/* Wallet Balance Display OR Phone Number Input */}
             {isWallet ? (
               <div
-                className={`rounded-xl border p-3 sm:p-4 transition-colors ${!hasSufficientBalance
-                    ? isLight
-                      ? 'bg-red-50/80 border-red-300'
-                      : 'bg-red-950/30 border-red-900/60'
-                    : isLight
-                      ? 'bg-orange-50/70 border-orange-200'
-                      : 'bg-[#16171d] border-zinc-800'
+                className={`rounded-2xl border p-3.5 sm:p-4 transition-colors ${!hasSufficientBalance
+                  ? isLight
+                    ? 'bg-red-50/80 border-red-300'
+                    : 'bg-red-950/30 border-red-900/60'
+                  : isLight
+                    ? 'bg-orange-50/70 border-orange-200'
+                    : 'bg-[#16171d] border-zinc-800'
                   }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isLight
-                          ? 'bg-white text-orange-600 border border-orange-200'
-                          : 'bg-[#111216] text-orange-400 border border-zinc-800'
+                        ? 'bg-white text-orange-600 border border-orange-200'
+                        : 'bg-[#111216] text-orange-400 border border-zinc-800'
                         }`}
                     >
                       <Wallet size={16} />
@@ -593,13 +591,13 @@ export const ConfirmBidModal = memo(({
               </div>
             ) : (
               <div>
-                <label className={`mb-1 block text-xs sm:text-sm font-bold ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                <label className={`mb-1.5 block text-xs sm:text-sm font-bold ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
                   {activePayment === 'cbe' ? 'CBE Birr Phone' : 'Telebirr Phone'}
                 </label>
                 <div
-                  className={`flex items-center rounded-xl border px-3 py-2 sm:py-3 transition-colors focus-within:border-orange-500 focus-within:ring-1.5 focus-within:ring-orange-500/30 ${isLight
-                      ? 'bg-white border-zinc-300'
-                      : 'bg-[#111216] border-zinc-800'
+                  className={`flex items-center rounded-2xl border px-3.5 py-2.5 sm:py-3 transition-colors focus-within:border-orange-500 focus-within:ring-1.5 focus-within:ring-orange-500/30 ${isLight
+                    ? 'bg-white border-zinc-300'
+                    : 'bg-[#111216] border-zinc-800'
                     }`}
                 >
                   <Smartphone size={16} className="mr-2.5 text-zinc-400 shrink-0" />
@@ -614,9 +612,9 @@ export const ConfirmBidModal = memo(({
                     value={phoneNumber.replace(/^0/, '')}
                     onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, ''))}
                     placeholder="91 234 5678"
-                    className={`min-w-0 flex-1 bg-transparent pl-3 text-base font-bold outline-none ${isLight
-                        ? 'text-zinc-900 placeholder:text-zinc-400'
-                        : 'text-white placeholder:text-zinc-600'
+                    className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${isLight
+                      ? 'text-zinc-900 placeholder:text-zinc-400'
+                      : 'text-white placeholder:text-zinc-600'
                       }`}
                   />
                 </div>
@@ -625,9 +623,9 @@ export const ConfirmBidModal = memo(({
 
             {/* Before You Continue Box */}
             <div
-              className={`rounded-xl border p-3 sm:p-4 text-left ${isLight
-                  ? 'bg-[#FFF9F5] border-orange-500/18 text-zinc-700'
-                  : 'bg-[#111216] border-zinc-800/80 text-zinc-400'
+              className={`rounded-2xl border p-3.5 sm:p-4 text-left ${isLight
+                ? 'bg-[#FFF9F5] border-orange-500/18 text-zinc-700'
+                : 'bg-[#111216] border-zinc-800/80 text-zinc-400'
                 }`}
             >
               <div className="flex items-center gap-2">
@@ -636,14 +634,14 @@ export const ConfirmBidModal = memo(({
                   Participation Notice
                 </span>
               </div>
-              <p className="mt-1 text-[11px] sm:text-[12.5px] leading-relaxed font-normal">
+              <p className="mt-1.5 text-xs sm:text-[12.5px] leading-relaxed font-normal">
                 Fee is non-refundable; your bid isn't charged now. Lowest unique bid wins and only the winner pays their bid.
               </p>
               {showDetails && (
                 <p
                   className={`mt-2 text-xs sm:text-[12.5px] leading-relaxed pt-2 border-t animate-in fade-in duration-150 ${isLight
-                      ? 'text-zinc-800 border-orange-500/15'
-                      : 'text-zinc-300 border-zinc-800/80'
+                    ? 'text-zinc-800 border-orange-500/15'
+                    : 'text-zinc-300 border-zinc-800/80'
                     }`}
                 >
                   {isWallet
@@ -651,7 +649,7 @@ export const ConfirmBidModal = memo(({
                     : `Make sure your phone number is active to receive the payment prompt. Once confirmed, you will be prompted to authorize the transaction via your chosen provider (${activePayment === 'cbe' ? 'CBE Birr' : 'Telebirr'}).`}
                 </p>
               )}
-              <div className="mt-1.5 text-left">
+              <div className="mt-2 text-left">
                 <button
                   type="button"
                   onClick={() => setShowDetails((prev) => !prev)}
@@ -661,21 +659,18 @@ export const ConfirmBidModal = memo(({
                 </button>
               </div>
             </div>
-            </div>
 
-            {/* Sticky bottom: Agreement Checkbox + Confirm Button */}
-            <div className="shrink-0 space-y-2 pt-1" style={{ paddingBottom: 'max(0.125rem, env(safe-area-inset-bottom, 0px))' }}>
             {/* Agreement Checkbox */}
             <div
               onClick={() => setAgreed(!agreed)}
-              className="flex items-center gap-2.5 py-0.5 cursor-pointer select-none group"
+              className="flex items-center gap-3 py-1 cursor-pointer select-none group"
             >
               <div
                 className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all shrink-0 ${agreed
-                    ? 'border-orange-500 text-white shadow-xs'
-                    : isLight
-                      ? 'bg-white border-zinc-300 group-hover:border-orange-400'
-                      : 'bg-[#111216] border-zinc-700 group-hover:border-zinc-500'
+                  ? 'border-orange-500 text-white shadow-xs'
+                  : isLight
+                    ? 'bg-white border-zinc-300 group-hover:border-orange-400'
+                    : 'bg-[#111216] border-zinc-700 group-hover:border-zinc-500'
                   }`}
                 style={
                   agreed
@@ -690,8 +685,8 @@ export const ConfirmBidModal = memo(({
               </div>
               <span
                 className={`text-xs sm:text-sm font-semibold transition-colors ${isLight
-                    ? 'text-zinc-700 group-hover:text-zinc-900'
-                    : 'text-zinc-300 group-hover:text-white'
+                  ? 'text-zinc-700 group-hover:text-zinc-900'
+                  : 'text-zinc-300 group-hover:text-white'
                   }`}
               >
                 I agree to continue
@@ -712,11 +707,11 @@ export const ConfirmBidModal = memo(({
                   }
                   : undefined
               }
-              className={`w-full font-black text-sm sm:text-base py-3 sm:py-4 px-5 rounded-xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
-                  ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
-                  : isLight
-                    ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
-                    : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
+              className={`w-full font-black text-sm sm:text-base py-3.5 sm:py-4 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
+                ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
+                : isLight
+                  ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
+                  : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
                 }`}
             >
               {isSubmitting ? (
@@ -730,7 +725,6 @@ export const ConfirmBidModal = memo(({
                 </>
               )}
             </button>
-            </div>
           </>
         )}
       </div>
