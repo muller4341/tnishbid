@@ -112,11 +112,11 @@ export default function HomeSupportButton() {
         </button>
       </aside>
 
-      {/* Modal / Dialog Overlay */}
+      {/* Bottom Sheet Overlay */}
       {isOpen && (
         <div
           role="presentation"
-          className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[105] flex items-end sm:items-center justify-center pb-[72px] p-0 sm:pb-0 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsOpen(false);
           }}
@@ -125,19 +125,19 @@ export default function HomeSupportButton() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="support-dialog-title"
-            className={`w-full max-w-sm flex flex-col rounded-t-[26px] sm:rounded-3xl border shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 ${
+            className={`w-full max-w-md sm:max-w-sm flex flex-col rounded-t-[28px] sm:rounded-3xl border shadow-2xl animate-in slide-in-from-bottom duration-250 max-h-[calc(100vh-85px)] ${
               isLight
-                ? 'bg-white border-zinc-200 text-zinc-900 shadow-zinc-900/15'
-                : 'bg-[#14151B] border-zinc-800 text-zinc-100 shadow-[0_20px_50px_rgba(0,0,0,0.9)]'
+                ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xl'
+                : 'bg-[#14151B] border-zinc-800 text-zinc-100 shadow-[0_25px_60px_rgba(0,0,0,0.95)]'
             }`}
           >
-            {/* Top Sheet Handle on Mobile */}
-            <div className="sm:hidden pt-2.5 pb-1 flex justify-center">
-              <div className={`h-1 w-10 rounded-full ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
+            {/* Top Sheet Drag Handle on Mobile */}
+            <div className="pt-2.5 pb-1 flex justify-center shrink-0">
+              <div className={`h-1.5 w-12 rounded-full ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
             </div>
 
             {/* Header */}
-            <div className={`flex items-center justify-between px-5 pt-3 pb-3 border-b ${
+            <div className={`flex items-center justify-between px-5 pt-2 pb-3 border-b shrink-0 ${
               isLight ? 'border-zinc-100' : 'border-zinc-800/80'
             }`}>
               <div className="flex items-center gap-2.5">
@@ -150,7 +150,7 @@ export default function HomeSupportButton() {
                   </h2>
                   <p className={`text-[11px] mt-1 flex items-center gap-1.5 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
-                    Online support & social channels
+                    Support online • Tap any channel to connect
                   </p>
                 </div>
               </div>
@@ -169,8 +169,8 @@ export default function HomeSupportButton() {
               </button>
             </div>
 
-            {/* Clean, Simple Channel List */}
-            <div className="p-3.5 space-y-2">
+            {/* Channel List (Bottom sheet with scrollable container so all 5 items including Email are 100% visible) */}
+            <div className="p-3.5 space-y-2 overflow-y-auto flex-1 min-h-0">
               {contactChannels.map((item) => (
                 <div
                   key={item.id}
@@ -181,16 +181,16 @@ export default function HomeSupportButton() {
                       window.location.href = item.actionUrl;
                     }
                   }}
-                  className={`group rounded-2xl border p-2.5 sm:p-3 flex items-center justify-between gap-3 cursor-pointer transition-all duration-150 active:scale-[0.99] ${
+                  className={`group rounded-2xl border p-2.5 sm:p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all duration-200 active:scale-[0.98] hover:translate-x-1 ${
                     isLight
-                      ? 'bg-zinc-50 hover:bg-amber-50/50 border-zinc-200/90 hover:border-amber-300 shadow-xs'
-                      : 'bg-[#101115] hover:bg-[#181920] border-zinc-800/80 hover:border-zinc-700 shadow-xs'
+                      ? 'bg-zinc-50 hover:bg-amber-50/80 border-zinc-200 hover:border-amber-400 hover:shadow-md'
+                      : 'bg-[#101115] hover:bg-[#1C1E28] border-zinc-800/80 hover:border-amber-500/70 hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]'
                   }`}
                 >
                   {/* Left: Icon & Title */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border transition-transform duration-200 group-hover:scale-105"
                       style={{
                         backgroundColor: item.bgColor,
                         borderColor: item.borderColor
@@ -200,8 +200,8 @@ export default function HomeSupportButton() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-bold truncate leading-tight ${
-                        isLight ? 'text-zinc-900 group-hover:text-amber-600' : 'text-white group-hover:text-amber-400'
+                      <p className={`text-sm font-bold truncate leading-tight transition-colors ${
+                        isLight ? 'text-zinc-900 group-hover:text-amber-700' : 'text-white group-hover:text-amber-400'
                       }`}>
                         {item.title}
                       </p>
@@ -213,13 +213,13 @@ export default function HomeSupportButton() {
                     </div>
                   </div>
 
-                  {/* Right: Copy & Arrow */}
+                  {/* Right: Copy & Clickable Open Badge */}
                   <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={(e) => handleCopy(item.value, item.id, e)}
                       title="Copy"
-                      className={`p-1.5 rounded-lg border text-xs transition-colors cursor-pointer ${
+                      className={`p-1.5 rounded-xl border text-xs transition-colors cursor-pointer ${
                         copiedKey === item.id
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                           : isLight
@@ -228,37 +228,29 @@ export default function HomeSupportButton() {
                       }`}
                     >
                       {copiedKey === item.id ? (
-                        <Check size={14} className="text-emerald-500" />
+                        <Check size={13} className="text-emerald-500" />
                       ) : (
-                        <Copy size={14} />
+                        <Copy size={13} />
                       )}
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (item.actionUrl.startsWith('http')) {
-                          window.open(item.actionUrl, '_blank', 'noopener,noreferrer');
-                        } else {
-                          window.location.href = item.actionUrl;
-                        }
-                      }}
-                      title="Open"
-                      className={`p-1.5 rounded-lg border text-xs transition-colors cursor-pointer ${
+                    <div
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all duration-200 select-none ${
                         isLight
-                          ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 border-amber-300'
-                          : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border-amber-500/30'
+                          ? 'bg-amber-100 text-amber-900 group-hover:bg-amber-500 group-hover:text-black'
+                          : 'bg-amber-500/15 text-amber-400 group-hover:bg-amber-400 group-hover:text-black group-hover:shadow-sm'
                       }`}
                     >
-                      <ChevronRight size={15} />
-                    </button>
+                      <span>Open</span>
+                      <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Bottom Safe Area Padding */}
-            <div className="pb-safe sm:pb-2" />
+            {/* Bottom Safe Area Padding to ensure Email and all items sit comfortably above screen bottom */}
+            <div className="pb-5 sm:pb-3" />
           </div>
         </div>
       )}
