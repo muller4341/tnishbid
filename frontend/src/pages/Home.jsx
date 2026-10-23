@@ -42,8 +42,10 @@ const TRANSLATIONS = {
     submitBid: 'Submit a Bid Amount',
     terms: 'Bids require 2 decimal places. Only lowest unique bids win!',
     expired: 'Ended',
+    endedOption: 'Ended',
     viewDetails: 'View Details',
     noItems: 'No active auctions at the moment.',
+    noEndedItems: 'No concluded auctions yet.',
     filterTime: 'Time',
     filterPrice: 'Price',
     filterCategory: 'Category',
@@ -77,8 +79,10 @@ const TRANSLATIONS = {
     submitBid: '\u1328\u1228\u1273 \u12a0\u1245\u122d\u1265',
     terms: '\u12f0\u1295\u1266\u127d\u1293 \u1201\u1294\u1273\u12ce\u127d \u1270\u1348\u133b\u121a \u12ed\u1206\u1293\u1209',
     expired: 'ተጠናቋል',
+    endedOption: 'ተጠናቋል',
     viewDetails: '\u12dd\u122d\u12dd\u122d \u12ed\u1218\u120d\u12a8\u1271',
     noItems: '\u1260\u12da\u1205 \u130a\u12dc \u1295\u1261 \u1328\u1228\u1273\u12ce\u127d \u12e8\u1209\u121d\u1362',
+    noEndedItems: 'እስካሁን የተጠናቀቁ ጨረታዎች የሉም።',
     filterTime: '\u130a\u12dc',
     filterPrice: '\u12cb\u130b',
     filterCategory: '\u121d\u12f5\u1265',
@@ -489,26 +493,26 @@ const FilterDropdown = ({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={`w-full rounded-xl sm:rounded-2xl border transition-all duration-200 min-w-0 flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 cursor-pointer select-none active:scale-[0.98] ${isOpen
+          ? isLight
+            ? 'bg-amber-50/90 border-amber-500 text-amber-900 shadow-md ring-2 ring-amber-400/40'
+            : 'bg-[#1C1E28] border-amber-500/80 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/50'
+          : isActive
             ? isLight
-              ? 'bg-amber-50/90 border-amber-500 text-amber-900 shadow-md ring-2 ring-amber-400/40'
-              : 'bg-[#1C1E28] border-amber-500/80 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/50'
-            : isActive
-              ? isLight
-                ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30 font-bold'
-                : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40 font-bold'
-              : isLight
-                ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
-                : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
+              ? 'bg-amber-50 border-amber-400/70 text-amber-900 shadow-xs ring-1 ring-amber-400/30 font-bold'
+              : 'bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 border-amber-500/60 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40 font-bold'
+            : isLight
+              ? 'bg-white hover:bg-zinc-50 border-zinc-200/90 text-zinc-700 shadow-xs'
+              : 'bg-[#15171E] hover:bg-[#1B1E28] border-zinc-800/90 hover:border-zinc-700/80 text-zinc-300 hover:text-white shadow-md shadow-black/30'
           }`}
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <Icon
             size={13}
             className={`shrink-0 transition-colors ${isActive || isOpen
-                ? 'text-amber-400'
-                : isLight
-                  ? 'text-zinc-500'
-                  : 'text-zinc-400'
+              ? 'text-amber-400'
+              : isLight
+                ? 'text-zinc-500'
+                : 'text-zinc-400'
               }`}
           />
           <span className="text-[11px] sm:text-xs font-bold truncate">
@@ -527,8 +531,8 @@ const FilterDropdown = ({
         <div
           role="listbox"
           className={`absolute top-full mt-2 ${getAlignClass()} w-52 sm:w-56 max-w-[calc(100vw-24px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${isLight
-              ? 'bg-white/98 border-zinc-200 shadow-2xl shadow-zinc-900/15'
-              : 'bg-[#161720]/98 border-zinc-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)]'
+            ? 'bg-white/98 border-zinc-200 shadow-2xl shadow-zinc-900/15'
+            : 'bg-[#161720]/98 border-zinc-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)]'
             }`}
         >
           {dropdownTitle && (
@@ -552,12 +556,12 @@ const FilterDropdown = ({
                   aria-selected={isSelected}
                   onClick={() => onSelect(opt.value)}
                   className={`w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-xl text-left text-xs transition-all duration-150 active:scale-[0.99] ${isSelected
-                      ? isLight
-                        ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
-                        : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
-                      : isLight
-                        ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
-                        : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
+                    ? isLight
+                      ? 'bg-amber-500/15 text-amber-900 font-black border border-amber-400/40 shadow-xs'
+                      : 'bg-amber-500/15 text-amber-300 font-black border border-amber-500/40 shadow-xs'
+                    : isLight
+                      ? 'text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 active:bg-zinc-200 font-semibold'
+                      : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 active:bg-zinc-800 font-semibold'
                     }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -632,6 +636,7 @@ const Home = () => {
     '2days': t.endingIn2Days || 'Ending in 2 days',
     '5days': t.endingIn5Days || 'Ending in 5 days',
     '15days': t.endingIn15Days || 'Ending in 15 days',
+    ended: t.endedOption || t.expired || 'Ended',
   };
 
   const priceFilterLabels = {
@@ -700,6 +705,7 @@ const Home = () => {
     { value: '2days', label: t.endingIn2Days || 'Ending in 2 days', icon: <Clock size={13} className="text-red-400" /> },
     { value: '5days', label: t.endingIn5Days || 'Ending in 5 days', icon: <Clock size={13} className="text-amber-400" /> },
     { value: '15days', label: t.endingIn15Days || 'Ending in 15 days', icon: <Clock size={13} className="text-emerald-400" /> },
+    { value: 'ended', label: t.endedOption || t.expired || 'Ended', icon: <CheckCircle2 size={13} className="text-zinc-400" /> },
   ];
 
   const priceOptions = [
@@ -717,14 +723,28 @@ const Home = () => {
     })),
   ];
 
+  const now = Date.now();
+  const isItemEnded = (item) =>
+    item.status === 'closed' ||
+    (item.end_time && new Date(item.end_time).getTime() <= now);
+
   const filteredItems = items
     .filter((item) => {
+      const ended = isItemEnded(item);
+      // By default show only active items. If timeFilter is 'ended', show only ended items
+      if (timeFilter === 'ended') {
+        if (!ended) return false;
+      } else {
+        if (ended) return false;
+      }
+
       const query = searchQuery.toLowerCase();
       const matchesSearch = item.title.toLowerCase().includes(query) || item.description?.toLowerCase().includes(query);
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       const remaining = new Date(item.end_time).getTime() - Date.now();
       const matchesTime =
         timeFilter === 'all' ||
+        timeFilter === 'ended' ||
         (timeFilter === '2days' && remaining > 0 && remaining <= 2 * 24 * 60 * 60 * 1000) ||
         (timeFilter === '5days' && remaining > 0 && remaining <= 5 * 24 * 60 * 60 * 1000) ||
         (timeFilter === '15days' && remaining > 0 && remaining <= 15 * 24 * 60 * 60 * 1000);
@@ -737,7 +757,16 @@ const Home = () => {
       if (priceFilter === 'high_to_low') {
         return Number(b.base_price || 0) - Number(a.base_price || 0);
       }
-      return 0;
+      // For active items: sorted from shortest time to end to highest remaining time (soonest ending first)
+      if (timeFilter !== 'ended') {
+        const aTime = a.end_time ? new Date(a.end_time).getTime() : Infinity;
+        const bTime = b.end_time ? new Date(b.end_time).getTime() : Infinity;
+        return aTime - bTime;
+      }
+      // For ended items: most recently ended first
+      const aTime = a.end_time ? new Date(a.end_time).getTime() : 0;
+      const bTime = b.end_time ? new Date(b.end_time).getTime() : 0;
+      return bTime - aTime;
     });
 
   if (loading) {
@@ -867,7 +896,9 @@ const Home = () => {
       <div ref={itemsRef}>
         {filteredItems.length === 0 ? (
           <div className="text-center py-16 text-zinc-500 text-sm font-bold">
-            {t.noItems}
+            {timeFilter === 'ended'
+              ? t.noEndedItems || 'No concluded auctions yet.'
+              : t.noItems || 'No active auctions at the moment.'}
           </div>
         ) : (
           filteredItems.map((item) => (
