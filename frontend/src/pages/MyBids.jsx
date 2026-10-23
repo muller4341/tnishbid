@@ -69,6 +69,8 @@ const MyBids = () => {
                 basePrice: `${(b.item.base_price ?? 0).toLocaleString()} Birr`,
                 endTime: b.item.end_time,
                 winnerId: b.item.winner_id,
+                winner: b.item.winner,
+                allItemBids: b.item.bids || [],
                 itemStatus: b.item.status,
                 latestBidTime: new Date(b.created_at || 0).getTime(),
                 bids: [],
@@ -86,18 +88,70 @@ const MyBids = () => {
             }
           });
 
+          // Helper to clean phone digits for matching
+          const cleanPhone = (p) => {
+            if (!p) return '';
+            const s = String(p).replace(/\D/g, '');
+            return s.length >= 9 ? s.slice(-9) : s;
+          };
+
           // Format grouped items
           const groupedList = Array.from(groupsMap.values()).map((g) => {
-            const isWon = g.winnerId === user.id;
             const isEnded = g.itemStatus === 'closed' || (g.endTime && new Date(g.endTime) <= new Date());
 
+            // Determine winner ID
+            let resolvedWinnerId = g.winnerId ?? g.item?.winner_id ?? g.winner?.id ?? null;
+            let resolvedWinnerPhone = g.winner?.phone_number || g.item?.winner?.phone_number || null;
+
+            // Dynamic calculation fallback if winner_id is not yet persisted
+            if (!resolvedWinnerId && isEnded && g.allItemBids && g.allItemBids.length > 0) {
+              const isLUB = g.item?.pool_type === 'lub' || g.item?.is_lub || g.item?.pool_type === 'premium';
+              const basePrice = parseFloat(g.item?.base_price || 0);
+
+              if (isLUB) {
+                const amountMap = {};
+                g.allItemBids.forEach((bidItem) => {
+                  const a = parseFloat(bidItem.amount || 0);
+                  const bp = parseFloat(basePrice || 0);
+                  const netVal = bp > 0 && a >= bp ? parseFloat((a - bp).toFixed(2)) : parseFloat(a.toFixed(2));
+                  const amtKey = (netVal > 0 ? netVal : a).toFixed(2);
+                  if (!amountMap[amtKey]) amountMap[amtKey] = [];
+                  amountMap[amtKey].push(bidItem);
+                });
+                const uniqueKeys = Object.keys(amountMap).filter((k) => amountMap[k].length === 1);
+                if (uniqueKeys.length > 0) {
+                  uniqueKeys.sort((x, y) => parseFloat(x) - parseFloat(y));
+                  const winItem = amountMap[uniqueKeys[0]][0];
+                  resolvedWinnerId = winItem.user_id;
+                  if (winItem.user?.phone_number) resolvedWinnerPhone = winItem.user.phone_number;
+                }
+              } else {
+                const sorted = [...g.allItemBids].sort((x, y) => parseFloat(y.amount) - parseFloat(x.amount));
+                resolvedWinnerId = sorted[0].user_id;
+                if (sorted[0].user?.phone_number) resolvedWinnerPhone = sorted[0].user.phone_number;
+              }
+            }
+
+            // Check if current user is the winner
+            const userPhoneClean = cleanPhone(user?.phone_number || user?.phone);
+            const winnerPhoneClean = cleanPhone(resolvedWinnerPhone);
+
+            const isPhoneMatch = Boolean(userPhoneClean && winnerPhoneClean && userPhoneClean === winnerPhoneClean);
+            const isIdMatch = Boolean(user?.id && resolvedWinnerId != null && String(user.id) === String(resolvedWinnerId));
+            const isWon = isPhoneMatch || isIdMatch;
+
             let status = 'ACTIVE';
+            let bidStatus = 'active';
+
             if (isWon) {
               status = 'WINNER';
+              bidStatus = 'won';
             } else if (isEnded) {
               status = 'ENDED';
+              bidStatus = 'ended';
             } else {
               status = 'ACTIVE';
+              bidStatus = 'active';
             }
 
             const now = new Date().getTime();
@@ -118,7 +172,9 @@ const MyBids = () => {
               status,
               timeRemaining: timeStr,
               endDateFormatted: endDateStr,
-              bidStatus: isWon ? 'won' : isEnded ? 'ended' : 'active',
+              bidStatus,
+              isWon,
+              isEnded,
               image: g.image,
               bids: sortedBids,
               totalBidsCount: sortedBids.length,
@@ -157,8 +213,8 @@ const MyBids = () => {
               ...g,
               timeRemaining: 'Ended',
               endDateFormatted: formatEndDate(g.endTime),
-              status: g.bidStatus === 'won' ? 'WINNER' : 'ENDED',
-              bidStatus: g.bidStatus === 'won' ? 'won' : 'ended',
+              status: g.isWon ? 'WINNER' : 'ENDED',
+              bidStatus: g.isWon ? 'won' : 'ended',
             };
           }
           return {
@@ -171,17 +227,23 @@ const MyBids = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Filter logic (status filter only)
+  // Filter logic: if user is the winner, remove from 'ended' and include in 'won'
   const filteredBids = bids.filter((bid) => {
     if (statusFilter === 'all') return true;
+    if (statusFilter === 'ended') {
+      return bid.bidStatus === 'ended' && !bid.isWon;
+    }
+    if (statusFilter === 'won') {
+      return bid.bidStatus === 'won' || bid.isWon;
+    }
     return bid.bidStatus === statusFilter;
   });
 
-  // Calculate counts for filter pills
+  // Calculate counts for filter pills (won auctions excluded from endedCount)
   const totalCount = bids.length;
-  const activeCount = bids.filter((b) => b.bidStatus === 'active').length;
-  const wonCount = bids.filter((b) => b.bidStatus === 'won').length;
-  const endedCount = bids.filter((b) => b.bidStatus === 'ended').length;
+  const activeCount = bids.filter((b) => b.bidStatus === 'active' && !b.isWon).length;
+  const wonCount = bids.filter((b) => b.bidStatus === 'won' || b.isWon).length;
+  const endedCount = bids.filter((b) => b.bidStatus === 'ended' && !b.isWon).length;
 
   return (
     <div

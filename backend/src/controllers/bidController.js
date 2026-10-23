@@ -113,6 +113,16 @@ exports.placeBid = async (req, res) => {
   }
 };
 
+const getNetBid = (amt, basePrice = 0) => {
+  const a = parseFloat(amt || 0);
+  const bp = parseFloat(basePrice || 0);
+  if (bp > 0 && a >= bp) {
+    const net = parseFloat((a - bp).toFixed(2));
+    return net > 0 ? net : parseFloat(a.toFixed(2));
+  }
+  return parseFloat(a.toFixed(2));
+};
+
 exports.getUserBids = async (req, res) => {
   try {
     const user_id = req.user.id;
@@ -121,16 +131,62 @@ exports.getUserBids = async (req, res) => {
       include: {
         item: {
           include: {
+            winner: {
+              select: { id: true, name: true, phone_number: true }
+            },
             bids: {
-              select: { amount: true }
+              select: { id: true, amount: true, user_id: true }
             }
           }
         }
       },
       orderBy: { created_at: 'desc' }
     });
-    res.json(userBids);
+
+    const now = new Date();
+
+    const formattedBids = userBids.map((b) => {
+      const item = b.item;
+      if (!item) return b;
+
+      const isEnded = item.status === 'closed' || (item.end_time && new Date(item.end_time) <= now);
+      let calculatedWinnerId = item.winner_id || (item.winner?.id ?? null);
+
+      if (!calculatedWinnerId && isEnded && item.bids && item.bids.length > 0) {
+        const isLUB = item.pool_type === 'lub' || item.is_lub || item.pool_type === 'premium';
+        const basePrice = parseFloat(item.base_price || 0);
+
+        if (isLUB) {
+          const amountMap = {};
+          item.bids.forEach((bidItem) => {
+            const netVal = getNetBid(bidItem.amount, basePrice);
+            const amtKey = netVal.toFixed(2);
+            if (!amountMap[amtKey]) amountMap[amtKey] = [];
+            amountMap[amtKey].push(bidItem);
+          });
+          const uniqueKeys = Object.keys(amountMap).filter((k) => amountMap[k].length === 1);
+          if (uniqueKeys.length > 0) {
+            uniqueKeys.sort((x, y) => parseFloat(x) - parseFloat(y));
+            calculatedWinnerId = amountMap[uniqueKeys[0]][0].user_id;
+          }
+        } else {
+          const sorted = [...item.bids].sort((x, y) => parseFloat(y.amount) - parseFloat(x.amount));
+          calculatedWinnerId = sorted[0].user_id;
+        }
+      }
+
+      return {
+        ...b,
+        item: {
+          ...item,
+          winner_id: calculatedWinnerId
+        }
+      };
+    });
+
+    res.json(formattedBids);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+

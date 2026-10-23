@@ -74,16 +74,16 @@ export default function HomeSupportButton() {
           aria-label="Contact and support"
           className="fixed right-4 bottom-[92px] sm:bottom-8 sm:right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center bg-[#141519] hover:bg-[#1E2028] text-white border border-zinc-700/80 shadow-[0_8px_24px_rgba(0,0,0,0.65)] hover:border-amber-500/70 transition-all duration-200 active:scale-95 cursor-pointer group"
         >
-          {/* Active online pulse dot */}
+          {/* Active online pulse dot
           <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-[#141519]" />
-          </span>
+          </span> */}
 
           {/* Headphone icon */}
           <Headphones 
             size={22} 
-            className="text-white group-hover:text-amber-400 transition-colors" 
+            className="text-amber-400 group-hover:text-amber-400 transition-colors" 
           />
         </button>
       </aside>
@@ -166,11 +166,11 @@ export default function HomeSupportButton() {
                   {/* Left: Icon & Title */}
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border transition-transform duration-200 group-hover:scale-105"
-                      style={{
-                        backgroundColor: item.bgColor,
-                        borderColor: item.borderColor
-                      }}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0  transition-transform duration-200 group-hover:scale-105"
+                      // style={{
+                      //   backgroundColor: item.bgColor,
+                      //   borderColor: item.borderColor
+                      // }}
                     >
                       {item.icon}
                     </div>
@@ -191,7 +191,7 @@ export default function HomeSupportButton() {
 
                   {/* Right: Copy & Clickable Open Badge */}
                   <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <button
+                    {/* <button
                       type="button"
                       onClick={(e) => handleCopy(item.value, item.id, e)}
                       title="Copy"
@@ -208,7 +208,7 @@ export default function HomeSupportButton() {
                       ) : (
                         <Copy size={13} />
                       )}
-                    </button>
+                    </button> */}
 
                     <div
                       className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all duration-200 select-none ${

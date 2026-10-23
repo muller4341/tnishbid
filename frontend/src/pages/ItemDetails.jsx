@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, memo, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo, lazy } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import telebirrLogo from '../assets/telebirr.png';
 import cbeLogo from '../assets/cbe.png';
 import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
@@ -35,7 +37,8 @@ import {
   Package,
   Receipt,
   DollarSign,
-  Wallet
+  Wallet,
+  Phone
 } from 'lucide-react';
 
 const BidderAvatar = React.memo(({ src, alt }) => {
@@ -365,149 +368,274 @@ const ConfettiCelebration = memo(() => {
   );
 });
 
-// Component for a single Bid Amount Group Row with green "show more" text link
-const BidGroupRow = ({ group, winningBidId, currentUserId }) => {
-  const [expanded, setExpanded] = useState(false);
-  const INITIAL_SHOW = 3;
-  const totalCount = group.bids.length;
-  const isUnique = totalCount === 1;
-  const displayedBids = expanded ? group.bids : group.bids.slice(0, INITIAL_SHOW);
-
-  return (
-    <div className="bg-[#0E0F12] border border-zinc-800/80 rounded-2xl p-3.5 flex flex-row items-start justify-between gap-4 shadow-md">
-      {/* Column 1 (Left): Bid Amount & Unique/Duplicate Badge */}
-      <div className="w-1/3 min-w-[110px] space-y-1.5 shrink-0 pt-0.5">
-        <p className="font-mono font-black text-sm md:text-base text-amber-400">
-          {group.amount.toFixed(2)} Birr
-        </p>
-        <div>
-          <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase ${isUnique
-            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-            : 'bg-zinc-800 text-zinc-400'
-            }`}>
-            {isUnique ? 'UNIQUE' : `${totalCount} BIDS`}
-          </span>
-        </div>
-      </div>
-
-      {/* Column 2 (Right): Side-by-Side Phone Numbers List & Green "show more" Link */}
-      <div className="flex-1 space-y-1.5">
-        <div className={`space-y-1.5 ${expanded ? 'max-h-60 overflow-y-auto pr-1 no-scrollbar' : ''}`}>
-          {displayedBids.map((b, i) => {
-            const isWinner = winningBidId && winningBidId === b.id;
-            const isUser = currentUserId && currentUserId === b.user_id;
-            const phoneStr = maskPhoneNumber(b.user?.phone_number);
-
-            return (
-              <div
-                key={b.id || i}
-                className={`flex items-center justify-between text-xs px-3 py-1.5 rounded-xl transition-all ${isWinner
-                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold shadow-sm'
-                  : isUser
-                    ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold'
-                    : 'bg-[#141519] border border-zinc-800/60 text-zinc-300'
-                  }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold tracking-wider">{phoneStr}</span>
-                  {isUser && (
-                    <span className="text-[8px] font-black px-1.5 py-0.2 bg-emerald-500 text-black rounded uppercase">
-                      YOU
-                    </span>
-                  )}
-                  {isWinner && (
-                    <span className="text-[8px] font-black px-1.5 py-0.2 bg-amber-400 text-black rounded uppercase flex items-center gap-0.5">
-                      <Trophy size={10} /> WINNER
-                    </span>
-                  )}
-                </div>
-
-                <span className="text-[10px] text-zinc-400 font-mono">
-                  {b.created_at ? new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Green Text Link under the last bidder phone */}
-        {totalCount > INITIAL_SHOW && (
-          <div className="pt-0.5 text-left">
-            <button
-              type="button"
-              onClick={() => setExpanded(!expanded)}
-              className="text-emerald-400 hover:text-emerald-300 text-xs font-bold cursor-pointer transition-colors flex items-center gap-1 active:scale-95"
-            >
-              {expanded ? (
-                <>show less <ChevronUp size={12} /></>
-              ) : (
-                <>show more ({totalCount - INITIAL_SHOW} more) <ChevronDown size={12} /></>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+// Helper functions and translations for Expired / Concluded Auctions
+const formatHumanDateTime = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
 };
 
-// Expired / Settled Auction Component
+const getNetBid = (amt, basePrice = 0) => {
+  const a = parseFloat(amt || 0);
+  const bp = parseFloat(basePrice || 0);
+  if (bp > 0 && a >= bp) {
+    const net = parseFloat((a - bp).toFixed(2));
+    return net > 0 ? net : parseFloat(a.toFixed(2));
+  }
+  return parseFloat(a.toFixed(2));
+};
+
+const EXPIRED_TRANSLATIONS = {
+  en: {
+    bidFee: 'Bid fee',
+    totalBids: 'Total bids',
+    uniqueAmounts: 'Unique amounts',
+    byAmount: 'By amount',
+    mostPicked: 'Most picked',
+    showWinningAmount: 'Show winning amount',
+    bids: 'bids',
+    players: 'players',
+    unique: 'Unique',
+    notUnique: 'Not unique',
+    noWinner: 'No Winner',
+    noUniqueBid: 'No unique bid found in this draw'
+  },
+  am: {
+    bidFee: 'የጨረታ ክፍያ',
+    totalBids: 'ጠቅላላ ጨረታዎች',
+    uniqueAmounts: 'ልዩ መጠኖች',
+    byAmount: 'በመጠን ቅደም ተከተል',
+    mostPicked: 'በብዛት የተመረጡ',
+    showWinningAmount: 'አሸናፊውን መጠን አሳይ',
+    bids: 'ጨረታዎች',
+    players: 'ተሳታፊዎች',
+    unique: 'ልዩ',
+    notUnique: 'የተደገመ',
+    noWinner: 'አሸናፊ የለም',
+    noUniqueBid: 'በዚህ ዕጣ ውስጥ ልዩ ጨረታ አልተገኘም'
+  }
+};
+
+// Expired / Settled Auction Component matching Draws.jsx breakdown
 const ExpiredAuctionView = ({ item, user }) => {
+  const themeContext = useTheme();
+  const isLight =
+    themeContext?.theme === 'light' ||
+    (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
+
+  let lang = 'en';
+  try {
+    const langCtx = useLanguage();
+    if (langCtx?.lang) lang = langCtx.lang;
+  } catch (e) {
+    lang = 'en';
+  }
+  const t = EXPIRED_TRANSLATIONS[lang] || EXPIRED_TRANSLATIONS.en;
+
+  const [sortBreakdownBy, setSortBreakdownBy] = useState('amount'); // 'amount' | 'most_picked'
+  const [selectedAmountData, setSelectedAmountData] = useState(null);
+  const [isWinningHighlighted, setIsWinningHighlighted] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const winningRowRef = useRef(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3200);
+  };
+
+  const isLUB = item?.pool_type === 'lub' || item?.pool_type === 'premium';
+  const basePrice = parseFloat(item?.base_price || 0);
+
   const allBids = useMemo(() => {
     if (!item?.bids || !Array.isArray(item.bids)) return [];
-    return [...item.bids].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return [...item.bids];
   }, [item]);
 
-  const winningBid = useMemo(() => {
-    if (allBids.length === 0) return null;
-    if (item?.winner_id) {
-      const found = allBids.find(b => b.user_id === item.winner_id);
-      if (found) return found;
+  // Group bids by exact amount & determine lowest unique bid or highest bid
+  const { amountBreakdown, winnerUser, winningAmount, winningBid } = useMemo(() => {
+    if (!allBids || allBids.length === 0) {
+      return { amountBreakdown: [], winnerUser: null, winningAmount: null, winningBid: null };
     }
-    if (item?.pool_type === 'lub' || item?.pool_type === 'premium') {
-      const uniqueBids = allBids.filter(b => b.is_unique);
-      if (uniqueBids.length > 0) {
-        return [...uniqueBids].sort((a, b) => a.amount - b.amount)[0];
+
+    const grouped = {};
+    allBids.forEach((b) => {
+      const netVal = isLUB ? getNetBid(b.amount, basePrice) : parseFloat(parseFloat(b.amount).toFixed(2));
+      const amtKey = netVal.toFixed(2);
+      if (!grouped[amtKey]) {
+        grouped[amtKey] = {
+          amount: parseFloat(amtKey),
+          bids: [],
+          userIds: new Set()
+        };
       }
-    }
-    return [...allBids].sort((a, b) => b.amount - a.amount)[0];
-  }, [allBids, item]);
-
-  const winnerUser = item?.winner || winningBid?.user;
-  const winnerPhone = maskPhoneNumber(winnerUser?.phone_number || winningBid?.user?.phone_number);
-  const winningAmount = winningBid ? winningBid.amount : (item?.base_price || 0);
-  const isCurrentUserWinner = user && (user.id === item?.winner_id || user.id === winnerUser?.id);
-
-  // Group bids by exact amount
-  const groupedBids = useMemo(() => {
-    if (!allBids || allBids.length === 0) return [];
-
-    const map = new Map();
-    allBids.forEach(bid => {
-      const key = parseFloat(bid.amount).toFixed(2);
-      if (!map.has(key)) {
-        map.set(key, {
-          amount: parseFloat(key),
-          bids: []
-        });
-      }
-      map.get(key).bids.push(bid);
+      grouped[amtKey].bids.push({
+        id: b.id,
+        user_id: b.user_id,
+        masked_phone: maskPhoneNumber(b.user?.phone_number || b.phone_number),
+        created_at: b.created_at,
+        user: b.user,
+        amount: b.amount
+      });
+      if (b.user_id) grouped[amtKey].userIds.add(b.user_id);
     });
 
-    const groups = Array.from(map.values());
-    if (item?.pool_type === 'lub' || item?.pool_type === 'premium') {
-      return groups.sort((a, b) => a.amount - b.amount);
+    let winUser = null;
+    let winAmt = null;
+    let winB = null;
+
+    if (isLUB) {
+      const uniqueKeys = Object.keys(grouped).filter((k) => grouped[k].bids.length === 1);
+      if (uniqueKeys.length > 0) {
+        uniqueKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
+        const lowestUniqueKey = uniqueKeys[0];
+        winAmt = parseFloat(lowestUniqueKey);
+        winB = grouped[lowestUniqueKey].bids[0];
+        const winUid = winB.user_id || winB.user?.id;
+        winUser = winB.user || (item?.winner && item.winner.id === winUid ? item.winner : null) || { id: winUid };
+      }
+    } else {
+      const sortedKeys = Object.keys(grouped).sort((a, b) => parseFloat(b) - parseFloat(a));
+      if (sortedKeys.length > 0) {
+        const highestKey = sortedKeys[0];
+        winAmt = parseFloat(highestKey);
+        winB = grouped[highestKey].bids[0];
+        const winUid = winB.user_id || winB.user?.id;
+        winUser = winB.user || (item?.winner && item.winner.id === winUid ? item.winner : null) || { id: winUid };
+      }
     }
-    return groups.sort((a, b) => b.amount - a.amount);
-  }, [allBids, item]);
+
+    // Match item.winner_id if available ONLY if no winning bid was found above
+    if (!winB && item?.winner_id) {
+      const found = allBids.find((b) => b.user_id === item.winner_id);
+      if (found) {
+        winB = found;
+        winAmt = isLUB ? getNetBid(found.amount, basePrice) : parseFloat(found.amount);
+        winUser = found.user || item?.winner;
+      }
+    }
+
+    const breakdown = Object.keys(grouped).map((amtKey) => {
+      const g = grouped[amtKey];
+      return {
+        amount: g.amount,
+        amountFormatted: `${g.amount.toFixed(2)} ETB`,
+        bidsCount: g.bids.length,
+        playersCount: g.userIds.size,
+        isUnique: g.bids.length === 1,
+        isWinning: winAmt !== null && Math.abs(g.amount - winAmt) < 0.001,
+        bids: g.bids.map((b, idx) => ({
+          ...b,
+          index: idx + 1
+        }))
+      };
+    });
+
+    breakdown.sort((a, b) => a.amount - b.amount);
+
+    return {
+      amountBreakdown: breakdown,
+      winnerUser: winUser,
+      winningAmount: winAmt,
+      winningBid: winB
+    };
+  }, [allBids, item, isLUB, basePrice]);
+
+  const sortedAmountBreakdown = useMemo(() => {
+    if (!amountBreakdown || amountBreakdown.length === 0) return [];
+    const list = [...amountBreakdown];
+    if (sortBreakdownBy === 'most_picked') {
+      list.sort((a, b) => Number(b.bidsCount) - Number(a.bidsCount) || Number(a.amount) - Number(b.amount));
+    } else {
+      list.sort((a, b) => Number(a.amount) - Number(b.amount));
+    }
+    return list;
+  }, [amountBreakdown, sortBreakdownBy]);
+
+  const maxBidsPerAmount = useMemo(() => {
+    return amountBreakdown.length > 0 ? Math.max(...amountBreakdown.map((a) => a.bidsCount)) : 1;
+  }, [amountBreakdown]);
+
+  const uniqueAmountsCount = useMemo(() => {
+    return amountBreakdown.filter((a) => a.isUnique).length;
+  }, [amountBreakdown]);
+
+  const winnerPhone = maskPhoneNumber(winnerUser?.phone_number || winningBid?.user?.phone_number);
+
+  // Strictly check if the currently logged-in user is the actual winner of this auction
+  const isCurrentUserWinner = useMemo(() => {
+    if (!user || (!winnerUser && !winningBid)) return false;
+
+    const normalizePhoneDigits = (p) => {
+      if (!p) return '';
+      const str = String(p).replace(/\D/g, '');
+      return str.length >= 9 ? str.slice(-9) : str;
+    };
+
+    const userPhone = normalizePhoneDigits(user.phone_number || user.phone);
+    const winPhone = normalizePhoneDigits(winnerUser?.phone_number || winningBid?.user?.phone_number);
+
+    // If both have phone numbers, phone equality is definitive
+    if (userPhone && winPhone) {
+      return userPhone === winPhone;
+    }
+
+    // Check user ID match against winning bid or winning user
+    const winningUid = winningBid?.user_id || winningBid?.user?.id || winnerUser?.id;
+    if (user.id && winningUid) {
+      return String(user.id) === String(winningUid);
+    }
+
+    return false;
+  }, [user, winnerUser, winningBid]);
+
+  const handleScrollToWinningAmount = () => {
+    const hasWinner = Boolean(winnerUser && amountBreakdown.some((r) => r.isWinning));
+    if (!hasWinner) {
+      showToast(t.noUniqueBid || 'No unique bid found in this draw');
+      return;
+    }
+
+    if (winningRowRef.current) {
+      winningRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsWinningHighlighted(true);
+      setTimeout(() => setIsWinningHighlighted(false), 2400);
+    } else {
+      setSortBreakdownBy('amount');
+      setTimeout(() => {
+        if (winningRowRef.current) {
+          winningRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setIsWinningHighlighted(true);
+          setTimeout(() => setIsWinningHighlighted(false), 2400);
+        }
+      }, 100);
+    }
+  };
 
   return (
     <div className="space-y-4 relative">
-      {/* Falling Confetti Celebration Animation Overlay */}
-      {(winnerUser || winningBid) && <ConfettiCelebration />}
+      {/* Celebratory Confetti Animation Overlay ONLY for the actual winner */}
+      {isCurrentUserWinner && <ConfettiCelebration />}
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-2xl bg-zinc-900/95 text-amber-400 border border-amber-500/40 shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs font-bold animate-in fade-in slide-in-from-top duration-300 pointer-events-none">
+          <Info size={16} className="text-amber-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {/* Winner Announcement Card */}
-      <div className="bg-[#16161A] border border-zinc-800/90 rounded-3xl p-6 md:p-7 shadow-2xl relative overflow-hidden">
+      <div className={`border rounded-3xl p-6 md:p-7 shadow-2xl relative overflow-hidden ${
+        isLight ? 'bg-white border-zinc-200' : 'bg-[#16161A] border-zinc-800/90'
+      }`}>
         {/* Glow Effects */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -531,72 +659,325 @@ const ExpiredAuctionView = ({ item, user }) => {
               <h2 className="text-2xl md:text-3xl font-serif font-black bg-gradient-to-r from-yellow-100 via-amber-300 to-yellow-400 bg-clip-text text-transparent pt-1 tracking-tight">
                 🎉 Congratulations! You Won This Auction!
               </h2>
-            ) : (
-              <h2 className="text-xl md:text-2xl font-serif font-black text-white pt-1 tracking-tight">
+            ) : winnerUser ? (
+              <h2 className={`text-xl md:text-2xl font-serif font-black pt-1 tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 Auction Winner: <span className="text-amber-400 font-mono">{winnerPhone}</span>
+              </h2>
+            ) : (
+              <h2 className={`text-xl md:text-2xl font-serif font-black pt-1 tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                {t.noWinner}
               </h2>
             )}
           </div>
 
-          {/* Winner Details Glassmorphism Card */}
-          <div className="w-full bg-[#0A0B0E]/90 border border-zinc-800/90 rounded-2xl p-4 md:p-5 grid grid-cols-2 gap-4 text-left shadow-2xl backdrop-blur-md relative overflow-hidden">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <Smartphone size={13} className="text-amber-400" />
-                <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Winner Phone</p>
+          {/* Winner Details Card */}
+          {winnerUser ? (
+            <div className={`w-full border rounded-2xl p-4 md:p-5 grid grid-cols-2 gap-4 text-left shadow-2xl backdrop-blur-md relative overflow-hidden ${
+              isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#0A0B0E]/90 border-zinc-800/90'
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Smartphone size={13} className="text-amber-400" />
+                  <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Winner Phone</p>
+                </div>
+                <p className="text-sm md:text-base font-mono font-black text-amber-400 tracking-wider bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl inline-block shadow-sm">
+                  {winnerPhone}
+                </p>
               </div>
-              <p className="text-sm md:text-base font-mono font-black text-amber-400 tracking-wider bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl inline-block shadow-sm">
-                {winnerPhone}
-              </p>
-            </div>
 
-            <div className="text-right space-y-1">
-              <div className="flex items-center justify-end gap-1.5">
-                <Trophy size={13} className="text-emerald-400" />
-                <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Winning Bid</p>
+              <div className="text-right space-y-1">
+                <div className="flex items-center justify-end gap-1.5">
+                  <Trophy size={13} className="text-emerald-400" />
+                  <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Winning Bid</p>
+                </div>
+                <p className="text-base md:text-lg font-mono font-black text-emerald-400 tracking-tight drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+                  {winningAmount !== null ? `${winningAmount.toFixed(2)} ETB` : '0.00 ETB'}
+                </p>
+                <span className="inline-block text-[9.5px] font-bold text-amber-300 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/30 px-2.5 py-0.5 rounded-md shadow-sm">
+                  {item?.pool_type === 'open' ? 'Highest Bid' : 'Lowest Unique Bid'}
+                </span>
               </div>
-              <p className="text-base md:text-lg font-mono font-black text-emerald-400 tracking-tight drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]">
-                {winningAmount.toFixed(2)} Birr
-              </p>
-              <span className="inline-block text-[9.5px] font-bold text-amber-300 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/30 px-2.5 py-0.5 rounded-md shadow-sm">
-                {item?.pool_type === 'open' ? 'Highest Bid' : 'Lowest Unique Bid'}
-              </span>
             </div>
-          </div>
+          ) : (
+            <p className="text-xs text-zinc-400">
+              {t.noUniqueBid}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* All Bidders Record Section (2-Column Format: Bid Amount & User Phone) */}
-      <div className="bg-[#141519] border border-zinc-800/90 rounded-3xl p-4 md:p-5 shadow-2xl space-y-3">
-        <div className="flex justify-between items-center px-1 pb-2 border-b border-zinc-800/80">
-          <div className="flex items-center gap-2">
-            <User size={16} className="text-amber-400" />
-            <h3 className="text-xs font-black uppercase text-white tracking-wider">
-              ALL BIDDERS RECORD ({allBids.length})
-            </h3>
+      {/* Number Breakdown Section matching Screenshot 2 / Draws.jsx */}
+      <div className="space-y-3 pt-1">
+        {/* 3 Stat Pills matching Screenshot 2 */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className={`border rounded-xl p-2.5 space-y-0.5 ${
+            isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#161720] border-zinc-800/80'
+          }`}>
+            <p className="text-[10px] text-zinc-400 font-medium">{t.bidFee}</p>
+            <p className="text-xs sm:text-sm font-black text-amber-400 truncate">
+              {(item?.base_price || 0).toFixed(2)} ETB
+            </p>
           </div>
-          <span className="text-[10px] font-bold text-zinc-400">
-            {groupedBids.length} Bid Amounts
-          </span>
+
+          <div className={`border rounded-xl p-2.5 space-y-0.5 ${
+            isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#161720] border-zinc-800/80'
+          }`}>
+            <p className="text-[10px] text-zinc-400 font-medium">{t.totalBids}</p>
+            <p className={`text-xs sm:text-sm font-black truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+              {allBids.length}
+            </p>
+          </div>
+
+          <div className={`border rounded-xl p-2.5 space-y-0.5 ${
+            isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#161720] border-zinc-800/80'
+          }`}>
+            <p className="text-[10px] text-zinc-400 font-medium">{t.uniqueAmounts}</p>
+            <p className={`text-xs sm:text-sm font-black truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+              {uniqueAmountsCount}
+            </p>
+          </div>
         </div>
 
-        {groupedBids.length === 0 ? (
-          <div className="p-6 bg-[#0E0F12] border border-zinc-800/80 rounded-2xl text-center text-xs text-zinc-500">
-            No bids were placed on this item.
+        {/* Filter Segmented Control & Show Winning Amount Link matching Screenshot 2 */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div
+            className={`flex items-center rounded-xl p-0.5 border shrink-0 transition-all ${
+              isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-[#101116] border-zinc-800/90'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setSortBreakdownBy('amount')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                sortBreakdownBy === 'amount'
+                  ? isLight
+                    ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200/80'
+                    : 'bg-[#1C1E28] text-white shadow-xs border border-zinc-700/60'
+                  : isLight
+                    ? 'text-zinc-500 hover:text-zinc-900'
+                    : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {t.byAmount}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortBreakdownBy('most_picked')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                sortBreakdownBy === 'most_picked'
+                  ? isLight
+                    ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200/80'
+                    : 'bg-[#1C1E28] text-white shadow-xs border border-zinc-700/60'
+                  : isLight
+                    ? 'text-zinc-500 hover:text-zinc-900'
+                    : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {t.mostPicked}
+            </button>
           </div>
-        ) : (
-          <div className="max-h-[500px] overflow-y-auto space-y-3 pr-1 no-scrollbar">
-            {groupedBids.map((group, idx) => (
-              <BidGroupRow
-                key={idx}
-                group={group}
-                winningBidId={winningBid?.id}
-                currentUserId={user?.id}
-              />
-            ))}
-          </div>
-        )}
+
+          <button
+            type="button"
+            onClick={handleScrollToWinningAmount}
+            className={`ml-auto shrink-0 inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold active:scale-95 border transition-all shadow-xs whitespace-nowrap cursor-pointer ${
+              winnerUser && amountBreakdown.some((r) => r.isWinning)
+                ? 'text-amber-500 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30'
+                : 'text-zinc-400 bg-zinc-800/40 hover:bg-zinc-800/70 border-zinc-700/50'
+            }`}
+          >
+            <Trophy size={12} className="shrink-0" />
+            <span>{t.showWinningAmount}</span>
+          </button>
+        </div>
+
+        {/* Amount Rows with Horizontal Bar Fill matching Screenshot 2 */}
+        <div className="space-y-2 pt-1 max-h-[500px] overflow-y-auto pr-0.5 no-scrollbar">
+          {sortedAmountBreakdown.length === 0 ? (
+            <div className={`p-6 border rounded-2xl text-center text-xs font-bold ${
+              isLight ? 'bg-zinc-50 border-zinc-200 text-zinc-500' : 'bg-[#0E0F12] border-zinc-800/80 text-zinc-500'
+            }`}>
+              No bids were placed on this item.
+            </div>
+          ) : (
+            sortedAmountBreakdown.map((row) => {
+              const percent = maxBidsPerAmount > 0
+                ? Math.max(10, Math.min(100, (row.bidsCount / maxBidsPerAmount) * 100))
+                : 20;
+
+              return (
+                <div
+                  key={row.amount}
+                  ref={row.isWinning ? winningRowRef : null}
+                  onClick={() => setSelectedAmountData(row)}
+                  className={`relative rounded-xl p-3 flex items-center justify-between cursor-pointer border transition-all duration-300 active:scale-[0.99] overflow-hidden ${
+                    row.isWinning
+                      ? isWinningHighlighted
+                        ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.4)] scale-[1.01]'
+                        : 'bg-amber-500/10 border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                      : isLight
+                        ? 'bg-zinc-50 border-zinc-200 hover:border-zinc-300'
+                        : 'bg-[#161720] border-zinc-800/80 hover:border-zinc-700'
+                  }`}
+                >
+                  {/* Horizontal visual progress fill */}
+                  <div
+                    className={`absolute top-0 bottom-0 left-0 transition-all pointer-events-none rounded-xl ${
+                      row.isWinning
+                        ? 'bg-amber-500/25'
+                        : isLight
+                          ? 'bg-zinc-200/60'
+                          : 'bg-zinc-800/50'
+                    }`}
+                    style={{ width: `${percent}%` }}
+                  />
+
+                  {/* Left label: e.g. 1.00 ETB */}
+                  <div className="relative z-10 flex items-center gap-2">
+                    <span
+                      className={`text-xs font-extrabold font-mono ${
+                        isLight ? 'text-zinc-900' : 'text-white'
+                      }`}
+                    >
+                      {row.amountFormatted}
+                    </span>
+                    {row.isWinning && (
+                      <span className="bg-amber-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
+                        WINNER
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Right label: e.g. 2 bids > */}
+                  <div
+                    className={`relative z-10 flex items-center gap-1.5 text-xs font-bold ${
+                      isLight ? 'text-zinc-600' : 'text-zinc-300'
+                    }`}
+                  >
+                    <span>
+                      {row.bidsCount} {t.bids}
+                    </span>
+                    <ChevronRight size={14} className="text-zinc-500" />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
+
+      {/* Specific Bid Amount Centered Modal matching Screenshot 3 / Draws.jsx */}
+      {selectedAmountData && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedAmountData(null);
+          }}
+        >
+          <div
+            className={`w-full max-w-md max-h-[85vh] rounded-[2rem] sm:rounded-[2.25rem] overflow-hidden flex flex-col border shadow-2xl transition-all animate-in zoom-in-95 duration-200 ${
+              isLight
+                ? 'bg-[#FAFAFA] border-zinc-200 text-zinc-900 shadow-2xl'
+                : 'bg-[#14151C] border-zinc-800/90 text-white shadow-2xl shadow-black/90'
+            }`}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+              <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black text-sm px-4 py-1.5 rounded-full shadow-md shadow-amber-500/25 font-mono">
+                {selectedAmountData.amountFormatted}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedAmountData(null)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                  isLight
+                    ? 'bg-zinc-200/90 hover:bg-zinc-300 text-zinc-700'
+                    : 'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white'
+                }`}
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Content & List of Bidders */}
+            <div className="px-5 pb-5 space-y-3.5 flex-1 overflow-hidden flex flex-col min-h-0">
+              {/* Summary Chips Row */}
+              <div className="flex items-center gap-2 text-xs shrink-0 flex-wrap">
+                <span className={`font-bold px-3 py-1.5 rounded-xl border ${
+                  isLight
+                    ? 'bg-zinc-200/80 text-zinc-800 border-zinc-300/80'
+                    : 'bg-[#1C1E26] text-zinc-200 border-zinc-800'
+                }`}>
+                  {selectedAmountData.bidsCount} {t.bids}
+                </span>
+
+                <span className={`font-bold px-3 py-1.5 rounded-xl border ${
+                  isLight
+                    ? 'bg-zinc-200/80 text-zinc-800 border-zinc-300/80'
+                    : 'bg-[#1C1E26] text-zinc-200 border-zinc-800'
+                }`}>
+                  {selectedAmountData.playersCount} {t.players}
+                </span>
+
+                <span
+                  className={`font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1 ${
+                    selectedAmountData.isUnique
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                      : isLight
+                        ? 'bg-zinc-200/80 text-zinc-600 border-zinc-300/80'
+                        : 'bg-zinc-800/60 text-zinc-400 border-zinc-700/60'
+                  }`}
+                >
+                  {selectedAmountData.isUnique ? t.unique : t.notUnique} <Info size={11} />
+                </span>
+              </div>
+
+              {/* Scrollable Bidder List with visible vertical scrollbar */}
+              <div className="space-y-2 overflow-y-auto flex-1 overscroll-contain pr-1.5 modal-scrollbar max-h-[58vh]">
+                {selectedAmountData.bids && selectedAmountData.bids.length > 0 ? (
+                  selectedAmountData.bids.map((b) => (
+                    <div
+                      key={b.id || b.index}
+                      className={`rounded-2xl p-3 flex items-center justify-between text-xs border transition-colors ${
+                        isLight
+                          ? 'bg-[#EDEDF0] border-zinc-200/90 text-zinc-800'
+                          : 'bg-[#1A1C24] border-zinc-800/80 text-zinc-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-zinc-500 font-mono font-bold text-xs w-6 shrink-0">
+                          #{b.index}
+                        </span>
+                        <div className="flex items-center gap-1.5 font-bold truncate">
+                          <Phone size={12} className="text-amber-400 shrink-0" />
+                          <span className="truncate">{b.masked_phone}</span>
+                          {user?.id && b.user_id === user.id && (
+                            <span className="text-[8px] font-black px-1.5 py-0.5 bg-emerald-500 text-black rounded uppercase">
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <span className={`text-[11px] font-medium shrink-0 ml-2 ${
+                        isLight ? 'text-zinc-500' : 'text-zinc-400'
+                      }`}>
+                        {formatHumanDateTime(b.created_at)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-zinc-500 text-xs font-bold">
+                    No bids recorded for this amount.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
