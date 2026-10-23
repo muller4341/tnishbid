@@ -117,13 +117,13 @@ export const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, s
   ];
 
   return (
-    <div className="space-y-1.5 text-left animate-in fade-in slide-in-from-top-1 duration-200">
+    <div className="space-y-1 text-left animate-in fade-in slide-in-from-top-1 duration-200">
       {showLabel && (
-        <label className={`text-xs sm:text-sm font-bold block ${isLight ? 'text-zinc-800' : 'text-zinc-200'}`}>
+        <label className={`text-xs font-bold block ${isLight ? 'text-zinc-800' : 'text-zinc-200'}`}>
           Payment Option
         </label>
       )}
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-3 gap-2">
         {options.map((opt) => {
           const isSelected = selectedPayment === opt.id;
           return (
@@ -132,7 +132,7 @@ export const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, s
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelectPayment?.(opt.id)}
-              className={`p-2.5 sm:p-3 rounded-2xl border transition-all text-left flex flex-col justify-between cursor-pointer relative min-h-[66px] ${isSelected
+              className={`p-2 sm:p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between cursor-pointer relative min-h-[54px] ${isSelected
                 ? isLight
                   ? 'bg-[#FFF5ED] border-[#ea580c] ring-1.5 ring-[#ea580c]/35 shadow-xs'
                   : 'bg-[#1e150d] border-[#f97316] ring-1.5 ring-[#f97316]/45 shadow-xs'
@@ -143,27 +143,27 @@ export const PaymentMethodSelector = memo(({ selectedPayment, onSelectPayment, s
             >
               <div className="flex items-center justify-between w-full">
                 <div
-                  className={`w-8 h-8 rounded-lg  flex items-center justify-center shrink-0 ${isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-[#1a1b22] border border-white/5'
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isLight ? 'bg-zinc-100 border border-zinc-200' : 'bg-[#1a1b22] border border-white/5'
                     }`}
                 >
                   {opt.logo}
                 </div>
                 {isSelected ? (
                   <div
-                    className="w-4.5 h-4.5 rounded-full flex items-center justify-center text-white shadow-xs shrink-0"
+                    className="w-4 h-4 rounded-full flex items-center justify-center text-white shadow-xs shrink-0"
                     style={{ background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)', color: '#ffffff' }}
                   >
-                    <Check size={10} strokeWidth={3.5} />
+                    <Check size={9} strokeWidth={3.5} />
                   </div>
                 ) : (
                   <div
-                    className={`w-4.5 h-4.5 rounded-full border shrink-0 ${isLight ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-transparent'
+                    className={`w-4 h-4 rounded-full border shrink-0 ${isLight ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-transparent'
                       }`}
                   />
                 )}
               </div>
               <span
-                className={`mt-1.5 text-xs sm:text-[13px] font-bold tracking-tight block truncate ${isSelected
+                className={`mt-1 text-[11px] sm:text-xs font-bold tracking-tight block truncate ${isSelected
                   ? isLight
                     ? 'text-[#ea580c]'
                     : 'text-orange-400'
@@ -335,9 +335,9 @@ export const ConfirmBidModal = memo(({
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
-          ? 'rounded-3xl zoom-in-95'
-          : 'rounded-t-[28px] rounded-b-none sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95 shadow-2xl'
+        className={`max-w-md w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto px-3.5 py-3 sm:py-4 sm:px-5 pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] sm:pb-5 relative text-left space-y-2.5 sm:space-y-3 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
+          ? 'rounded-2xl zoom-in-95'
+          : 'rounded-t-[24px] rounded-b-none sm:rounded-2xl slide-in-from-bottom-4 sm:zoom-in-95 shadow-2xl'
           } ${isLight
             ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
             : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
@@ -348,47 +348,46 @@ export const ConfirmBidModal = memo(({
       >
         {/* Top Handle (bottom sheet only) */}
         {!paymentSuccess && !(inlinePayment && !isWallet) && (
-          <div className={`mx-auto mb-1.5 h-1.5 w-12 rounded-full ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
+          <div className={`mx-auto mb-1 h-1 w-10 rounded-full ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
         )}
 
         {/* Header */}
         <div
-          className={`flex items-center justify-between pb-3 border-b ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
+          className={`flex items-center justify-between pb-2 border-b ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
             }`}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${paymentSuccess
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${paymentSuccess
                 ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
                 : isLight
                   ? 'bg-orange-50 border border-orange-200 text-orange-600'
                   : 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
                 }`}
             >
-              {paymentSuccess ? <CheckCircle2 size={18} /> : <Gavel size={18} />}
+              {paymentSuccess ? <CheckCircle2 size={16} /> : <Gavel size={16} />}
             </div>
             <div>
               <h2
                 id="payment-summary-title"
-                className={`font-black text-lg sm:text-xl tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'
+                className={`font-black text-base sm:text-lg tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'
                   }`}
               >
                 {paymentSuccess ? 'Payment Successful' : 'Payment Summary'}
               </h2>
-
             </div>
           </div>
           {!paymentSuccess && !(inlinePayment && !isWallet) && (
             <button
               type="button"
               onClick={handleModalClose}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border shrink-0 ${isLight
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors cursor-pointer border shrink-0 ${isLight
                 ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border-zinc-200'
                 : 'bg-[#1f2026] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
                 }`}
               aria-label="Close"
             >
-              <X size={15} />
+              <X size={14} />
             </button>
           )}
         </div>
@@ -407,15 +406,15 @@ export const ConfirmBidModal = memo(({
         )}
 
         {paymentSuccess ? (
-          <div className="py-4 px-2 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-500 shadow-xs">
-              <CheckCircle2 size={28} />
+          <div className="py-3 px-2 text-center space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-500 shadow-xs">
+              <CheckCircle2 size={24} />
             </div>
             <div>
-              <h3 className={`text-lg sm:text-xl font-black tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+              <h3 className={`text-base sm:text-lg font-black tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 Payment Successful!
               </h3>
-              <p className={`mt-1.5 text-xs leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
+              <p className={`mt-1 text-xs leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
                 {isWallet ? (
                   <>Your participation fee was deducted from your wallet and your bid of </>
                 ) : (
@@ -427,25 +426,25 @@ export const ConfirmBidModal = memo(({
                 has been placed successfully.
               </p>
             </div>
-            <p className={`mt-2 text-xs font-medium animate-pulse ${isLight ? 'text-zinc-400' : 'text-zinc-500'}`}>
+            <p className={`mt-1.5 text-xs font-medium animate-pulse ${isLight ? 'text-zinc-400' : 'text-zinc-500'}`}>
               Redirecting to your bids…
             </p>
           </div>
         ) : inlinePayment && !isWallet ? (
-          <div className="py-5 px-3 text-center space-y-3 animate-in fade-in zoom-in-95 duration-200">
+          <div className="py-4 px-2 text-center space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto shadow-md ${isLight
+              className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto shadow-md ${isLight
                 ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
                 : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
                 }`}
             >
-              <Smartphone size={24} className="animate-pulse" />
+              <Smartphone size={20} className="animate-pulse" />
             </div>
             <div>
-              <h3 className={`text-base sm:text-lg font-black tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+              <h3 className={`text-sm sm:text-base font-black tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 Payment Push Sent!
               </h3>
-              <p className={`mt-1.5 text-[11px] leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
+              <p className={`mt-1 text-[11px] leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
                 A payment authorization prompt of{' '}
                 <span className={`font-bold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>
                   {parseFloat(bidFee || 0).toFixed(2)} Br
@@ -460,18 +459,18 @@ export const ConfirmBidModal = memo(({
                 </span>
                 .
               </p>
-              <p className={`mt-1 text-[10px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+              <p className={`mt-0.5 text-[10px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 Please check your phone and enter your PIN to approve the bid fee.
               </p>
             </div>
-            <div className="flex items-center justify-center gap-1.5 text-xs text-orange-500 pt-1">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-orange-500 pt-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
-              <span className="font-bold text-[11px] tracking-tight">Waiting for authorization…</span>
+              <span className="font-bold text-[10.5px] tracking-tight">Waiting for authorization…</span>
             </div>
             <button
               type="button"
               onClick={onInlineClose}
-              className={`mt-2 text-[11px] underline cursor-pointer transition-colors block mx-auto ${isLight ? 'text-zinc-500 hover:text-zinc-800' : 'text-zinc-500 hover:text-zinc-300'
+              className={`mt-1.5 text-[10.5px] underline cursor-pointer transition-colors block mx-auto ${isLight ? 'text-zinc-500 hover:text-zinc-800' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
             >
               Cancel Payment
@@ -481,37 +480,37 @@ export const ConfirmBidModal = memo(({
           <>
             {/* Bid Details Card */}
             <div
-              className={`rounded-2xl border p-3.5 sm:p-4 text-sm transition-colors space-y-2.5 ${isLight
+              className={`rounded-xl border p-2.5 sm:p-3 text-xs sm:text-sm transition-colors space-y-1.5 ${isLight
                 ? 'bg-[#FFF9F5] border-orange-500/20 shadow-xs'
                 : 'bg-[#111216] border-zinc-800/80'
                 }`}
             >
               <div
-                className={`flex items-start gap-2.5 border-b pb-2.5 ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
+                className={`flex items-start gap-2 border-b pb-1.5 ${isLight ? 'border-orange-500/15' : 'border-zinc-800'
                   }`}
               >
-                <Package size={16} className={`mt-0.5 shrink-0 ${isLight ? 'text-orange-600' : 'text-zinc-400'}`} />
+                <Package size={14} className={`mt-0.5 shrink-0 ${isLight ? 'text-orange-600' : 'text-zinc-400'}`} />
                 <div className="min-w-0 flex-1 flex items-center justify-between">
-                  <p className={`text-md sm:text-[14px] font-medium truncate ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <p className={`text-xs sm:text-[13px] font-medium truncate ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
                     Item: <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>{itemTitle || 'Auction Item'}</span>
                   </p>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className={`text-xs sm:text-[13px] font-medium ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                <span className={`text-[11px] sm:text-xs font-medium ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
                   Your Bid Amount:
                 </span>
-                <span className={`font-mono font-bold text-sm sm:text-base ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                <span className={`font-mono font-bold text-xs sm:text-sm ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                   {parseFloat(bidAmount || 0).toFixed(2)} Br
                 </span>
               </div>
               <div className="flex items-center justify-between pt-0.5">
                 <div className="flex items-center">
-                  <span className={`text-xs sm:text-[13px] font-medium ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <span className={`text-[11px] sm:text-xs font-medium ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
                     Participation Fee:
                   </span>
                   <span
-                    className={`ml-2 inline-block rounded-md px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider border ${isLight
+                    className={`ml-1.5 inline-block rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider border ${isLight
                       ? 'bg-rose-50 border-rose-200 text-rose-600'
                       : 'bg-rose-950/60 border-rose-500/30 text-rose-400'
                       }`}
@@ -520,7 +519,7 @@ export const ConfirmBidModal = memo(({
                   </span>
                 </div>
                 <span
-                  className={`font-mono font-black text-lg sm:text-xl ${isLight ? 'text-[#ea580c]' : 'text-orange-400'
+                  className={`font-mono font-black text-base sm:text-lg ${isLight ? 'text-[#ea580c]' : 'text-orange-400'
                     }`}
                 >
                   {parseFloat(bidFee || 0).toFixed(2)} Br
@@ -530,7 +529,7 @@ export const ConfirmBidModal = memo(({
 
             {/* Payment Option Selector */}
             <div>
-              <p className={`mb-1.5 text-xs sm:text-sm font-bold ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+              <p className={`mb-1 text-xs font-bold ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
                 Payment Option
               </p>
               <PaymentMethodSelector
@@ -543,7 +542,7 @@ export const ConfirmBidModal = memo(({
             {/* Wallet Balance Display OR Phone Number Input */}
             {isWallet ? (
               <div
-                className={`rounded-2xl border p-3.5 sm:p-4 transition-colors ${!hasSufficientBalance
+                className={`rounded-xl border p-2.5 sm:p-3 transition-colors ${!hasSufficientBalance
                   ? isLight
                     ? 'bg-red-50/80 border-red-300'
                     : 'bg-red-950/30 border-red-900/60'
@@ -553,58 +552,58 @@ export const ConfirmBidModal = memo(({
                   }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isLight
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isLight
                         ? 'bg-white text-orange-600 border border-orange-200'
                         : 'bg-[#111216] text-orange-400 border border-zinc-800'
                         }`}
                     >
-                      <Wallet size={16} />
+                      <Wallet size={14} />
                     </div>
                     <div>
-                      <span className={`text-[11px] font-medium block leading-none ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      <span className={`text-[10px] font-medium block leading-none ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                         Available Wallet
                       </span>
-                      <span className={`text-base sm:text-lg font-black font-mono leading-tight mt-0.5 block ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                      <span className={`text-sm sm:text-base font-black font-mono leading-tight mt-0.5 block ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                         {walletBalance.toFixed(2)} Br
                       </span>
                     </div>
                   </div>
                   {hasSufficientBalance ? (
-                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    <span className="text-[9.5px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                       Sufficient
                     </span>
                   ) : (
-                    <span className="text-[10px] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    <span className="text-[9.5px] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                       Low Balance
                     </span>
                   )}
                 </div>
                 {!hasSufficientBalance && (
-                  <p className="mt-2 text-xs font-semibold text-red-500 flex items-center gap-1.5">
-                    <AlertCircle size={14} className="shrink-0" />
+                  <p className="mt-1.5 text-[11px] font-semibold text-red-500 flex items-center gap-1">
+                    <AlertCircle size={13} className="shrink-0" />
                     Insufficient fee ({requiredFee.toFixed(2)} Br). Choose Telebirr or CBE Birr.
                   </p>
                 )}
                 {walletError && (
-                  <p className="mt-2 text-xs font-semibold text-red-500">{walletError}</p>
+                  <p className="mt-1.5 text-[11px] font-semibold text-red-500">{walletError}</p>
                 )}
               </div>
             ) : (
               <div>
-                <label className={`mb-1.5 block text-xs sm:text-sm font-bold ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                <label className={`mb-1 block text-xs font-bold ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
                   {activePayment === 'cbe' ? 'CBE Birr Phone' : 'Telebirr Phone'}
                 </label>
                 <div
-                  className={`flex items-center rounded-2xl border px-3.5 py-2.5 sm:py-3 transition-colors focus-within:border-orange-500 focus-within:ring-1.5 focus-within:ring-orange-500/30 ${isLight
+                  className={`flex items-center rounded-xl border px-3 py-2 transition-colors focus-within:border-orange-500 focus-within:ring-1 focus-within:ring-orange-500/30 ${isLight
                     ? 'bg-white border-zinc-300'
                     : 'bg-[#111216] border-zinc-800'
                     }`}
                 >
-                  <Smartphone size={16} className="mr-2.5 text-zinc-400 shrink-0" />
+                  <Smartphone size={15} className="mr-2 text-zinc-400 shrink-0" />
                   <span
-                    className={`border-r pr-3 text-sm font-bold ${isLight ? 'border-zinc-200 text-zinc-600' : 'border-zinc-800 text-zinc-300'
+                    className={`border-r pr-2.5 text-xs font-bold ${isLight ? 'border-zinc-200 text-zinc-600' : 'border-zinc-800 text-zinc-300'
                       }`}
                   >
                     +251
@@ -615,7 +614,7 @@ export const ConfirmBidModal = memo(({
                     onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, ''))}
                     placeholder="91 234 5678"
                     style={{ fontSize: '16px' }}
-                    className={`min-w-0 flex-1 bg-transparent pl-3 text-[16px] sm:text-base font-bold outline-none ${isLight
+                    className={`min-w-0 flex-1 bg-transparent pl-2.5 text-[16px] sm:text-sm font-bold outline-none ${isLight
                       ? 'text-zinc-900 placeholder:text-zinc-400'
                       : 'text-white placeholder:text-zinc-600'
                       }`}
@@ -626,23 +625,23 @@ export const ConfirmBidModal = memo(({
 
             {/* Before You Continue Box */}
             <div
-              className={`rounded-2xl border p-3.5 sm:p-4 text-left ${isLight
+              className={`rounded-xl border p-2.5 sm:p-3 text-left ${isLight
                 ? 'bg-[#FFF9F5] border-orange-500/18 text-zinc-700'
                 : 'bg-[#111216] border-zinc-800/80 text-zinc-400'
                 }`}
             >
-              <div className="flex items-center gap-2">
-                <Info size={16} className="text-orange-500 shrink-0" />
-                <span className={`text-xs sm:text-[13px] font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-200'}`}>
+              <div className="flex items-center gap-1.5">
+                <Info size={14} className="text-orange-500 shrink-0" />
+                <span className={`text-xs font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-200'}`}>
                   Participation Notice
                 </span>
               </div>
-              <p className="mt-1.5 text-xs sm:text-[12.5px] leading-relaxed font-normal">
+              <p className="mt-1 text-[11px] sm:text-xs leading-normal font-normal">
                 Fee is non-refundable; your bid isn't charged now. Lowest unique bid wins and only the winner pays their bid.
               </p>
               {showDetails && (
                 <p
-                  className={`mt-2 text-xs sm:text-[12.5px] leading-relaxed pt-2 border-t animate-in fade-in duration-150 ${isLight
+                  className={`mt-1.5 text-[11px] sm:text-xs leading-normal pt-1.5 border-t animate-in fade-in duration-150 ${isLight
                     ? 'text-zinc-800 border-orange-500/15'
                     : 'text-zinc-300 border-zinc-800/80'
                     }`}
@@ -652,11 +651,11 @@ export const ConfirmBidModal = memo(({
                     : `Make sure your phone number is active to receive the payment prompt. Once confirmed, you will be prompted to authorize the transaction via your chosen provider (${activePayment === 'cbe' ? 'CBE Birr' : 'Telebirr'}).`}
                 </p>
               )}
-              <div className="mt-2 text-left">
+              <div className="mt-1 text-left">
                 <button
                   type="button"
                   onClick={() => setShowDetails((prev) => !prev)}
-                  className="text-xs font-bold text-orange-500 hover:text-orange-600 hover:underline cursor-pointer inline-flex items-center gap-1"
+                  className="text-[11px] font-bold text-orange-500 hover:text-orange-600 hover:underline cursor-pointer inline-flex items-center gap-1"
                 >
                   {showDetails ? 'Hide details' : 'Learn more'}
                 </button>
@@ -666,10 +665,10 @@ export const ConfirmBidModal = memo(({
             {/* Agreement Checkbox */}
             <div
               onClick={() => setAgreed(!agreed)}
-              className="flex items-center gap-3 py-1 cursor-pointer select-none group"
+              className="flex items-center gap-2.5 py-0.5 cursor-pointer select-none group"
             >
               <div
-                className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all shrink-0 ${agreed
+                className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center transition-all shrink-0 ${agreed
                   ? 'border-orange-500 text-white shadow-xs'
                   : isLight
                     ? 'bg-white border-zinc-300 group-hover:border-orange-400'
@@ -684,10 +683,10 @@ export const ConfirmBidModal = memo(({
                     : undefined
                 }
               >
-                {agreed && <Check size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />}
+                {agreed && <Check size={11} strokeWidth={3.5} style={{ color: '#ffffff' }} />}
               </div>
               <span
-                className={`text-xs sm:text-sm font-semibold transition-colors ${isLight
+                className={`text-xs font-semibold transition-colors ${isLight
                   ? 'text-zinc-700 group-hover:text-zinc-900'
                   : 'text-zinc-300 group-hover:text-white'
                   }`}
@@ -697,7 +696,7 @@ export const ConfirmBidModal = memo(({
             </div>
 
             {/* Confirm Button */}
-            <div className="pt-2 pb-2">
+            <div className="pt-0.5 pb-1">
               <button
                 type="button"
                 onClick={handleConfirmClick}
@@ -707,22 +706,22 @@ export const ConfirmBidModal = memo(({
                     ? {
                       background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
                       color: '#ffffff',
-                      boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
+                      boxShadow: '0 6px 20px rgba(249, 115, 22, 0.30)',
                     }
                     : undefined
                 }
-                className={`w-full font-black text-sm sm:text-base py-3.5 sm:py-4 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
-                  ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
+                className={`w-full font-black text-xs sm:text-sm py-3 px-4 rounded-xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
+                  ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-md'
                   : isLight
                     ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
                     : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
                   }`}
               >
                 {isSubmitting ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                 ) : (
                   <>
-                    <CheckCircle2 size={18} style={{ color: agreed && (!isWallet || hasSufficientBalance) ? '#ffffff' : undefined }} />
+                    <CheckCircle2 size={16} style={{ color: agreed && (!isWallet || hasSufficientBalance) ? '#ffffff' : undefined }} />
                     <span style={{ color: agreed && (!isWallet || hasSufficientBalance) ? '#ffffff' : undefined }}>
                       {isWallet ? 'Pay with Wallet & Place Bid' : 'Confirm & Continue'}
                     </span>
