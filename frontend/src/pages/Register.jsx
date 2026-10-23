@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, Phone, Lock, Smartphone, ArrowLeft, AlertCircle, Crown } from 'lucide-react';
@@ -11,11 +11,20 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [agreePolicy, setAgreePolicy] = useState(false);
   const [error, setError] = useState('');
-  const { register } = useAuth();
+  const { register, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isSubmitting = useRef(false);
 
   const redirectPath = location.state?.from || '/';
+
+  // If user is already logged in (e.g. pressed browser back button),
+  // redirect them away — but NOT after a form register (handled by handleSubmit)
+  useEffect(() => {
+    if (user && !isSubmitting.current) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,6 +42,7 @@ const Register = () => {
     }
 
     try {
+      isSubmitting.current = true;
       await register(name, cleanPhone, password);
       navigate(redirectPath, {
         state: {
