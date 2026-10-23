@@ -134,10 +134,9 @@ const ruleIcons = { trophy: Trophy, repeat: Repeat2, target: Target, gavel: Gave
 
 const HERO_SLIDES = [
   {
-    isRules: true,
+    isRule: true,
     image: heroAwardImg,
     badge: 'HOW TO PLAY & WIN',
-    title: 'How to Win \u1275\u1295\u123dBid',
     accentColor: 'rgba(251, 191, 36, 0.65)',
   },
   {
@@ -149,35 +148,40 @@ const HERO_SLIDES = [
     accentColor: 'rgba(251, 191, 36, 0.6)',
   },
   {
-    image: heroAwardImg,
+    isRule: true,
+    image: heroAwardImg, 
     badge: 'TOP BIDDER AWARDS',
-    title: 'Bid More,\nWin Bonus Awards',
-    subtitle: 'Place more bids to top the leaderboard — most active bidders win exclusive champion awards!',
-    highlight: { label: 'Top Bidders', value: 'Bonus Awards' },
+    title: 'Bid More, Win up to 100,000 Birr',
+    rules: [
+      { title: 'Place multiple bids', text: 'Submit as many bids as you want to climb the leaderboard.', icon: 'repeat' },
+      { title: 'Be the top bidder', text: 'The user with the most bids gets the 2nd award.', icon: 'target' },
+      { title: 'Win 2nd winner award', text: 'The user with the second most bids gets the 1st award.', icon: 'trophy' },
+      { title: 'Double your chance', text: 'Win via lowest unique bid OR as the top bidder.', icon: 'gavel' },
+    ],
     accentColor: 'rgba(251, 191, 36, 0.65)',
   },
   {
     image: heroCarImg,
-    badge: 'LUXURY AUTOMOBILES',
+    badge: 'LATEST CARS',
     title: 'Drive Your\nDream Car',
-    subtitle: 'Win premium vehicles with a smart bidding strategy. Every bid counts.',
+    subtitle: 'Win latest cars with a smart bidding strategy.',
     highlight: { label: 'Up to', value: '100 Bids' },
     accentColor: 'rgba(249, 115, 22, 0.6)',
   },
   {
     image: heroLaptopImg,
-    badge: 'TOP-TIER TECH',
+    badge: 'EXCLUSIVE ELECTRONICS',
     title: 'Power Up\nYour Gear',
     subtitle: 'Latest laptops and computers await the smartest bidder.',
-    highlight: { label: 'Unique wins', value: 'Guaranteed' },
+    highlight: { label: 'Unique & small', value: 'wins' },
     accentColor: 'rgba(168, 162, 158, 0.5)',
   },
   {
     image: heroWatchImg,
     badge: 'EXCLUSIVE PRIZES',
     title: 'Wear Your\nVictory',
-    subtitle: 'Luxury watches and accessories — only the lowest unique bid wins.',
-    highlight: { label: 'New drops', value: 'Weekly' },
+    subtitle: 'Luxury watches and accessories, only the lowest unique bid wins and the top bidders win.',
+    highlight: { label: 'New posts', value: 'Daily' },
     accentColor: 'rgba(234, 179, 8, 0.6)',
   },
 ];
@@ -296,7 +300,7 @@ const HeroSection = ({ t, onScrollToItems }) => {
         </div>
 
         {/* Middle: Either Rules steps OR Title + Subtitle */}
-        {slide.isRules ? (
+        {(slide.isRules || slide.isRule) ? (
           <div className="flex-1 flex flex-col justify-center py-2">
             <h1
               className="text-xl sm:text-2xl font-black leading-tight tracking-tight mb-2.5 transition-all duration-500"
@@ -307,7 +311,7 @@ const HeroSection = ({ t, onScrollToItems }) => {
                 transform: isTransitioning ? 'translateY(12px)' : 'translateY(0)',
               }}
             >
-              {t.heroTitle || slide.title}
+              {slide.title || t.heroTitle}
             </h1>
 
             <div
