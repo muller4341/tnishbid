@@ -324,7 +324,7 @@ export const ConfirmBidModal = memo(({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${paymentSuccess || (inlinePayment && !isWallet) ? 'items-center p-4' : 'items-end p-0 sm:items-center sm:p-4'
+      className={`fixed inset-0 z-[105] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${paymentSuccess || (inlinePayment && !isWallet) ? 'items-center p-4' : 'items-end pb-[70px] p-0 sm:items-center sm:pb-0 sm:p-4'
         } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'
         }`}
       role="presentation"
@@ -333,7 +333,7 @@ export const ConfirmBidModal = memo(({
       }}
     >
       <div
-        className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[max(1.25rem,calc(1rem+env(safe-area-inset-bottom,0px)))] relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
+        className={`max-w-lg w-full max-h-[92vh] sm:max-h-[92vh] flex flex-col px-4 py-4 sm:py-5 sm:px-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${paymentSuccess || (inlinePayment && !isWallet)
             ? 'rounded-3xl zoom-in-95'
             : 'rounded-t-[28px] sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
           } ${isLight
@@ -477,6 +477,8 @@ export const ConfirmBidModal = memo(({
           </div>
         ) : (
           <>
+            {/* Scrollable content area */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 sm:space-y-4 pb-2">
             {/* Bid Details Card */}
             <div
               className={`rounded-2xl border p-3.5 sm:p-4 text-sm transition-colors space-y-2.5 ${isLight
@@ -612,7 +614,7 @@ export const ConfirmBidModal = memo(({
                     value={phoneNumber.replace(/^0/, '')}
                     onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, ''))}
                     placeholder="91 234 5678"
-                    className={`min-w-0 flex-1 bg-transparent pl-3 text-sm sm:text-base font-bold outline-none ${isLight
+                    className={`min-w-0 flex-1 bg-transparent pl-3 text-base font-bold outline-none ${isLight
                         ? 'text-zinc-900 placeholder:text-zinc-400'
                         : 'text-white placeholder:text-zinc-600'
                       }`}
@@ -659,7 +661,10 @@ export const ConfirmBidModal = memo(({
                 </button>
               </div>
             </div>
+            </div>
 
+            {/* Sticky bottom: Agreement Checkbox + Confirm Button */}
+            <div className="shrink-0 space-y-3 pt-2" style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom, 0px))' }}>
             {/* Agreement Checkbox */}
             <div
               onClick={() => setAgreed(!agreed)}
@@ -725,6 +730,7 @@ export const ConfirmBidModal = memo(({
                 </>
               )}
             </button>
+            </div>
           </>
         )}
       </div>
