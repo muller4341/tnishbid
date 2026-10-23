@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
@@ -20,6 +20,10 @@ import { optimizeImageUrl } from '../utils/imageOptimizer';
 import { ConfirmBidModal } from '../components/BidPaymentModal';
 import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
 import HomeSupportButton from '../components/HomeSupportButton';
+import heroIphoneImg from '../assets/hero_iphone.jpg';
+import heroCarImg from '../assets/hero_car.jpg';
+import heroLaptopImg from '../assets/hero_laptop.jpg';
+import heroWatchImg from '../assets/hero_watch.jpg';
 
 /* Translations */
 const TRANSLATIONS = {
@@ -124,55 +128,233 @@ const countdownColor = (endTime, isClosed) => {
   return 'text-emerald-400';
 };
 
-/* Hero / Game Description */
+/* Hero / Game Description — Swipeable Carousel */
 const ruleIcons = { trophy: Trophy, repeat: Repeat2, target: Target, gavel: Gavel };
 
-const HeroSection = ({ t, onScrollToItems }) => (
-  <div className="light-theme-hero home-hero relative rounded-[1rem] overflow-hidden mb-6">
-    {/* Glow orbs */}
-    <div className="home-hero-glow home-hero-glow-amber absolute -top-16 -right-10 pointer-events-none" />
-    <div className="home-hero-glow home-hero-glow-green absolute -bottom-20 -left-10 pointer-events-none" />
+const HERO_SLIDES = [
+  {
+    image: heroIphoneImg,
+    badge: 'WIN PREMIUM PHONES',
+    title: 'Bid Small,\nWin Big',
+    subtitle: 'Place the lowest unique bid and take home the latest smartphones.',
+    highlight: { label: 'Starting from', value: '1 Birr' },
+    accentColor: 'rgba(251, 191, 36, 0.6)',
+  },
+  {
+    image: heroCarImg,
+    badge: 'LUXURY AUTOMOBILES',
+    title: 'Drive Your\nDream Car',
+    subtitle: 'Win premium vehicles with a smart bidding strategy. Every bid counts.',
+    highlight: { label: 'Up to', value: '100 Bids' },
+    accentColor: 'rgba(249, 115, 22, 0.6)',
+  },
+  {
+    image: heroLaptopImg,
+    badge: 'TOP-TIER TECH',
+    title: 'Power Up\nYour Gear',
+    subtitle: 'Latest laptops and computers await the smartest bidder.',
+    highlight: { label: 'Unique wins', value: 'Guaranteed' },
+    accentColor: 'rgba(168, 162, 158, 0.5)',
+  },
+  {
+    image: heroWatchImg,
+    badge: 'EXCLUSIVE PRIZES',
+    title: 'Wear Your\nVictory',
+    subtitle: 'Luxury watches and accessories — only the lowest unique bid wins.',
+    highlight: { label: 'New drops', value: 'Weekly' },
+    accentColor: 'rgba(234, 179, 8, 0.6)',
+  },
+];
 
+const HeroSection = ({ t, onScrollToItems }) => {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const autoPlayRef = useRef(null);
+  const slideCount = HERO_SLIDES.length;
 
+  const goToSlide = useCallback((index) => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setActiveSlide(index);
+    setTimeout(() => setIsTransitioning(false), 600);
+  }, [isTransitioning]);
 
-    <div className="relative p-5 space-y-4">
+  const nextSlide = useCallback(() => {
+    goToSlide((activeSlide + 1) % slideCount);
+  }, [activeSlide, slideCount, goToSlide]);
 
-      {/* Brand badge */}
+  const prevSlide = useCallback(() => {
+    goToSlide((activeSlide - 1 + slideCount) % slideCount);
+  }, [activeSlide, slideCount, goToSlide]);
 
+  // Auto-play
+  useEffect(() => {
+    autoPlayRef.current = setInterval(nextSlide, 5000);
+    return () => clearInterval(autoPlayRef.current);
+  }, [nextSlide]);
 
-      <h1 className="text-2xl md:text-3xl font-black leading-tight tracking-tight"
-        style={{ color: '#fff', textShadow: '0 2px 20px rgba(249,115,22,0.4)' }}>
-        {t.heroTitle}
-      </h1>
+  // Reset auto-play on manual interaction
+  const resetAutoPlay = useCallback(() => {
+    clearInterval(autoPlayRef.current);
+    autoPlayRef.current = setInterval(nextSlide, 5000);
+  }, [nextSlide]);
 
-      <div className="grid gap-2">
-        {t.heroRules.map((rule) => {
-          const RuleIcon = ruleIcons[rule.icon];
-          return (
-            <div key={rule.title} className="flex items-start gap-2 rounded-xl px-3 py-1 ">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
-                <RuleIcon size={15} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-amber-300">{rule.title}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-white/75">{rule.text}</p>
-              </div>
-            </div>
-          );
-        })}
+  // Touch handlers
+  const handleTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const minSwipeDistance = 50;
+    if (Math.abs(distance) >= minSwipeDistance) {
+      if (distance > 0) nextSlide();
+      else prevSlide();
+      resetAutoPlay();
+    }
+  };
+
+  const slide = HERO_SLIDES[activeSlide];
+
+  return (
+    <div
+      className="light-theme-hero home-hero relative rounded-[1rem] overflow-hidden mb-6"
+      style={{ minHeight: '280px' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Background images — all preloaded, only active is visible */}
+      {HERO_SLIDES.map((s, i) => (
+        <div
+          key={i}
+          className="absolute inset-0 transition-all duration-700 ease-out"
+          style={{
+            opacity: i === activeSlide ? 1 : 0,
+            transform: i === activeSlide ? 'scale(1)' : 'scale(1.08)',
+          }}
+        >
+          <img
+            src={s.image}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            loading={i === 0 ? 'eager' : 'lazy'}
+          />
+          {/* Dark gradient overlay for text readability */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.3) 100%)`,
+            }}
+          />
+          {/* Accent color glow per slide */}
+          <div
+            className="absolute -bottom-20 -right-20 w-60 h-60 rounded-full blur-[80px] pointer-events-none"
+            style={{ background: s.accentColor }}
+          />
+        </div>
+      ))}
+
+      {/* Content overlay */}
+      <div className="relative z-10 p-5 sm:p-6 flex flex-col justify-between" style={{ minHeight: '280px' }}>
+        {/* Top: Badge */}
+        <div
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase w-fit transition-all duration-500"
+          style={{
+            background: 'rgba(251, 191, 36, 0.15)',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+            color: '#fbbf24',
+            backdropFilter: 'blur(8px)',
+            opacity: isTransitioning ? 0 : 1,
+            transform: isTransitioning ? 'translateY(-8px)' : 'translateY(0)',
+          }}
+        >
+          <Sparkles size={11} />
+          {slide.badge}
+        </div>
+
+        {/* Middle: Title + Subtitle */}
+        <div className="flex-1 flex flex-col justify-center py-3">
+          <h1
+            className="text-[1.75rem] sm:text-3xl md:text-4xl font-black leading-[1.1] tracking-tight transition-all duration-500 whitespace-pre-line"
+            style={{
+              color: '#fff',
+              textShadow: '0 2px 30px rgba(0,0,0,0.5)',
+              opacity: isTransitioning ? 0 : 1,
+              transform: isTransitioning ? 'translateY(16px)' : 'translateY(0)',
+            }}
+          >
+            {slide.title}
+          </h1>
+          <p
+            className="mt-2 text-xs sm:text-sm leading-relaxed max-w-[280px] transition-all duration-500 delay-75"
+            style={{
+              color: 'rgba(255,255,255,0.75)',
+              opacity: isTransitioning ? 0 : 1,
+              transform: isTransitioning ? 'translateY(12px)' : 'translateY(0)',
+            }}
+          >
+            {slide.subtitle}
+          </p>
+
+          {/* Highlight chip */}
+          <div
+            className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl w-fit transition-all duration-500 delay-100"
+            style={{
+              background: 'rgba(251, 191, 36, 0.1)',
+              border: '1px solid rgba(251, 191, 36, 0.2)',
+              backdropFilter: 'blur(8px)',
+              opacity: isTransitioning ? 0 : 1,
+              transform: isTransitioning ? 'translateY(10px)' : 'translateY(0)',
+            }}
+          >
+            <span className="text-[10px] text-amber-300/70 font-medium uppercase tracking-wider">{slide.highlight.label}</span>
+            <span className="text-xs text-amber-300 font-black">{slide.highlight.value}</span>
+          </div>
+        </div>
+
+        {/* Bottom: CTA + dots */}
+        <div className="space-y-3">
+          <button
+            onClick={onScrollToItems}
+            className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black font-bold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+          >
+            {t.startBid} <Sparkles size={16} />
+          </button>
+
+          {/* Dot indicators */}
+          <div className="flex items-center justify-center gap-2">
+            {HERO_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { goToSlide(i); resetAutoPlay(); }}
+                className="transition-all duration-300 rounded-full"
+                style={{
+                  width: i === activeSlide ? '20px' : '6px',
+                  height: '6px',
+                  background: i === activeSlide
+                    ? 'linear-gradient(90deg, #f59e0b, #f97316)'
+                    : 'rgba(255,255,255,0.3)',
+                  cursor: 'pointer',
+                  border: 'none',
+                  padding: 0,
+                }}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
-
-
-
-      <button
-        onClick={onScrollToItems}
-        className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 font-bold"
-      >
-        {t.startBid} <Sparkles size={16} />
-      </button>
     </div>
-  </div>
-);
+  );
+};
+
 
 
 const sanitizeBidAmount = (val) => {
