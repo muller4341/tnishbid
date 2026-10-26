@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
         phone_number: trimmedPhone,
         email: email || null,
         password_hash,
-        wallet_balance: 100.0
+        wallet_balance: 10.0
       }
     });
 

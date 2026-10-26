@@ -4,16 +4,25 @@ const buildRealDailyTrend = (bidsArray, daysCount = 7) => {
   const result = [];
   const now = new Date();
   
+  // EAT offset (+3 hours for Nairobi / Addis Ababa)
+  const eatOffsetMs = 3 * 60 * 60 * 1000;
+  const nowEAT = new Date(now.getTime() + eatOffsetMs);
+
   for (let i = daysCount - 1; i >= 0; i--) {
-    const targetDate = new Date(now);
-    targetDate.setDate(targetDate.getDate() - i);
+    const targetDateEAT = new Date(nowEAT);
+    targetDateEAT.setUTCDate(targetDateEAT.getUTCDate() - i);
     
-    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
-    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+    const year = targetDateEAT.getUTCFullYear();
+    const month = targetDateEAT.getUTCMonth();
+    const day = targetDateEAT.getUTCDate();
+
+    // Start and end of the calendar day in EAT, converted back to UTC for filtering
+    const startOfDay = new Date(Date.UTC(year, month, day, 0, 0, 0, 0) - eatOffsetMs);
+    const endOfDay = new Date(Date.UTC(year, month, day, 23, 59, 59, 999) - eatOffsetMs);
     
-    const dateLabel = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const dateLabel = targetDateEAT.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
     
-    // Filter real bids placed on this calendar day
+    // Filter real bids placed on this calendar day in EAT
     const bidsOnDay = bidsArray.filter(b => {
       const bDate = new Date(b.created_at);
       return bDate >= startOfDay && bDate <= endOfDay;
@@ -23,7 +32,7 @@ const buildRealDailyTrend = (bidsArray, daysCount = 7) => {
 
     result.push({
       date: dateLabel,
-      fullDate: startOfDay.toISOString().split('T')[0],
+      fullDate: targetDateEAT.toISOString().split('T')[0],
       bids: bidsOnDay.length,
       uniqueBids: uniqueBidsOnDay.length,
       duplicatedBids: bidsOnDay.length - uniqueBidsOnDay.length,
@@ -33,7 +42,6 @@ const buildRealDailyTrend = (bidsArray, daysCount = 7) => {
   
   return result;
 };
-
 exports.getDashboardStats = async (req, res) => {
   try {
     // 1. Basic counts
