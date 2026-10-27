@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Draws from './pages/Draws';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import ItemDetails from './pages/ItemDetails';
 import Discover from './pages/Discover';
 import AdminDashboard from './pages/AdminDashboard';
@@ -54,6 +55,9 @@ const AppContent = () => {
           <Route path="/my-bid" element={<Navigate to="/my-bids" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/forget" element={<Navigate to="/forgot-password" replace />} />
+          <Route path="/reset-password" element={<Navigate to="/forgot-password" replace />} />
           <Route path="/payment-result" element={<PaymentResult />} />
           <Route path="/item/:id" element={<ItemDetails />} />
           <Route 

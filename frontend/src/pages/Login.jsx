@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Phone, Lock, AlertCircle, ArrowLeft, Smartphone, Crown } from 'lucide-react';
+import { Phone, Lock, AlertCircle, ArrowLeft, Smartphone } from 'lucide-react';
+import logoImg from '../assets/logo1.png';
 
 const PHONE_REGEX = /^(09|07)\d{8}$/;
 
@@ -64,12 +65,20 @@ const Login = () => {
       </Link>
 
       <div className="bg-[#16161A] rounded-3xl shadow-2xl p-6 md:p-8 border border-zinc-800/90 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-[#111113] border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400 shadow-inner">
-            <Crown size={24} />
+        <div className="text-center space-y-3">
+          <Link to="/" className="inline-block group focus:outline-none">
+            <div className="relative inline-flex items-center justify-center p-2 rounded-2xl bg-[#111113]/80 border border-amber-500/20 shadow-inner group-hover:border-amber-500/40 transition-colors">
+              <img 
+                src={logoImg} 
+                alt="ትንሽBid" 
+                className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]" 
+              />
+            </div>
+          </Link>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black text-white tracking-tight">Phone Sign In</h1>
+            <p className="text-xs text-zinc-400">Sign in with your phone number to place unique bids</p>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Phone Sign In</h1>
-          <p className="text-xs text-zinc-400">Sign in with your phone number to place unique bids</p>
         </div>
 
         {location.state?.message && (
@@ -108,7 +117,15 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-zinc-300 mb-1.5">Password</label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="block text-xs font-bold text-zinc-300">Password</label>
+              <Link
+                to="/forgot-password"
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 <Lock className="h-4 w-4 text-amber-400" />

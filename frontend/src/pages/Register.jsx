@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Phone, Lock, Smartphone, ArrowLeft, AlertCircle, Crown } from 'lucide-react';
+import { User, Phone, Lock, Smartphone, ArrowLeft, AlertCircle } from 'lucide-react';
+import logoImg from '../assets/logo1.png';
 
 const PHONE_REGEX = /^(09|07)\d{8}$/;
 
@@ -67,12 +68,20 @@ const Register = () => {
       </Link>
 
       <div className="bg-[#16161A] rounded-3xl shadow-2xl p-6 md:p-8 border border-zinc-800/90 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-[#111113] border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400 shadow-inner">
-            <Crown size={24} />
+        <div className="text-center space-y-3">
+          <Link to="/" className="inline-block group focus:outline-none">
+            <div className="relative inline-flex items-center justify-center p-2 rounded-2xl bg-[#111113]/80 border border-amber-500/20 shadow-inner group-hover:border-amber-500/40 transition-colors">
+              <img 
+                src={logoImg} 
+                alt="ትንሽBid" 
+                className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]" 
+              />
+            </div>
+          </Link>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black text-white tracking-tight">Register Phone Account</h1>
+            <p className="text-xs text-zinc-400">Create your phone-based account for BidWin auctions</p>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Register Phone Account</h1>
-          <p className="text-xs text-zinc-400">Create your phone-based account for BidWin auctions</p>
         </div>
 
         {error && (
