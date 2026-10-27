@@ -5,7 +5,8 @@ import { useTheme } from '../context/ThemeContext';
 import { Bell, Wallet, Smartphone, ShieldCheck, Sun, Moon, Globe, History, Trophy, Sparkles, X } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
-import logoImg from '../assets/logo1.png';
+import logoDark from '../assets/logo1.png';
+import logoLight from '../assets/logo2.png';
 
 const LanguageSwitcher = () => {
   const { lang, setLang } = useLanguage();
@@ -196,7 +197,7 @@ const Navbar = () => {
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Link to="/" className="flex items-center group">
             <img 
-              src={logoImg} 
+              src={theme === 'light' ? logoLight : logoDark} 
               alt="ትንሽBid" 
               className="h-8 sm:h-9 md:h-10 w-auto object-contain transition-transform group-hover:scale-105" 
             />

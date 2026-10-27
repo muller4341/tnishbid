@@ -10,6 +10,16 @@ const invalidateItemCache = (id) => {
 };
 exports.invalidateItemCache = invalidateItemCache;
 
+// Anchors naive date strings to East Africa Time (Nairobi / Addis Ababa, UTC+3)
+const parseToEAT = (dateStr) => {
+  if (!dateStr) return null;
+  const str = String(dateStr).trim();
+  if (/Z|[+-]\d{2}(:?\d{2})?$/i.test(str)) {
+    return new Date(str);
+  }
+  return new Date(`${str.replace(' ', 'T')}+03:00`);
+};
+
 exports.getItems = async (req, res) => {
   try {
     const cached = cache.get('items:all');
@@ -137,8 +147,8 @@ exports.createItem = async (req, res) => {
         image_url,
         images: itemImages,
         base_price: parseFloat(base_price),
-        start_time: new Date(start_time),
-        end_time: new Date(end_time),
+        start_time: parseToEAT(start_time),
+        end_time: parseToEAT(end_time),
         status: 'active'
       }
     });
@@ -239,8 +249,8 @@ exports.updateItem = async (req, res) => {
         is_lub: isLubBool,
         pool_type: isLubBool ? 'lub' : 'open',
         base_price: base_price !== undefined ? parseFloat(base_price) : existing.base_price,
-        start_time: start_time ? new Date(start_time) : existing.start_time,
-        end_time: end_time ? new Date(end_time) : existing.end_time,
+        start_time: start_time ? parseToEAT(start_time) : existing.start_time,
+        end_time: end_time ? parseToEAT(end_time) : existing.end_time,
         status: status !== undefined ? status : existing.status,
         image_url,
         images: itemImages

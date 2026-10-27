@@ -9,6 +9,8 @@ import cbeLogo from '../assets/cbe.png';
 import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
 import { ConfirmBidModal } from '../components/BidPaymentModal';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
+import { clearCachedItems } from '../utils/cache';
+import { formatEATTimeLeft, isAuctionEndedEAT, formatEATDateTime } from '../utils/timezone';
 import {
   ArrowLeft,
   Share2,
@@ -381,17 +383,7 @@ const ConfettiCelebration = memo(() => {
 
 // Helper functions and translations for Expired / Concluded Auctions
 const formatHumanDateTime = (dateStr) => {
-  if (!dateStr) return 'N/A';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return 'N/A';
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  return formatEATDateTime(dateStr);
 };
 
 const getNetBid = (amt, basePrice = 0) => {
@@ -1247,34 +1239,23 @@ const ItemDetails = memo(() => {
     }
   }, [socket, id, user, item]);
 
-  // Countdown timer calculation
+  // Countdown timer calculation (Strictly aligned with Addis Ababa / Nairobi Time Zone - EAT, UTC+3)
   useEffect(() => {
     if (!item) return;
 
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const end = new Date(item.end_time).getTime();
-      const distance = end - now;
+    const updateTimer = () => {
+      const formatted = formatEATTimeLeft(item.end_time);
+      setTimeLeft(formatted);
+    };
 
-      if (distance < 0) {
-        clearInterval(interval);
-        setTimeLeft('EXPIRED');
-        return;
-      }
-
-      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
-    }, 1000);
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
   }, [item]);
 
   const isOpenPool = item?.pool_type === 'open';
-  const isExpired = item?.status === 'closed' || timeLeft === 'EXPIRED' || (item?.end_time && new Date(item.end_time).getTime() <= Date.now());
+  const isExpired = isAuctionEndedEAT(item) || timeLeft === 'EXPIRED';
 
   // Highest Bid Calculation for Open Pool
   const currentHighestBid = useMemo(() => {
@@ -1392,6 +1373,7 @@ const ItemDetails = memo(() => {
         amount: pendingBidAmount,
         payment_method: paymentToUse
       });
+      clearCachedItems();
 
       const actualFee = item?.base_price ?? 1.00;
       setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Birr placed successfully!`);
@@ -1499,6 +1481,18 @@ const ItemDetails = memo(() => {
                     <p className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1">
                       <span>{leadingBidderName}</span>
                     </p>
+                    <div className="pt-2 flex items-center justify-center gap-2">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0E0F12] border border-zinc-800 text-xs shadow-inner">
+                        <Clock size={13} className="text-amber-400" />
+                        <span className="text-zinc-400 font-bold">Ends in:</span>
+                        <span className={`font-mono font-black ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {timeLeft || 'Calculating...'}
+                        </span>
+                        <span className="text-[9px] text-amber-400/90 font-bold bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
+                          EAT
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* LIVE BID STREAM */}
@@ -1888,8 +1882,13 @@ const ItemDetails = memo(() => {
                     {/* Timer Banner */}
                     <div className="flex flex-col items-center justify-center py-4 bg-[#111113] text-white rounded-2xl border border-zinc-800 shadow-inner">
                       <Clock className="text-amber-400 mb-1" size={22} />
-                      <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
-                      <p className={`text-xl font-black font-mono tracking-tight ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
+                        <span className="text-[9px] font-bold text-amber-400/90 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
+                          Addis Ababa / Nairobi (EAT)
+                        </span>
+                      </div>
+                      <p className={`text-xl font-black font-mono tracking-tight mt-1 ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
                         {timeLeft || 'Calculating...'}
                       </p>
                     </div>

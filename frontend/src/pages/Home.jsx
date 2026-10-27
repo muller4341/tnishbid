@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +15,14 @@ import {
   Check,
   X
 } from 'lucide-react';
-import { getCachedItems, setCachedItems } from '../utils/cache';
+import { getCachedItems, setCachedItems, clearCachedItems } from '../utils/cache';
+import { 
+  formatEATCountdown, 
+  countdownColorEAT, 
+  isAuctionEndedEAT, 
+  parseAuctionDate, 
+  getEATRemainingMs 
+} from '../utils/timezone';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
 import { ConfirmBidModal } from '../components/BidPaymentModal';
 import ChapaEmbeddedModal from '../components/ChapaEmbeddedModal';
@@ -104,30 +111,9 @@ const TRANSLATIONS = {
   },
 };
 
-/* Helpers */
-const formatCountdown = (endTime) => {
-  if (!endTime) return '00h : 00m : 00s';
-  const now = Date.now();
-  const end = new Date(endTime).getTime();
-  const dist = end - now;
-  if (dist <= 0) return 'Ended';
-  const d = Math.floor(dist / (1000 * 60 * 60 * 24));
-  const h = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
-  const s = Math.floor((dist % (1000 * 60)) / 1000);
-  const pad = (n) => (n < 10 ? '0' + n : n);
-  if (d > 0) return `${d}d : ${pad(h)}h : ${pad(m)}m : ${pad(s)}s`;
-  return `${pad(h)}h : ${pad(m)}m : ${pad(s)}s`;
-};
-
-const countdownColor = (endTime, isClosed) => {
-  if (isClosed) return 'text-red-500';
-  if (!endTime) return 'text-red-500';
-  const dist = new Date(endTime).getTime() - Date.now();
-  if (dist <= 0) return 'text-red-500';
-  if (dist / (1000 * 60 * 60 * 24) <= 5) return 'text-yellow-400';
-  return 'text-emerald-400';
-};
+/* Helpers aligned with East Africa Time (Addis Ababa / Nairobi, UTC+3) */
+const formatCountdown = formatEATCountdown;
+const countdownColor = countdownColorEAT;
 
 /* Hero / Game Description — Swipeable Carousel */
 const ruleIcons = { trophy: Trophy, repeat: Repeat2, target: Target, gavel: Gavel };
@@ -440,9 +426,12 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [localBidCount, setLocalBidCount] = useState(
-    item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0
-  );
+  const currentItemBidCount = item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0;
+  const [localBidCount, setLocalBidCount] = useState(currentItemBidCount);
+
+  useEffect(() => {
+    setLocalBidCount(item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0);
+  }, [item._count?.bids, item.bid_count, item.bids?.length]);
   const [wished, setWished] = useState(false);
   const [countdown, setCountdown] = useState(() => formatCountdown(item.end_time));
   const [selectedPayment, setSelectedPayment] = useState('telebirr');
@@ -453,9 +442,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   const [inlinePayment, setInlinePayment] = useState(null);
   const [checkoutUrl, setCheckoutUrl] = useState(null);
 
-  const isExpired =
-    item.status === 'closed' ||
-    (item.end_time && new Date(item.end_time).getTime() <= Date.now());
+  const isExpired = isAuctionEndedEAT(item);
 
   useEffect(() => {
     if (isExpired) return;
@@ -550,6 +537,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
       }
       setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Br placed!`);
       setLocalBidCount((c) => c + 1);
+      clearCachedItems();
       setBidInput('');
       setTimeout(() => setSuccess(''), 3000);
       return { success: true };
@@ -607,6 +595,11 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           <span className={`text-xl font-black font-outfit ${isExpired ? 'text-red-500' : cdColor}`}>
             {isExpired ? (t.expired || 'Ended') : countdown}
           </span>
+          {!isExpired && (
+            <p className="text-[10px] text-zinc-500 font-bold tracking-wider mt-0.5">
+              Addis Ababa / Nairobi (EAT)
+            </p>
+          )}
         </div>
 
         {/* Bid Fee & Bid Count */}
@@ -775,7 +768,7 @@ const FilterDropdown = ({
   };
 
   return (
-    <div className={`relative min-w-0 ${isOpen ? 'z-50' : 'z-10'}`}>
+    <div className={`relative min-w-0 ${isOpen ? 'z-[130]' : 'z-10'}`}>
       {/* Trigger Button */}
       <button
         type="button"
@@ -820,7 +813,7 @@ const FilterDropdown = ({
       {isOpen && (
         <div
           role="listbox"
-          className={`absolute top-full mt-2 ${getAlignClass()} w-52 sm:w-56 max-w-[calc(100vw-24px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-50 animate-in fade-in zoom-in-95 duration-150 ${isLight
+          className={`absolute top-full mt-2 ${getAlignClass()} w-56 sm:w-60 max-w-[calc(100vw-24px)] rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl border transition-all z-[140] animate-in fade-in zoom-in-95 duration-150 ${isLight
             ? 'bg-white/98 border-zinc-200 shadow-2xl shadow-zinc-900/15'
             : 'bg-[#161720]/98 border-zinc-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)]'
             }`}
@@ -835,7 +828,7 @@ const FilterDropdown = ({
             </div>
           )}
 
-          <div className="space-y-0.5 max-h-60 overflow-y-auto overscroll-contain pr-0.5">
+          <div className="space-y-0.5 max-h-[min(340px,calc(100vh-220px))] overflow-y-auto overscroll-contain pr-0.5">
             {options.map((opt) => {
               const isSelected = selectedValue === opt.value;
               return (
@@ -899,6 +892,7 @@ const Home = () => {
     themeContext?.theme === 'light' ||
     (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Close dropdown on outside click or escape key
   useEffect(() => {
@@ -942,20 +936,34 @@ const Home = () => {
     itemsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const res = await axios.get('/api/items');
-        setCachedItems(res.data);
-        setItems(res.data);
-      } catch (err) {
-        console.error('Error fetching items:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchItems();
+  const fetchItems = useCallback(async (silent = false) => {
+    try {
+      if (!silent && !getCachedItems()) setLoading(true);
+      const res = await axios.get('/api/items', {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      setCachedItems(res.data);
+      setItems(res.data);
+    } catch (err) {
+      console.error('Error fetching items:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Fetch when entering/returning to Home route
+  useEffect(() => {
+    fetchItems(true);
+  }, [location.key, fetchItems]);
+
+  // Also re-fetch when browser window/tab gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchItems(true);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchItems]);
 
   useEffect(() => {
     let activeSocket = socket;
@@ -1014,9 +1022,7 @@ const Home = () => {
   ];
 
   const now = Date.now();
-  const isItemEnded = (item) =>
-    item.status === 'closed' ||
-    (item.end_time && new Date(item.end_time).getTime() <= now);
+  const isItemEnded = (item) => isAuctionEndedEAT(item);
 
   const filteredItems = items
     .filter((item) => {
@@ -1031,7 +1037,7 @@ const Home = () => {
       const query = searchQuery.toLowerCase();
       const matchesSearch = item.title.toLowerCase().includes(query) || item.description?.toLowerCase().includes(query);
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-      const remaining = new Date(item.end_time).getTime() - Date.now();
+      const remaining = getEATRemainingMs(item.end_time);
       const matchesTime =
         timeFilter === 'all' ||
         timeFilter === 'ended' ||
@@ -1049,13 +1055,13 @@ const Home = () => {
       }
       // For active items: sorted from shortest time to end to highest remaining time (soonest ending first)
       if (timeFilter !== 'ended') {
-        const aTime = a.end_time ? new Date(a.end_time).getTime() : Infinity;
-        const bTime = b.end_time ? new Date(b.end_time).getTime() : Infinity;
+        const aTime = parseAuctionDate(a.end_time)?.getTime() ?? Infinity;
+        const bTime = parseAuctionDate(b.end_time)?.getTime() ?? Infinity;
         return aTime - bTime;
       }
       // For ended items: most recently ended first
-      const aTime = a.end_time ? new Date(a.end_time).getTime() : 0;
-      const bTime = b.end_time ? new Date(b.end_time).getTime() : 0;
+      const aTime = parseAuctionDate(a.end_time)?.getTime() ?? 0;
+      const bTime = parseAuctionDate(b.end_time)?.getTime() ?? 0;
       return bTime - aTime;
     });
 
@@ -1092,14 +1098,14 @@ const Home = () => {
       {/* Mobile Backdrop for active dropdown */}
       {openDropdown && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-150"
+          className="fixed inset-0 z-[125] bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-150"
           onClick={() => setOpenDropdown(null)}
           aria-hidden="true"
         />
       )}
 
       {/* Filters Toolbar */}
-      <div ref={filtersContainerRef} className="relative z-40 mb-5">
+      <div ref={filtersContainerRef} className={`relative mb-5 transition-all ${openDropdown ? 'z-[130]' : 'z-30'}`}>
         <div className="grid grid-cols-3 gap-2">
           {/* 1. Time Filter Dropdown */}
           <FilterDropdown

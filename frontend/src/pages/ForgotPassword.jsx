@@ -17,12 +17,15 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import logoImg from '../assets/logo1.png';
+import { useTheme } from '../context/ThemeContext';
+import logoDark from '../assets/logo1.png';
+import logoLight from '../assets/logo2.png';
 
 const PHONE_REGEX = /^(09|07)\d{8}$/;
 
 const ForgotPassword = () => {
   const { lang } = useLanguage();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   // Multi-step states: 'phone' -> 'otp' -> 'new_password' -> 'success'
@@ -232,7 +235,7 @@ const ForgotPassword = () => {
           <Link to="/" className="inline-block group focus:outline-none">
             <div className="relative inline-flex items-center justify-center p-2 rounded-2xl bg-[#111113]/80 border border-amber-500/20 shadow-inner group-hover:border-amber-500/40 transition-colors">
               <img 
-                src={logoImg} 
+                src={theme === 'light' ? logoLight : logoDark} 
                 alt="ትንሽBid" 
                 className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]" 
               />

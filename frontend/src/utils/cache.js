@@ -41,6 +41,15 @@ export const getCachedItems = () => cacheGet('items_all');
 
 export const setCachedItems = (data) => cacheSet('items_all', data);
 
+export const clearCachedItems = () => {
+  memoryCache.delete('items_all');
+  try {
+    sessionStorage.removeItem('app_cache_items_all');
+  } catch {
+    // ignore
+  }
+};
+
 export const isCacheValid = () => {
   return getCachedItems() !== null;
 };
@@ -50,5 +59,6 @@ export default {
   cacheSet,
   getCachedItems,
   setCachedItems,
+  clearCachedItems,
   isCacheValid
 };
