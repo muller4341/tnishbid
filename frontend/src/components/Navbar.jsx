@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Bell, Wallet, Crown, Smartphone, ShieldCheck, Sun, Moon, Globe, History, Trophy, Sparkles, X } from 'lucide-react';
+import { Bell, Wallet, Smartphone, ShieldCheck, Sun, Moon, Globe, History, Trophy, Sparkles, X } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
+import logoImg from '../assets/logo1.png';
 
 const LanguageSwitcher = () => {
   const { lang, setLang } = useLanguage();
@@ -191,13 +192,14 @@ const Navbar = () => {
       }}
     >
       <div className="container mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
-        {/* Brand Logo & Crown Icon matching Screenshot */}
+        {/* Brand Logo */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 text-lg sm:text-xl md:text-2xl font-black tracking-tight text-white group">
-            <Crown size={22} className="text-amber-400 fill-amber-400/20 group-hover:scale-110 transition-transform shrink-0" />
-            <span>
-            ትንሽ<span className="text-amber-400">Bid</span>
-            </span>
+          <Link to="/" className="flex items-center group">
+            <img 
+              src={logoImg} 
+              alt="ትንሽBid" 
+              className="h-8 sm:h-9 md:h-10 w-auto object-contain transition-transform group-hover:scale-105" 
+            />
           </Link>
           <Link 
             to="/draws" 
