@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { User, Phone, Lock, Smartphone, ArrowLeft, AlertCircle } from 'lucide-react';
+import { User, Phone, Lock, Smartphone, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import logoDark from '../assets/logo1.png';
 import logoLight from '../assets/logo2.png';
 
@@ -14,6 +14,7 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [agreePolicy, setAgreePolicy] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { register, user } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
 
     const cleanPhone = phoneNumber.trim();
@@ -46,6 +48,7 @@ const Register = () => {
     }
 
     try {
+      setLoading(true);
       isSubmitting.current = true;
       await register(name, cleanPhone, password);
       navigate(redirectPath, {
@@ -56,6 +59,9 @@ const Register = () => {
       });
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed');
+    } finally {
+      setLoading(false);
+      isSubmitting.current = false;
     }
   };
 
@@ -104,8 +110,9 @@ const Register = () => {
               <input
                 type="text"
                 required
+                disabled={loading}
                 style={{ fontSize: '16px' }}
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all disabled:opacity-60"
                 placeholder="Abebe Bikila"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -122,9 +129,10 @@ const Register = () => {
               <input
                 type="tel"
                 required
+                disabled={loading}
                 maxLength={10}
                 style={{ fontSize: '16px' }}
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-mono font-bold text-white transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-mono font-bold text-white transition-all disabled:opacity-60"
                 placeholder="09xxxxxxxx"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
@@ -142,8 +150,9 @@ const Register = () => {
               <input
                 type="password"
                 required
+                disabled={loading}
                 style={{ fontSize: '16px' }}
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all disabled:opacity-60"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -157,9 +166,10 @@ const Register = () => {
               id="privacy-policy-checkbox"
               type="checkbox"
               required
+              disabled={loading}
               checked={agreePolicy}
               onChange={(e) => setAgreePolicy(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-[#111113] text-amber-500 focus:ring-amber-500/40 focus:ring-offset-0 cursor-pointer"
+              className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-[#111113] text-amber-500 focus:ring-amber-500/40 focus:ring-offset-0 cursor-pointer disabled:opacity-60"
             />
             <label htmlFor="privacy-policy-checkbox" className="text-xs text-zinc-400 cursor-pointer select-none leading-snug">
               I agree to the <span className="text-amber-400 font-bold hover:underline">Privacy Policy</span> & <span className="text-amber-400 font-bold hover:underline">Terms of Service</span>
@@ -168,10 +178,22 @@ const Register = () => {
 
           <button
             type="submit"
-            className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+            disabled={loading}
+            className={`w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 ${
+              loading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+            }`}
           >
-            <Smartphone size={16} />
-            Create Phone Account
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-black" />
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <>
+                <Smartphone size={16} />
+                <span>Create Phone Account</span>
+              </>
+            )}
           </button>
         </form>
 

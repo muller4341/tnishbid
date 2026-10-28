@@ -143,6 +143,41 @@ html {
   background: #A4A5AA;
 }
 
+/* ── Brand Skeleton Loading Gradient ── */
+.brand-skeleton-gradient {
+  background: linear-gradient(
+    110deg,
+    rgba(245, 158, 11, 0.05) 0%,
+    rgba(245, 158, 11, 0.15) 30%,
+    rgba(251, 191, 36, 0.32) 50%,
+    rgba(245, 158, 11, 0.15) 70%,
+    rgba(245, 158, 11, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: brandShimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes brandShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+[data-theme="light"] .brand-skeleton-gradient {
+  background: linear-gradient(
+    110deg,
+    rgba(245, 158, 11, 0.08) 0%,
+    rgba(245, 158, 11, 0.22) 30%,
+    rgba(251, 191, 36, 0.40) 50%,
+    rgba(245, 158, 11, 0.22) 70%,
+    rgba(245, 158, 11, 0.08) 100%
+  );
+  background-size: 200% 100%;
+}
+
 /* ── Hero shimmer animation ── */
 @keyframes heroShimmer {
   0% {

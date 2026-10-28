@@ -713,11 +713,11 @@ export const ConfirmBidModal = memo(({
                     }
                     : undefined
                 }
-                className={`w-full font-black text-xs sm:text-sm py-3 px-4 rounded-xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
+                className={`w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 ${agreed && !isSubmitting && (!isWallet || hasSufficientBalance)
                   ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-md'
                   : isLight
-                    ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
-                    : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
+                    ? 'bg-[#E4E5EA] text-black border border-zinc-300 cursor-not-allowed shadow-none'
+                    : 'bg-[#202026] text-black border border-zinc-800/80 cursor-not-allowed shadow-none'
                   }`}
               >
                 {isSubmitting ? (

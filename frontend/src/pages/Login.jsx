@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Phone, Lock, AlertCircle, ArrowLeft, Smartphone } from 'lucide-react';
+import { Phone, Lock, AlertCircle, ArrowLeft, Smartphone, Loader2 } from 'lucide-react';
 import logoDark from '../assets/logo1.png';
 import logoLight from '../assets/logo2.png';
 
@@ -12,6 +12,7 @@ const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
 
     const cleanPhone = phoneNumber.trim();
@@ -39,6 +41,7 @@ const Login = () => {
     }
 
     try {
+      setLoading(true);
       isSubmitting.current = true;
       const loggedUser = await login(cleanPhone, password);
       if (loggedUser && loggedUser.role === 'admin') {
@@ -53,6 +56,9 @@ const Login = () => {
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please check phone number and password.');
+    } finally {
+      setLoading(false);
+      isSubmitting.current = false;
     }
   };
 
@@ -107,9 +113,10 @@ const Login = () => {
               <input
                 type="tel"
                 required
+                disabled={loading}
                 maxLength={10}
                 style={{ fontSize: '16px' }}
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-mono font-bold text-white transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-mono font-bold text-white transition-all disabled:opacity-60"
                 placeholder="09xxxxxxxx"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
@@ -130,8 +137,9 @@ const Login = () => {
               <input
                 type="password"
                 required
+                disabled={loading}
                 style={{ fontSize: '16px' }}
-                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-[#111113] border border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-[16px] font-medium text-white transition-all disabled:opacity-60"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -149,10 +157,22 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+            disabled={loading}
+            className={`w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 ${
+              loading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+            }`}
           >
-            <Smartphone size={16} />
-            Sign In with Phone
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-black" />
+                <span>Signing In...</span>
+              </>
+            ) : (
+              <>
+                <Smartphone size={16} />
+                <span>Sign In with Phone</span>
+              </>
+            )}
           </button>
         </form>
 

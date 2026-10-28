@@ -432,6 +432,11 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   useEffect(() => {
     setLocalBidCount(item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0);
   }, [item._count?.bids, item.bid_count, item.bids?.length]);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [item?.image_url]);
   const [wished, setWished] = useState(false);
   const [countdown, setCountdown] = useState(() => formatCountdown(item.end_time));
   const [selectedPayment, setSelectedPayment] = useState('telebirr');
@@ -560,16 +565,24 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
   return (
     <div className="home-auction-card rounded-[1.75rem] overflow-hidden mb-5">
       {/* Image */}
-      <div className="home-card-image relative">
-        <Link to={`/item/${item.id}`}>
+      <div className="home-card-image relative w-full h-56 sm:h-64 overflow-hidden bg-[#111216]">
+        <Link to={`/item/${item.id}`} className="block w-full h-full relative">
           {item.image_url ? (
-            <img
-              src={optimizeImageUrl(item.image_url, { width: 600 })}
-              alt={item.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-56 sm:h-64 object-cover"
-            />
+            <>
+              {!imageLoaded && (
+                <div className="absolute inset-0 z-0 brand-skeleton-gradient" />
+              )}
+              <img
+                src={optimizeImageUrl(item.image_url, { width: 600 })}
+                alt={item.title}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setImageLoaded(true)}
+                className={`w-full h-56 sm:h-64 object-cover transition-opacity duration-300 ease-in-out ${
+                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+            </>
           ) : (
             <div className="w-full h-56 sm:h-64 flex items-center justify-center text-zinc-700">
               <Tag size={48} className="opacity-30" />
@@ -1071,9 +1084,21 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-amber-500 border-t-transparent" />
-        <p className="text-xs font-bold text-zinc-500 animate-pulse">Loading auctions...</p>
+      <div className="home-page w-full max-w-lg mx-auto pb-4 sm:pb-8 min-w-0 space-y-4">
+        {[1, 2].map((idx) => (
+          <div key={idx} className="home-auction-card rounded-[1.75rem] overflow-hidden border border-zinc-800/80 bg-[#141519]">
+            <div className="w-full h-56 sm:h-64 brand-skeleton-gradient" />
+            <div className="p-4 space-y-3">
+              <div className="h-5 bg-zinc-800/80 rounded-xl w-3/4" />
+              <div className="h-6 bg-zinc-800/60 rounded-xl w-2/5 mx-auto" />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="h-14 bg-zinc-800/60 rounded-xl" />
+                <div className="h-14 bg-zinc-800/60 rounded-xl" />
+              </div>
+              <div className="h-11 bg-zinc-800/60 rounded-2xl" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
