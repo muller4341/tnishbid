@@ -1057,14 +1057,14 @@ const Profile = () => {
               <button
                 type="button"
                 onClick={() => {
-                  if (!effectiveAmount || effectiveAmount < 10) {
+                  if (!effectiveAmount || effectiveAmount < 1) {
                     setFundError('Please select or enter an amount of at least 10 Birr');
                     return;
                   }
                   setFundError('');
                   setShowDepositModal(true);
                 }}
-                disabled={!effectiveAmount || effectiveAmount < 10}
+                disabled={!effectiveAmount || effectiveAmount < 1}
                 style={{
 
 
