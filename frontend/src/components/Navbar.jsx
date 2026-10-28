@@ -246,7 +246,7 @@ const Navbar = () => {
               
               
               
-              {/* Theme Toggle */}
+              {/* Theme Toggle
               <LanguageSwitcher />
               <button
                 onClick={toggleTheme}
@@ -255,7 +255,7 @@ const Navbar = () => {
                 aria-label="Toggle theme"
               >
                 {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
+              </button> */}
 
             </>
           ) : (
