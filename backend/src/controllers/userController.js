@@ -64,8 +64,8 @@ exports.addFunds = async (req, res) => {
   try {
     const { amount, method, transaction_id, phone_number } = req.body;
     const parsedAmount = parseFloat(amount);
-    if (!parsedAmount || parsedAmount <= 0) {
-      return res.status(400).json({ error: 'Please enter a valid amount' });
+    if (!parsedAmount || parsedAmount < 1) {
+      return res.status(400).json({ error: 'Please enter more than 1' });
     }
 
     const cleanTxn = String(transaction_id || '').trim();

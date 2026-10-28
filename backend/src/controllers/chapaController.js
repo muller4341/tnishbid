@@ -225,8 +225,8 @@ exports.prepareInlineWalletDeposit = async (req, res) => {
 
   try {
     const parsedAmount = parseFloat(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 10) {
-      return res.status(400).json({ error: 'Please enter a valid deposit amount of at least 10 Birr' });
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 1) {
+      return res.status(400).json({ error: 'Please enter more than 1' });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -254,8 +254,8 @@ exports.initializeWalletDeposit = async (req, res) => {
   try {
     const config = getConfig();
     const parsedAmount = parseFloat(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 10) {
-      return res.status(400).json({ error: 'Please enter a valid deposit amount of at least 10 Birr' });
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 1) {
+      return res.status(400).json({ error: 'Please enter more than 1' });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });

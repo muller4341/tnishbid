@@ -466,9 +466,9 @@ const DepositPaymentModal = memo(({
             <button
               type="button"
               onClick={onConfirm}
-              disabled={!agreed || isSubmitting || !amount || amount < 10}
+              disabled={!agreed || isSubmitting || !amount || amount < 1}
               style={
-                agreed && !isSubmitting && amount >= 10
+                agreed && !isSubmitting && amount >= 1
                   ? {
                     background: 'linear-gradient(100deg, #ea580c, #f97316 45%, #fb923c 75%, #f59e0b)',
                     color: '#ffffff',
@@ -476,7 +476,7 @@ const DepositPaymentModal = memo(({
                   }
                   : undefined
               }
-              className={`w-full font-black text-sm sm:text-base py-3 sm:py-3.5 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && amount >= 10
+              className={`w-full font-black text-sm sm:text-base py-3 sm:py-3.5 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && amount >= 1
                 ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
                 : isLight
                   ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
@@ -487,8 +487,8 @@ const DepositPaymentModal = memo(({
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
               ) : (
                 <>
-                  <CheckCircle2 size={18} style={{ color: agreed && amount >= 10 ? '#ffffff' : undefined }} />
-                  <span style={{ color: agreed && amount >= 10 ? '#ffffff' : undefined }}>
+                  <CheckCircle2 size={18} style={{ color: agreed && amount >= 1 ? '#ffffff' : undefined }} />
+                  <span style={{ color: agreed && amount >= 1 ? '#ffffff' : undefined }}>
                     Pay & Deposit {parseFloat(amount || 0).toFixed(2)} Br
                   </span>
                 </>
@@ -677,8 +677,8 @@ const Profile = () => {
     const method = overrideParams.method || selectedMethod;
     const phone = overrideParams.phone !== undefined ? overrideParams.phone : (senderPhone || user?.phone_number || '');
 
-    if (!amt || amt < 10) {
-      setFundError('Please select or enter an amount of at least 10 Birr');
+    if (!amt || amt < 1) {
+      setFundError('Please enter more than 1');
       return;
     }
 
@@ -1018,16 +1018,30 @@ const Profile = () => {
                     </span>
                     <input
                       type="number"
-                      min="10"
-                      step="1"
+                      min="1"
+                      step="any"
                       placeholder="Or enter custom amount..."
                       value={selectedPreset === 'custom' ? customAmount : `${effectiveAmount}`}
                       onChange={(e) => {
+                        const val = e.target.value;
                         setSelectedPreset('custom');
-                        setCustomAmount(e.target.value);
-                        setFundError('');
+                        setCustomAmount(val);
+                        const num = parseFloat(val);
+                        if (val !== '' && (isNaN(num) || num < 1)) {
+                          setFundError('Please enter more than 1');
+                        } else {
+                          setFundError('');
+                        }
                       }}
-                      onFocus={() => setSelectedPreset('custom')}
+                      onFocus={() => {
+                        setSelectedPreset('custom');
+                        if (customAmount !== '') {
+                          const num = parseFloat(customAmount);
+                          if (isNaN(num) || num < 1) {
+                            setFundError('Please enter more than 1');
+                          }
+                        }
+                      }}
                       style={{ fontSize: '16px' }}
                       className={`w-full bg-[#0E0F12] border rounded-xl pl-12 pr-4 py-2.5 text-[16px] text-white focus:outline-none transition-colors ${selectedPreset === 'custom' ? 'border-amber-400' : 'border-zinc-800 focus:border-amber-400'
                         }`}
@@ -1058,7 +1072,7 @@ const Profile = () => {
                 type="button"
                 onClick={() => {
                   if (!effectiveAmount || effectiveAmount < 1) {
-                    setFundError('Please select or enter an amount of at least 10 Birr');
+                    setFundError('Please enter more than 1');
                     return;
                   }
                   setFundError('');
@@ -1070,7 +1084,9 @@ const Profile = () => {
 
                   boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
                 }}
-                className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+                className={`w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 ${
+                  (!effectiveAmount || effectiveAmount < 1) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                }`}
               >
 
                 <span>Deposit Coins</span>
