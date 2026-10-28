@@ -416,12 +416,12 @@ export const ConfirmBidModal = memo(({
               </h3>
               <p className={`mt-1 text-xs leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
                 {isWallet ? (
-                  <>Your participation fee was deducted from your wallet and your bid of </>
+                  <>Your participation fee was deducted from your wallet. </>
                 ) : (
-                  <>Your participation fee was received and your bid of </>
+                  <>Your participation fee was received. </>
                 )}
                 <span className={`font-bold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>
-                  {parseFloat(bidAmount || 0).toFixed(2)} Br
+                  {parseFloat(bidFee || 0).toFixed(2)} Br
                 </span>{' '}
                 has been placed successfully.
               </p>
@@ -434,18 +434,21 @@ export const ConfirmBidModal = memo(({
           <div className="py-4 px-2 text-center space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto shadow-md ${isLight
-                ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
-                : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
+                ? 'bg-white text-orange-600'
+                : 'bg-white text-orange-400 '
                 }`}
             >
-              <Smartphone size={20} className="animate-pulse" />
+
+              <span className={`font-bold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>
+                {activePayment === 'cbe' ? <img src={cbeLogo} alt="cbe" className="h-6 w-auto object-contain rounded" /> : <img src={telebirrLogo} alt="Telebirr" className="h-6 w-auto object-contain rounded" />}
+              </span>
             </div>
             <div>
               <h3 className={`text-sm sm:text-base font-black tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 Payment Push Sent!
               </h3>
               <p className={`mt-1 text-[11px] leading-relaxed max-w-xs mx-auto ${isLight ? 'text-zinc-600' : 'text-zinc-300'}`}>
-                A payment authorization prompt of{' '}
+
                 <span className={`font-bold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>
                   {parseFloat(bidFee || 0).toFixed(2)} Br
                 </span>{' '}

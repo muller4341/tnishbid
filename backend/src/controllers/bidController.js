@@ -33,8 +33,15 @@ const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
   }
 
   const newBid = await tx.bid.create({
-    data: { amount: parsedAmount, is_unique, item_id: itemId, user_id: userId }
+    data: { amount: parsedAmount, is_unique, item_id: itemId, user_id: userId },
+    include: {
+      user: {
+        select: { id: true, name: true, phone_number: true, image_url: true }
+      }
+    }
   });
+
+  const total_bids = await tx.bid.count({ where: { item_id: itemId } });
 
   for (const duplicatedUserId of duplicatedUsers) {
     const message = `Your bid of ${parsedAmount} ETB for item "${item.title}" has been duplicated. Place a new unique bid to stay in the lead!`;
@@ -50,7 +57,7 @@ const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
     }
   }
 
-  return newBid;
+  return { ...newBid, total_bids };
 };
 
 exports.createBidRecord = createBidRecord;
@@ -102,9 +109,11 @@ exports.placeBid = async (req, res) => {
 
     // Broadcast global update
     io.emit('bid_update', {
-      item_id,
+      item_id: Number(item_id),
       new_bid_amount: result.amount,
-      is_unique: result.is_unique
+      is_unique: result.is_unique,
+      total_bids: result.total_bids,
+      bid: result
     });
 
     res.json(result);

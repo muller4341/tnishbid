@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, memo, lazy } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -727,7 +728,7 @@ const ExpiredAuctionView = ({ item, user }) => {
           }`}>
             <p className="text-[10px] text-zinc-400 font-medium">{t.totalBids}</p>
             <p className={`text-xs sm:text-sm font-black truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-              {allBids.length}
+              {item?._count?.bids ?? item?.bid_count ?? allBids.length}
             </p>
           </div>
 
@@ -1188,56 +1189,91 @@ const ItemDetails = memo(() => {
 
   // Socket live update
   useEffect(() => {
-    if (socket) {
-      const handleUpdate = (data) => {
-        if (data.item_id === parseInt(id) && data.bid) {
-          // Update item state with new bid
-          setItem(prev => {
-            if (!prev) return prev;
-            const updatedBids = [data.bid, ...(prev.bids || [])];
-            return { ...prev, bids: updatedBids };
-          });
-          // Update recent LUB bids
-          setRecentLUBBids(prev => [data.bid, ...prev]);
-          // Update recent bids stream (top 3)
-          setRecentBidsStream(prev => {
-            const combined = [data.bid, ...prev];
-            const formatted = combined.slice(0, 3).map((b, idx) => {
-              const isCurrUser = user?.id === b.user_id;
-              const rawName = b.user?.name || `User ${b.user_id}`;
-              const parts = rawName.split(' ');
-              const uName = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
-              const now = new Date().getTime();
-              const bidTime = new Date(b.created_at).getTime();
-              const diffSec = Math.max(1, Math.floor((now - bidTime) / 1000));
-              let timeAgo = `${diffSec}s ago`;
-              if (diffSec >= 60) {
-                timeAgo = `${Math.floor(diffSec / 60)}m ago`;
-              }
-              const prevBid = combined[idx + 1];
-              const diffVal = prevBid ? (b.amount - prevBid.amount) : (b.amount - (item?.base_price || 0));
-              const incStr = diffVal > 0 ? `+${diffVal.toLocaleString()} Birr` : `+${b.amount.toLocaleString()} Birr`;
-              const localAvatar = localStorage.getItem(`user_avatar_${b.user_id}`);
-              const userAvatar = b.user?.avatar || (isCurrUser ? user?.avatar : null) || localAvatar || null;
-              return {
-                id: b.id,
-                name: isCurrUser ? `${uName} (You)` : uName,
-                timeAgo,
-                amount: b.amount,
-                increment: incStr,
-                isUser: isCurrUser,
-                badge: isCurrUser ? '10X' : null,
-                avatar: userAvatar
-              };
-            });
-            return formatted;
-          });
-        }
-      };
-      socket.on('bid_update', handleUpdate);
-      return () => socket.off('bid_update', handleUpdate);
+    let activeSocket = socket;
+    let createdSocket = null;
+    if (!activeSocket) {
+      createdSocket = io();
+      activeSocket = createdSocket;
     }
-  }, [socket, id, user, item]);
+
+    const handleUpdate = (data) => {
+      if (!data || Number(data.item_id) !== Number(id)) return;
+
+      const newBid = data.bid || (data.new_bid_amount ? {
+        id: Date.now(),
+        item_id: Number(id),
+        amount: data.new_bid_amount,
+        is_unique: data.is_unique,
+        created_at: new Date().toISOString(),
+        user: null
+      } : null);
+
+      setItem(prev => {
+        if (!prev) return prev;
+        const currentBids = Array.isArray(prev.bids) ? prev.bids : [];
+        const alreadyExists = newBid && newBid.id ? currentBids.some(b => b.id === newBid.id) : false;
+        const updatedBids = newBid && !alreadyExists ? [newBid, ...currentBids] : currentBids;
+        const curCount = prev._count?.bids ?? prev.bid_count ?? currentBids.length ?? 0;
+        const nextCount = typeof data.total_bids === 'number'
+          ? data.total_bids
+          : (alreadyExists ? curCount : curCount + 1);
+
+        return {
+          ...prev,
+          bids: updatedBids,
+          bid_count: nextCount,
+          _count: { ...(prev._count || {}), bids: nextCount }
+        };
+      });
+
+      if (newBid) {
+        setRecentLUBBids(prev => {
+          const list = Array.isArray(prev) ? prev : [];
+          if (newBid.id && list.some(b => b.id === newBid.id)) return list;
+          return [newBid, ...list];
+        });
+
+        // Update recent bids stream (top 3)
+        setRecentBidsStream(prev => {
+          const combined = [newBid, ...(Array.isArray(prev) ? prev : [])];
+          return combined.slice(0, 3).map((b, idx) => {
+            const isCurrUser = user?.id === b.user_id;
+            const rawName = b.user?.name || `User ${b.user_id || ''}`;
+            const parts = rawName.trim().split(' ');
+            const uName = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
+            const now = new Date().getTime();
+            const bidTime = new Date(b.created_at || now).getTime();
+            const diffSec = Math.max(1, Math.floor((now - bidTime) / 1000));
+            let timeAgo = `${diffSec}s ago`;
+            if (diffSec >= 60) {
+              timeAgo = `${Math.floor(diffSec / 60)}m ago`;
+            }
+            const prevBid = combined[idx + 1];
+            const diffVal = prevBid ? (b.amount - prevBid.amount) : (b.amount - (item?.base_price || 0));
+            const incStr = diffVal > 0 ? `+${diffVal.toLocaleString()} Birr` : `+${b.amount.toLocaleString()} Birr`;
+            const localAvatar = b.user_id ? localStorage.getItem(`user_avatar_${b.user_id}`) : null;
+            const userAvatar = b.user?.avatar || b.user?.image_url || (isCurrUser ? user?.avatar : null) || localAvatar || null;
+            return {
+              id: b.id,
+              name: isCurrUser ? `${uName} (You)` : uName,
+              timeAgo,
+              amount: b.amount,
+              increment: incStr,
+              isUser: isCurrUser,
+              badge: isCurrUser ? '10X' : null,
+              avatar: userAvatar
+            };
+          });
+        });
+      }
+    };
+
+    activeSocket.on('bid_update', handleUpdate);
+    return () => {
+      activeSocket.off('bid_update', handleUpdate);
+      if (createdSocket) createdSocket.close();
+    };
+  }, [socket, id, user, item?.base_price]);
 
   // Countdown timer calculation (Strictly aligned with Addis Ababa / Nairobi Time Zone - EAT, UTC+3)
   useEffect(() => {
@@ -1382,6 +1418,16 @@ const ItemDetails = memo(() => {
       if (user && setUser && paymentToUse === 'wallet') {
         setUser({ ...user, wallet_balance: Math.max(0, user.wallet_balance - actualFee) });
       }
+
+      setItem((prev) => {
+        if (!prev) return prev;
+        const cur = prev._count?.bids ?? prev.bid_count ?? prev.bids?.length ?? 0;
+        return {
+          ...prev,
+          bid_count: cur + 1,
+          _count: { ...(prev._count || {}), bids: cur + 1 }
+        };
+      });
 
       fetchItemDetails();
       setTimeout(() => {
@@ -1884,9 +1930,7 @@ const ItemDetails = memo(() => {
                       <Clock className="text-amber-400 mb-1" size={22} />
                       <div className="flex items-center gap-1.5">
                         <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-wider">Time Remaining</p>
-                        <span className="text-[9px] font-bold text-amber-400/90 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
-                          Addis Ababa / Nairobi (EAT)
-                        </span>
+                      
                       </div>
                       <p className={`text-xl font-black font-mono tracking-tight mt-1 ${timeLeft === 'EXPIRED' ? 'text-red-400' : 'text-emerald-400'}`}>
                         {timeLeft || 'Calculating...'}
@@ -1950,6 +1994,15 @@ const ItemDetails = memo(() => {
         onInlineSuccess={async ({ txRef, chapaRef }) => {
           await axios.post('/api/payments/chapa/inline/complete', { tx_ref: txRef, chapa_ref: chapaRef });
           setLubBidAmount('');
+          setItem((prev) => {
+            if (!prev) return prev;
+            const cur = prev._count?.bids ?? prev.bid_count ?? prev.bids?.length ?? 0;
+            return {
+              ...prev,
+              bid_count: cur + 1,
+              _count: { ...(prev._count || {}), bids: cur + 1 }
+            };
+          });
           fetchItemDetails();
           setSuccess(`Bid of ${pendingBidAmount?.toFixed(2) || ''} Birr placed successfully!`);
           setTimeout(() => setSuccess(''), 5000);

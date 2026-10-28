@@ -69,6 +69,9 @@ exports.getItemById = async (req, res) => {
         winner: {
           select: { id: true, name: true, phone_number: true }
         },
+        _count: {
+          select: { bids: true }
+        },
         bids: {
           include: {
             user: {

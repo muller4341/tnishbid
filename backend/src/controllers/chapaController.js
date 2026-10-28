@@ -204,7 +204,13 @@ exports.completeInlineBidPayment = async (req, res) => {
 
     if (result && req.io) {
       invalidateItemCache(payment.item_id);
-      req.io.emit('bid_update', { item_id: payment.item_id, new_bid_amount: result.amount, is_unique: result.is_unique });
+      req.io.emit('bid_update', {
+        item_id: Number(payment.item_id),
+        new_bid_amount: result.amount,
+        is_unique: result.is_unique,
+        total_bids: result.total_bids,
+        bid: result
+      });
     }
     res.json({ status: 'success', bid: result });
   } catch (error) {
@@ -492,9 +498,11 @@ exports.handleCallback = async (req, res) => {
       invalidateItemCache(payment.item_id);
       if (req.io) {
         req.io.emit('bid_update', {
-          item_id: payment.item_id,
+          item_id: Number(payment.item_id),
           new_bid_amount: result.amount,
-          is_unique: result.is_unique
+          is_unique: result.is_unique,
+          total_bids: result.total_bids,
+          bid: result
         });
       }
     }

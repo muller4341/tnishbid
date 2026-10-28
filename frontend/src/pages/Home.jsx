@@ -50,7 +50,7 @@ const TRANSLATIONS = {
     bidFee: 'Bid Fee',
     auctionCode: 'Auction Code',
     bids: 'bids',
-    bidAmount: 'Bid amount',
+    bidAmount: 'e.g. 0.01',
     submitBid: 'Submit a Bid Amount',
     terms: 'Bids require 2 decimal places. Only lowest unique bids win!',
     expired: 'Ended',
@@ -595,11 +595,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           <span className={`text-xl font-black font-outfit ${isExpired ? 'text-red-500' : cdColor}`}>
             {isExpired ? (t.expired || 'Ended') : countdown}
           </span>
-          {!isExpired && (
-            <p className="text-[10px] text-zinc-500 font-bold tracking-wider mt-0.5">
-              Addis Ababa / Nairobi (EAT)
-            </p>
-          )}
+          
         </div>
 
         {/* Bid Fee & Bid Count */}
@@ -974,14 +970,16 @@ const Home = () => {
     }
     const handleBidUpdate = (data) => {
       if (data?.item_id) {
+        const targetId = Number(data.item_id);
         setItems((prev) =>
           prev.map((item) => {
-            if (item.id === data.item_id) {
+            if (Number(item.id) === targetId) {
               const cur = item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0;
+              const nextCount = typeof data.total_bids === 'number' ? data.total_bids : cur + 1;
               return {
                 ...item,
-                bid_count: cur + 1,
-                _count: { ...item._count, bids: cur + 1 },
+                bid_count: nextCount,
+                _count: { ...(item._count || {}), bids: nextCount },
               };
             }
             return item;

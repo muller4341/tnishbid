@@ -40,23 +40,27 @@ export const AuthProvider = ({ children }) => {
     return () => { isMounted = false; };
   }, [token]);
 
-  // Initialize socket when user logs in
+  // Initialize socket connection
   useEffect(() => {
-    if (user?.id) {
-      const newSocket = io();
-      newSocket.on('connect', () => {
+    const newSocket = io();
+
+    newSocket.on('connect', () => {
+      if (user?.id) {
         newSocket.emit('authenticate', user.id);
-      });
+      }
+    });
+
+    if (user?.id) {
+      newSocket.emit('authenticate', user.id);
       newSocket.on('wallet_updated', (data) => {
         if (data?.wallet_balance !== undefined) {
           setUser(prev => prev ? { ...prev, wallet_balance: data.wallet_balance } : null);
         }
       });
-      setSocket(newSocket);
-      return () => newSocket.close();
-    } else {
-      setSocket(null);
     }
+
+    setSocket(newSocket);
+    return () => newSocket.close();
   }, [user?.id]);
 
   const login = async (phone_number, password) => {
