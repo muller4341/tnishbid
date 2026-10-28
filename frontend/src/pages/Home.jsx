@@ -526,7 +526,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         return;
       }
 
-      await axios.post('/api/bids/place', {
+      const placeRes = await axios.post('/api/bids/place', {
         item_id: item.id,
         amount: pendingBidAmount,
         payment_method: paymentToUse,
@@ -536,7 +536,10 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         setUser({ ...user, wallet_balance: Math.max(0, (user.wallet_balance || 0) - actualFee) });
       }
       setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Br placed!`);
-      setLocalBidCount((c) => c + 1);
+      const nextCount = typeof placeRes?.data?.total_bids === 'number'
+        ? placeRes.data.total_bids
+        : localBidCount + 1;
+      setLocalBidCount(nextCount);
       clearCachedItems();
       setBidInput('');
       setTimeout(() => setSuccess(''), 3000);
@@ -936,7 +939,8 @@ const Home = () => {
     try {
       if (!silent && !getCachedItems()) setLoading(true);
       const res = await axios.get('/api/items', {
-        headers: { 'Cache-Control': 'no-cache' }
+        params: { _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
       });
       setCachedItems(res.data);
       setItems(res.data);
@@ -971,8 +975,8 @@ const Home = () => {
     const handleBidUpdate = (data) => {
       if (data?.item_id) {
         const targetId = Number(data.item_id);
-        setItems((prev) =>
-          prev.map((item) => {
+        setItems((prev) => {
+          const updated = prev.map((item) => {
             if (Number(item.id) === targetId) {
               const cur = item._count?.bids ?? item.bid_count ?? item.bids?.length ?? 0;
               const nextCount = typeof data.total_bids === 'number' ? data.total_bids : cur + 1;
@@ -983,8 +987,10 @@ const Home = () => {
               };
             }
             return item;
-          })
-        );
+          });
+          setCachedItems(updated);
+          return updated;
+        });
       }
     };
     activeSocket.on('bid_update', handleBidUpdate);

@@ -1134,7 +1134,10 @@ const ItemDetails = memo(() => {
 
   const fetchItemDetails = async () => {
     try {
-      const res = await axios.get(`/api/items/${id}`);
+      const res = await axios.get(`/api/items/${id}`, {
+        params: { _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       setItem(res.data);
 
       if (res.data.bids && res.data.bids.length > 0) {
@@ -1404,13 +1407,14 @@ const ItemDetails = memo(() => {
         return;
       }
 
-      await axios.post('/api/bids/place', {
+      const placeRes = await axios.post('/api/bids/place', {
         item_id: parseInt(id),
         amount: pendingBidAmount,
         payment_method: paymentToUse
       });
       clearCachedItems();
 
+      const newBid = placeRes.data;
       const actualFee = item?.base_price ?? 1.00;
       setSuccess(`Bid of ${pendingBidAmount.toFixed(2)} Birr placed successfully!`);
       setLubBidAmount('');
@@ -1421,13 +1425,21 @@ const ItemDetails = memo(() => {
 
       setItem((prev) => {
         if (!prev) return prev;
-        const cur = prev._count?.bids ?? prev.bid_count ?? prev.bids?.length ?? 0;
+        const currentBids = Array.isArray(prev.bids) ? prev.bids : [];
+        const nextBids = newBid ? [newBid, ...currentBids.filter(b => b.id !== newBid.id)] : currentBids;
+        const curCount = prev._count?.bids ?? prev.bid_count ?? currentBids.length ?? 0;
+        const totalCount = typeof newBid?.total_bids === 'number' ? newBid.total_bids : curCount + 1;
         return {
           ...prev,
-          bid_count: cur + 1,
-          _count: { ...(prev._count || {}), bids: cur + 1 }
+          bids: nextBids,
+          bid_count: totalCount,
+          _count: { ...(prev._count || {}), bids: totalCount }
         };
       });
+
+      if (newBid) {
+        setRecentLUBBids((prev) => [newBid, ...((Array.isArray(prev) ? prev : []).filter(b => b.id !== newBid.id))]);
+      }
 
       fetchItemDetails();
       setTimeout(() => {

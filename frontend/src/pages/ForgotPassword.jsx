@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  Phone, 
-  Lock, 
-  ArrowLeft, 
-  AlertCircle, 
-  CheckCircle2, 
-  MessageSquare, 
-  KeyRound, 
-  RotateCw, 
-  Eye, 
-  EyeOff, 
+import {
+  Phone,
+  Lock,
+  ArrowLeft,
+  AlertCircle,
+  CheckCircle2,
+  MessageSquare,
+  KeyRound,
+  RotateCw,
+  Eye,
+  EyeOff,
   ArrowRight,
   ShieldCheck,
   Sparkles
@@ -233,11 +233,11 @@ const ForgotPassword = () => {
         {/* Brand Logo Header */}
         <div className="text-center space-y-3">
           <Link to="/" className="inline-block group focus:outline-none">
-            <div className="relative inline-flex items-center justify-center p-2 rounded-2xl bg-[#111113]/80 border border-amber-500/20 shadow-inner group-hover:border-amber-500/40 transition-colors">
-              <img 
-                src={theme === 'light' ? logoLight : logoDark} 
-                alt="ትንሽBid" 
-                className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]" 
+            <div className="relative inline-flex items-center justify-center p-2 group-hover:border-amber-500/40 transition-colors">
+              <img
+                src={theme === 'light' ? logoLight : logoDark}
+                alt="ትንሽBid"
+                className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]"
               />
             </div>
           </Link>
@@ -277,15 +277,6 @@ const ForgotPassword = () => {
         {/* ================= STEP 1: ENTER PHONE NUMBER ================= */}
         {step === 'phone' && (
           <form onSubmit={handleSendOtp} className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
-              <MessageSquare size={16} className="shrink-0 mt-0.5 text-amber-400" />
-              <span>
-                {lang === 'am'
-                  ? 'የይለፍ ቃልዎን ለመቀየር በስልክዎ የኤስኤምኤስ ማረጋገጫ ኮድ እንልካለን።'
-                  : 'SMS verification is required to reset your password. A 6-digit code will be sent to your phone.'}
-              </span>
-            </div>
-
             <div>
               <label className="block text-xs font-bold text-zinc-300 mb-1.5">
                 {str.phoneLabel}
@@ -332,25 +323,7 @@ const ForgotPassword = () => {
         {/* ================= STEP 2: ENTER SMS OTP ================= */}
         {step === 'otp' && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            {/* Phone info badge with change action */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-[#111113] border border-zinc-800">
-              <div className="flex items-center gap-2 text-xs">
-                <Phone size={14} className="text-amber-400" />
-                <span className="text-zinc-400">{str.otpSentTo}:</span>
-                <span className="font-mono font-bold text-white">{phoneNumber}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('phone');
-                  setOtp('');
-                  setError('');
-                }}
-                className="text-xs font-bold text-amber-400 hover:underline"
-              >
-                {str.changePhone}
-              </button>
-            </div>
+
 
             {/* Simulated SMS Alert Banner */}
             {simulatedSms && (
@@ -417,7 +390,7 @@ const ForgotPassword = () => {
             </button>
 
             {/* Resend SMS Button / Countdown */}
-            <div className="text-center pt-2">
+            <div className="text-center pt-2 flex gap-2 justify-between">
               {resendCountdown > 0 ? (
                 <span className="text-xs text-zinc-500 font-medium">
                   {str.resendIn} <span className="font-mono font-bold text-zinc-400">{resendCountdown}s</span>
@@ -433,6 +406,24 @@ const ForgotPassword = () => {
                   {str.resendNow}
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('phone');
+                  setOtp('');
+                  setError('');
+                }}
+                className="text-xs font-bold text-amber-400 hover:underline"
+              >
+                {str.changePhone}
+              </button>
+            </div>
+
+
+            {/* Phone info badge with change action */}
+            <div className="flex items-center justify-between p-3">
+
+
             </div>
           </form>
         )}
@@ -440,10 +431,7 @@ const ForgotPassword = () => {
         {/* ================= STEP 3: ENTER NEW PASSWORD ================= */}
         {step === 'new_password' && (
           <form onSubmit={handleResetPassword} className="space-y-4">
-            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <span>SMS Verified for {phoneNumber}. Enter your new password below.</span>
-            </div>
+
 
             <div>
               <label className="block text-xs font-bold text-zinc-300 mb-1.5">

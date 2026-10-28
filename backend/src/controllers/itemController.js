@@ -4,8 +4,12 @@ const cache = require('../utils/cache');
 
 const invalidateItemCache = (id) => {
   cache.del('items:all');
-  if (id) {
+  if (id != null) {
     cache.del(`item:${id}`);
+    const num = parseInt(id, 10);
+    if (!isNaN(num)) {
+      cache.del(`item:${num}`);
+    }
   }
 };
 exports.invalidateItemCache = invalidateItemCache;
@@ -25,7 +29,8 @@ exports.getItems = async (req, res) => {
     const cached = cache.get('items:all');
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
-      res.setHeader('Cache-Control', 'public, max-age=10, stale-while-revalidate=30');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
       return res.json(cached);
     }
 
@@ -44,9 +49,10 @@ exports.getItems = async (req, res) => {
       images: Array.isArray(item.images) ? item.images.map(optimizeCloudinaryUrl) : item.images
     }));
 
-    cache.set('items:all', optimizedItems, 45); // Cache for 45 seconds with instant invalidation on updates
+    cache.set('items:all', optimizedItems, 30);
     res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'public, max-age=10, stale-while-revalidate=30');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.json(optimizedItems);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -60,6 +66,8 @@ exports.getItemById = async (req, res) => {
     const cached = cache.get(cacheKey);
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
       return res.json(cached);
     }
 
@@ -90,8 +98,10 @@ exports.getItemById = async (req, res) => {
       images: Array.isArray(item.images) ? item.images.map(optimizeCloudinaryUrl) : item.images
     };
 
-    cache.set(cacheKey, optimizedItem, 8); // Cache for 8 seconds
+    cache.set(cacheKey, optimizedItem, 15);
     res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.json(optimizedItem);
   } catch (err) {
     res.status(500).json({ error: err.message });

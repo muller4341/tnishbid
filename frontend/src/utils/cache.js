@@ -1,5 +1,5 @@
-// High-performance Stale-While-Revalidate Client Cache
-const CACHE_TTL = 60000; // 60 seconds fresh window
+// Client Cache with short TTL to prevent stale auction data
+const CACHE_TTL = 3000; // 3 seconds window
 
 let memoryCache = new Map();
 
@@ -15,7 +15,7 @@ export const cacheGet = (key) => {
     const stored = sessionStorage.getItem(`app_cache_${key}`);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Date.now() - parsed.timestamp < CACHE_TTL * 3) {
+      if (Date.now() - parsed.timestamp < CACHE_TTL) {
         memoryCache.set(key, parsed);
         return parsed.data;
       }
@@ -42,7 +42,7 @@ export const getCachedItems = () => cacheGet('items_all');
 export const setCachedItems = (data) => cacheSet('items_all', data);
 
 export const clearCachedItems = () => {
-  memoryCache.delete('items_all');
+  memoryCache.clear();
   try {
     sessionStorage.removeItem('app_cache_items_all');
   } catch {

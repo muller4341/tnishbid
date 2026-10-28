@@ -68,19 +68,18 @@ const Login = () => {
       </Link>
 
       <div className="bg-[#16161A] rounded-3xl shadow-2xl p-6 md:p-8 border border-zinc-800/90 space-y-6">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-2">
           <Link to="/" className="inline-block group focus:outline-none">
-            <div className="relative inline-flex items-center justify-center p-2 rounded-2xl bg-[#111113]/80 border border-amber-500/20 shadow-inner group-hover:border-amber-500/40 transition-colors">
-              <img 
-                src={theme === 'light' ? logoLight : logoDark} 
-                alt="ትንሽBid" 
-                className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]" 
+            <div className="relative inline-flex items-center justify-center p-2 rounded-2xl group-hover:border-amber-500/40 transition-colors">
+              <img
+                src={theme === 'light' ? logoLight : logoDark}
+                alt="ትንሽBid"
+                className="h-12 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]"
               />
             </div>
           </Link>
           <div className="space-y-1">
             <h1 className="text-2xl font-black text-white tracking-tight">Phone Sign In</h1>
-            <p className="text-xs text-zinc-400">Sign in with your phone number to place unique bids</p>
           </div>
         </div>
 
@@ -100,7 +99,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-zinc-300 mb-1.5">Phone Number (Ethiopian)</label>
+            <label className="block text-xs font-bold text-zinc-300 mb-1.5">Phone Number </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 <Phone className="h-4 w-4 text-amber-400" />
@@ -122,12 +121,7 @@ const Login = () => {
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="block text-xs font-bold text-zinc-300">Password</label>
-              <Link
-                to="/forgot-password"
-                className="text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline transition-colors"
-              >
-                Forgot password?
-              </Link>
+
             </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -142,6 +136,14 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </div>
+            <div className='flex justify-end py-4'>
+              <Link
+                to="/forgot-password"
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline transition-colors justify-end"
+              >
+                Forgot password?
+              </Link>
             </div>
           </div>
 

@@ -156,8 +156,8 @@ const DepositPaymentModal = memo(({
   return createPortal(
     <div
       className={`fixed inset-0 z-[100] flex justify-center animate-in fade-in duration-200 backdrop-blur-md ${successData || inlinePayment
-          ? 'items-center p-4'
-          : 'items-end p-0 sm:items-center sm:p-4'
+        ? 'items-center p-4'
+        : 'items-end p-0 sm:items-center sm:p-4'
         } ${isLight ? 'bg-zinc-950/45' : 'bg-black/80'}`}
       role="presentation"
       onClick={(e) => {
@@ -166,8 +166,8 @@ const DepositPaymentModal = memo(({
     >
       <div
         className={`max-w-lg w-full max-h-[88vh] sm:max-h-[92vh] overflow-y-auto px-4 py-4 sm:py-5 sm:px-6 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 relative text-left space-y-3.5 sm:space-y-4 animate-in duration-200 border ${successData || inlinePayment
-            ? 'rounded-3xl zoom-in-95'
-            : 'rounded-t-[28px] rounded-b-none sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
+          ? 'rounded-3xl zoom-in-95'
+          : 'rounded-t-[28px] rounded-b-none sm:rounded-3xl slide-in-from-bottom-4 sm:zoom-in-95'
           } ${isLight
             ? 'bg-white border-orange-500/20 text-zinc-900 shadow-2xl shadow-orange-950/15'
             : 'bg-[#141519] border-zinc-800 text-zinc-100 shadow-2xl'
@@ -189,10 +189,10 @@ const DepositPaymentModal = memo(({
           <div className="flex items-center gap-3">
             <div
               className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${successData
-                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
-                  : isLight
-                    ? 'bg-orange-50 border border-orange-200 text-orange-600'
-                    : 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
+                ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
+                : isLight
+                  ? 'bg-orange-50 border border-orange-200 text-orange-600'
+                  : 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
                 }`}
             >
               {successData ? <CheckCircle2 size={18} /> : <Wallet size={18} />}
@@ -216,8 +216,8 @@ const DepositPaymentModal = memo(({
               onClick={onClose}
               disabled={isSubmitting}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border shrink-0 ${isLight
-                  ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border-zinc-200'
-                  : 'bg-[#1f2026] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
+                ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 border-zinc-200'
+                : 'bg-[#1f2026] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
                 }`}
               aria-label="Close"
             >
@@ -298,8 +298,8 @@ const DepositPaymentModal = memo(({
           <div className="py-4 px-2 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
             <div
               className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md ${isLight
-                  ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
-                  : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
+                ? 'bg-orange-50 border border-orange-200 text-orange-600 shadow-orange-500/10'
+                : 'bg-orange-500/15 border border-orange-500/30 text-orange-400 shadow-orange-500/10'
                 }`}
             >
               <Smartphone size={28} className="animate-pulse" />
@@ -345,8 +345,8 @@ const DepositPaymentModal = memo(({
             {/* Deposit Details Card */}
             <div
               className={`rounded-2xl border p-3.5 sm:p-4 text-sm transition-colors space-y-2.5 ${isLight
-                  ? 'bg-[#FFF9F5] border-orange-500/20 shadow-xs'
-                  : 'bg-[#111216] border-zinc-800/80'
+                ? 'bg-[#FFF9F5] border-orange-500/20 shadow-xs'
+                : 'bg-[#111216] border-zinc-800/80'
                 }`}
             >
               <div
@@ -375,8 +375,8 @@ const DepositPaymentModal = memo(({
                   </span>
                   <span
                     className={`ml-2 inline-block rounded-md px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider border ${isLight
-                        ? 'bg-orange-50 border-orange-200 text-orange-600'
-                        : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                      ? 'bg-orange-50 border-orange-200 text-orange-600'
+                      : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
                       }`}
                   >
                     INSTANT SYNC
@@ -414,8 +414,8 @@ const DepositPaymentModal = memo(({
                   placeholder="91 234 5678"
                   style={{ fontSize: '16px' }}
                   className={`min-w-0 flex-1 bg-transparent pl-3 text-[16px] sm:text-base font-bold outline-none ${isLight
-                      ? 'text-zinc-900 placeholder:text-zinc-400'
-                      : 'text-white placeholder:text-zinc-600'
+                    ? 'text-zinc-900 placeholder:text-zinc-400'
+                    : 'text-white placeholder:text-zinc-600'
                     }`}
                 />
               </div>
@@ -436,10 +436,10 @@ const DepositPaymentModal = memo(({
             >
               <div
                 className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all shrink-0 ${agreed
-                    ? 'border-orange-500 text-white shadow-xs'
-                    : isLight
-                      ? 'bg-white border-zinc-300 group-hover:border-orange-400'
-                      : 'bg-[#111216] border-zinc-700 group-hover:border-zinc-500'
+                  ? 'border-orange-500 text-white shadow-xs'
+                  : isLight
+                    ? 'bg-white border-zinc-300 group-hover:border-orange-400'
+                    : 'bg-[#111216] border-zinc-700 group-hover:border-zinc-500'
                   }`}
                 style={
                   agreed
@@ -454,8 +454,8 @@ const DepositPaymentModal = memo(({
               </div>
               <span
                 className={`text-xs sm:text-sm font-semibold transition-colors ${isLight
-                    ? 'text-zinc-700 group-hover:text-zinc-900'
-                    : 'text-zinc-300 group-hover:text-white'
+                  ? 'text-zinc-700 group-hover:text-zinc-900'
+                  : 'text-zinc-300 group-hover:text-white'
                   }`}
               >
                 I agree to continue and deposit {parseFloat(amount || 0).toFixed(2)} Br
@@ -477,10 +477,10 @@ const DepositPaymentModal = memo(({
                   : undefined
               }
               className={`w-full font-black text-sm sm:text-base py-3 sm:py-3.5 px-5 rounded-2xl transition-all uppercase tracking-wider flex items-center justify-center gap-2 ${agreed && !isSubmitting && amount >= 10
-                  ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
-                  : isLight
-                    ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
-                    : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
+                ? 'cursor-pointer active:scale-[0.98] hover:brightness-110 shadow-lg'
+                : isLight
+                  ? 'bg-[#E4E5EA] text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
+                  : 'bg-[#202026] text-zinc-500 border border-zinc-800/80 cursor-not-allowed shadow-none'
                 }`}
             >
               {isSubmitting ? (
@@ -753,9 +753,9 @@ const Profile = () => {
     ? new Date(profileData.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : 'Oct 2023';
 
-  const totalBids = profileData?.totalBids ?? 142;
-  const auctionsWon = profileData?.auctionsWon ?? 3;
-  const activePools = profileData?.activePools ?? 12;
+  const totalBids = profileData?.totalBids ?? '';
+  const auctionsWon = profileData?.auctionsWon ?? '';
+  const activePools = profileData?.activePools ?? '';
 
   const displayName = profileData?.name || user?.name || "Hassan Al-Fayed";
 
@@ -913,8 +913,8 @@ const Profile = () => {
                   type="button"
                   onClick={() => { setSelectedMethod('telebirr'); setFundError(''); }}
                   className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${isTelebirr
-                      ? 'bg-[#008FE6]/10 border-[#008FE6] shadow-[0_0_15px_rgba(0,143,230,0.2)] ring-1 ring-[#008FE6]'
-                      : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
+                    ? 'bg-[#008FE6]/10 border-[#008FE6] shadow-[0_0_15px_rgba(0,143,230,0.2)] ring-1 ring-[#008FE6]'
+                    : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
                     }`}
                 >
                   <div className="flex items-center justify-between w-full">
@@ -940,8 +940,8 @@ const Profile = () => {
                   type="button"
                   onClick={() => { setSelectedMethod('cbe'); setFundError(''); }}
                   className={`py-2 px-3 rounded-xl border text-left transition-all relative flex flex-col gap-1.5 cursor-pointer active:scale-[0.98] ${!isTelebirr
-                      ? 'bg-[#9B2349]/10 border-[#9B2349] shadow-[0_0_15px_rgba(155,35,73,0.2)] ring-1 ring-[#9B2349]'
-                      : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
+                    ? 'bg-[#9B2349]/10 border-[#9B2349] shadow-[0_0_15px_rgba(155,35,73,0.2)] ring-1 ring-[#9B2349]'
+                    : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 opacity-80 hover:opacity-100'
                     }`}
                 >
                   <div className="flex items-center justify-between w-full">
@@ -991,8 +991,8 @@ const Profile = () => {
                       type="button"
                       onClick={() => { setSelectedPreset(item.value); setCustomAmount(`${item.value}`); setFundError(''); }}
                       className={`relative py-2.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${isSelected
-                          ? 'bg-gradient-to-b from-amber-500/20 to-amber-500/5 border-amber-400 text-white shadow-md'
-                          : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
+                        ? 'bg-gradient-to-b from-amber-500/20 to-amber-500/5 border-amber-400 text-white shadow-md'
+                        : 'bg-[#0E0F12] border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
                         }`}
                     >
                       {item.badge && (
@@ -1310,7 +1310,7 @@ const Profile = () => {
         </h1>
 
         <p className="text-xs md:text-sm font-medium text-zinc-400 mt-1 flex items-center gap-1">
-          <span>Verified Platinum Member since</span>
+          <span>Verified Member since</span>
           <span className="text-zinc-300 font-semibold">{memberSince}</span>
         </p>
 
