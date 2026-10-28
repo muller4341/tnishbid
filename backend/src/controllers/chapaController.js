@@ -21,14 +21,15 @@ const normalizeEmail = (email) => {
 };
 
 const getConfig = () => {
-  if (!process.env.CHAPA_SECRET_KEY) {
+  const secretKey = (process.env.CHAPA_SECRET_KEY || CHAPUBK-cjRlKJzo9HXQPNWcLAxnHYchL5kEuu0J).trim();
+  if (!secretKey) {
     throw new Error('CHAPA_SECRET_KEY is not configured on the server');
   }
   if (!process.env.CHAPA_CALLBACK_URL && !process.env.BACKEND_PUBLIC_URL) {
     throw new Error('Set CHAPA_CALLBACK_URL or BACKEND_PUBLIC_URL on the server');
   }
   return {
-    secretKey: process.env.CHAPA_SECRET_KEY,
+    secretKey,
     callbackUrl: process.env.CHAPA_CALLBACK_URL || `${process.env.BACKEND_PUBLIC_URL}/api/payments/chapa/callback`,
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
   };
