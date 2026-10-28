@@ -427,7 +427,7 @@ exports.handleCallback = async (req, res) => {
       if (verifiedStatus === 'success') {
         const verifiedAmount = Number(verified.data?.amount);
         const parts = txRef.split('-');
-        const userId = parseInt(parts[2], 10);
+        const userId = parts[2];
         if (userId && Number.isFinite(verifiedAmount)) {
           const existingNotif = await prisma.notification.findFirst({
             where: { user_id: userId, message: { contains: txRef } }

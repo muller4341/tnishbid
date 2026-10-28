@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
+const { generateUserId } = require('./src/utils/generateId');
 
 async function main() {
   const password_hash = await bcrypt.hash('admin123', 10);
@@ -9,6 +10,7 @@ async function main() {
     where: { phone_number: '0911000000' },
     update: {},
     create: {
+      id: generateUserId(6),
       name: 'System Admin',
       phone_number: '0911000000',
       email: 'admin@tinishbid.com',

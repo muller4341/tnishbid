@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../prismaClient');
 const { sendSms } = require('../utils/smsService');
+const { generateUserId } = require('../utils/generateId');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_key';
 
@@ -27,9 +28,23 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'User with this phone number already exists' });
     }
 
+    // Generate unique 6-digit alphanumeric user ID
+    let customId;
+    let attempts = 0;
+    while (!customId && attempts < 10) {
+      attempts++;
+      const candidate = generateUserId(6);
+      const taken = await prisma.user.findUnique({ where: { id: candidate } });
+      if (!taken) customId = candidate;
+    }
+    if (!customId) {
+      customId = generateUserId(6);
+    }
+
     const password_hash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
+        id: customId,
         name: name || trimmedPhone,
         phone_number: trimmedPhone,
         email: email || null,

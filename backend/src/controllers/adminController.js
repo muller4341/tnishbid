@@ -317,7 +317,7 @@ exports.endAuction = async (req, res) => {
 
 exports.updateUserWallet = async (req, res) => {
   try {
-    const userId = parseInt(req.params.userId);
+    const userId = String(req.params.userId);
     const { amount } = req.body; // positive to add, negative to deduct
 
     if (isNaN(amount)) return res.status(400).json({ error: 'Invalid amount' });

@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id             Int       @id @default(autoincrement())
+  id             String    @id
   name           String
   phone_number   String    @unique
   email          String?   @unique
@@ -37,7 +37,7 @@ model Item {
   start_time     DateTime
   end_time       DateTime
   status         String    @default("active")
-  winner_id      Int?
+  winner_id      String?
   created_at     DateTime  @default(now())
   
   winner         User?     @relation("Winner", fields: [winner_id], references: [id])
@@ -60,7 +60,7 @@ model ChapaPayment {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  user_id     Int
+  user_id     String
   user        User     @relation(fields: [user_id], references: [id])
   item_id     Int
   item        Item     @relation(fields: [item_id], references: [id])
@@ -79,7 +79,7 @@ model Bid {
   item_id        Int
   item           Item      @relation(fields: [item_id], references: [id])
   
-  user_id        Int
+  user_id        String
   user           User      @relation(fields: [user_id], references: [id])
 
   @@index([item_id])
@@ -94,10 +94,9 @@ model Notification {
   is_read        Boolean   @default(false)
   created_at     DateTime  @default(now())
   
-  user_id        Int
+  user_id        String
   user           User      @relation(fields: [user_id], references: [id])
 
   @@index([user_id])
   @@index([created_at])
 }
-
