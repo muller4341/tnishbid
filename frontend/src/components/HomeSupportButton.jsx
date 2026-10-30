@@ -1,0 +1,235 @@
+import React, { useState } from 'react';
+import { 
+  Headphones, 
+  X, 
+  Phone, 
+  Mail, 
+  Copy, 
+  Check, 
+  ChevronRight
+} from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+
+export default function HomeSupportButton() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(null);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  const handleCopy = (text, key, e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 1800);
+  };
+
+  const contactChannels = [
+    {
+      id: 'telegram',
+      title: 'Telegram',
+      subtitle: '@tnishbid',
+      value: '@tnishbid',
+      actionUrl: 'https://t.me/tnishbid',
+      bgColor: 'rgba(34, 158, 217, 0.14)',
+      borderColor: 'rgba(34, 158, 217, 0.3)',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" style={{ color: '#229ED9' }}>
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+        </svg>
+      )
+    },
+    {
+      id: 'tiktok',
+      title: 'TikTok',
+      subtitle: '@tnishbid',
+      value: '@tnishbid',
+      actionUrl: 'https://www.tiktok.com/@tnishbid',
+      bgColor: 'rgba(254, 44, 85, 0.14)',
+      borderColor: 'rgba(254, 44, 85, 0.3)',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" style={{ color: '#FE2C55' }}>
+          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+        </svg>
+      )
+    },
+    {
+      id: 'email',
+      title: 'Email',
+      subtitle: 'support@tnishbid.com',
+      value: 'support@tnishbid.com',
+      actionUrl: 'mailto:support@tnishbid.com',
+      bgColor: 'rgba(139, 92, 246, 0.14)',
+      borderColor: 'rgba(139, 92, 246, 0.3)',
+      icon: <Mail className="w-5 h-5 text-purple-400" />
+    }
+  ];
+
+  return (
+    <>
+      {/* Floating Trigger Button (Positioned comfortably above bottom navigation bar) */}
+      <aside aria-label="Support Options">
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-label="Contact and support"
+          className="fixed right-4 bottom-[92px] sm:bottom-8 sm:right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center bg-[#141519] hover:bg-[#1E2028] text-white border border-zinc-700/80 shadow-[0_8px_24px_rgba(0,0,0,0.65)] hover:border-amber-500/70 transition-all duration-200 active:scale-95 cursor-pointer group"
+        >
+          {/* Active online pulse dot
+          <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-[#141519]" />
+          </span> */}
+
+          {/* Headphone icon */}
+          <Headphones 
+            size={22} 
+            className="text-amber-400 group-hover:text-amber-400 transition-colors" 
+          />
+        </button>
+      </aside>
+
+      {/* Bottom Sheet Overlay */}
+      {isOpen && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-[105] flex items-end sm:items-center justify-center pb-[72px] p-0 sm:pb-0 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsOpen(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="support-dialog-title"
+            className={`w-full max-w-md sm:max-w-sm flex flex-col rounded-t-[28px] sm:rounded-3xl border shadow-2xl animate-in slide-in-from-bottom duration-250 max-h-[calc(100vh-85px)] ${
+              isLight
+                ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xl'
+                : 'bg-[#14151B] border-zinc-800 text-zinc-100 shadow-[0_25px_60px_rgba(0,0,0,0.95)]'
+            }`}
+          >
+            {/* Top Sheet Drag Handle on Mobile */}
+            <div className="pt-2.5 pb-1 flex justify-center shrink-0">
+              <div className={`h-1.5 w-12 rounded-full ${isLight ? 'bg-zinc-300' : 'bg-zinc-700'}`} />
+            </div>
+
+            {/* Header */}
+            <div className={`flex items-center justify-between px-5 pt-2 pb-3 border-b shrink-0 ${
+              isLight ? 'border-zinc-100' : 'border-zinc-800/80'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-black flex items-center justify-center shadow-xs shrink-0">
+                  <Headphones size={17} />
+                </div>
+                <div>
+                  <h2 id="support-dialog-title" className="font-black text-base tracking-tight leading-none">
+                    Contact Us
+                  </h2>
+                  <p className={`text-[11px] mt-1 flex items-center gap-1.5 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                    Support online • Tap any channel to connect
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className={`w-7 h-7 rounded-full flex items-center justify-center border transition-colors cursor-pointer shrink-0 ${
+                  isLight
+                    ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 border-zinc-200'
+                    : 'bg-[#1C1E26] hover:bg-zinc-700 text-zinc-400 hover:text-white border-zinc-800'
+                }`}
+                aria-label="Close"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Channel List (Bottom sheet with scrollable container so all 5 items including Email are 100% visible) */}
+            <div className="p-3.5 space-y-2 overflow-y-auto flex-1 min-h-0">
+              {contactChannels.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    if (item.actionUrl.startsWith('http')) {
+                      window.open(item.actionUrl, '_blank', 'noopener,noreferrer');
+                    } else {
+                      window.location.href = item.actionUrl;
+                    }
+                  }}
+                  className={`group rounded-2xl border p-2.5 sm:p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all duration-200 active:scale-[0.98] hover:translate-x-1 ${
+                    isLight
+                      ? 'bg-zinc-50 hover:bg-amber-50/80 border-zinc-200 hover:border-amber-400 hover:shadow-md'
+                      : 'bg-[#101115] hover:bg-[#1C1E28] border-zinc-800/80 hover:border-amber-500/70 hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]'
+                  }`}
+                >
+                  {/* Left: Icon & Title */}
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0  transition-transform duration-200 group-hover:scale-105"
+                      // style={{
+                      //   backgroundColor: item.bgColor,
+                      //   borderColor: item.borderColor
+                      // }}
+                    >
+                      {item.icon}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-bold truncate leading-tight transition-colors ${
+                        isLight ? 'text-zinc-900 group-hover:text-amber-700' : 'text-white group-hover:text-amber-400'
+                      }`}>
+                        {item.title}
+                      </p>
+                      <p className={`text-xs truncate mt-0.5 font-medium ${
+                        isLight ? 'text-zinc-500' : 'text-zinc-400'
+                      }`}>
+                        {item.subtitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Copy & Clickable Open Badge */}
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {/* <button
+                      type="button"
+                      onClick={(e) => handleCopy(item.value, item.id, e)}
+                      title="Copy"
+                      className={`p-1.5 rounded-xl border text-xs transition-colors cursor-pointer ${
+                        copiedKey === item.id
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                          : isLight
+                            ? 'bg-white hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 border-zinc-200'
+                            : 'bg-[#17181F] hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border-zinc-800'
+                      }`}
+                    >
+                      {copiedKey === item.id ? (
+                        <Check size={13} className="text-emerald-500" />
+                      ) : (
+                        <Copy size={13} />
+                      )}
+                    </button> */}
+
+                    <div
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all duration-200 select-none ${
+                        isLight
+                          ? 'bg-amber-100 text-amber-900 group-hover:bg-amber-500 group-hover:text-black'
+                          : 'bg-amber-500/15 text-amber-400 group-hover:bg-amber-400 group-hover:text-black group-hover:shadow-sm'
+                      }`}
+                    >
+                      <span>Open</span>
+                      <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom Safe Area Padding to ensure Email and all items sit comfortably above screen bottom */}
+            <div className="pb-5 sm:pb-3" />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
