@@ -162,7 +162,8 @@ exports.createItem = async (req, res) => {
         base_price: parseFloat(base_price),
         start_time: parseToEAT(start_time),
         end_time: parseToEAT(end_time),
-        status: 'active'
+        status: 'active',
+        created_by: req.user?.id || null
       }
     });
     invalidateItemCache();
@@ -186,7 +187,8 @@ exports.createItem = async (req, res) => {
         .filter(u => getUserPreferences(u.id).bidDrops !== false)
         .map(u => ({
           user_id: u.id,
-          message: `New Bid Post: "${item.title}" is now open for bidding!`
+          message: `New Bid Post: "${item.title}" is now open for bidding!`,
+          notification_type: 'bid'
         }));
 
       if (notifData.length > 0) {

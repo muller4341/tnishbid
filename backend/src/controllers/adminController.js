@@ -271,7 +271,8 @@ exports.endAuction = async (req, res) => {
         await prisma.notification.create({
           data: {
             user_id: winnerId,
-            message: winnerMessage
+            message: winnerMessage,
+            notification_type: 'winning_fee'
           }
         });
         if (io) {
@@ -291,7 +292,8 @@ exports.endAuction = async (req, res) => {
         await prisma.notification.create({
           data: {
             user_id: otherId,
-            message: participantMessage
+            message: participantMessage,
+            notification_type: 'bid'
           }
         });
         if (io) {

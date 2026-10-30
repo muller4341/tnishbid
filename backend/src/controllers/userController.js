@@ -92,37 +92,49 @@ exports.addFunds = async (req, res) => {
     }
 
     // Check if this transaction reference has already been credited
-    const alreadyCredited = await prisma.notification.findFirst({
-      where: {
-        message: { contains: cleanTxn }
-      }
+    const existingTx = await prisma.transaction.findUnique({
+      where: { tx_ref: cleanTxn }
     });
 
-    if (alreadyCredited) {
+    if (existingTx && existingTx.status === 'completed') {
       return res.status(400).json({
         error: `Transaction reference '${cleanTxn}' has already been used and credited. Duplicate claims are not permitted.`
       });
     }
 
     const methodName = method === 'cbe' ? 'CBE Birr / CBE' : 'Telebirr';
-
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.id },
-      data: { wallet_balance: { increment: parsedAmount } },
-      select: { id: true, name: true, phone_number: true, wallet_balance: true }
-    });
-
+    const normMethod = method === 'cbe' ? 'cbe' : 'telebirr';
     const refText = ` (Txn: ${cleanTxn})`;
-    try {
-      await prisma.notification.create({
+
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: req.user.id },
+        data: { wallet_balance: { increment: parsedAmount } },
+        select: { id: true, name: true, phone_number: true, wallet_balance: true }
+      });
+
+      await tx.transaction.create({
         data: {
-          user_id: req.user.id,
-          message: `Deposit Successful! ${parsedAmount.toFixed(2)} Birr credited to your wallet via ${methodName}${refText}.`
+          tx_ref: cleanTxn,
+          amount: parsedAmount,
+          status: 'completed',
+          payment_method: normMethod,
+          payment_type: 'deposit',
+          paid_phone: phone_number || null,
+          user_id: req.user.id
         }
       });
-    } catch (notifErr) {
-      console.warn('Could not create notification log:', notifErr.message);
-    }
+
+      await tx.notification.create({
+        data: {
+          user_id: req.user.id,
+          message: `Deposit Successful! ${parsedAmount.toFixed(2)} Birr credited to your wallet via ${methodName}${refText}.`,
+          notification_type: 'deposit'
+        }
+      });
+
+      return user;
+    });
 
     if (req.io) {
       req.io.to(`user_${req.user.id}`).emit('wallet_updated', {

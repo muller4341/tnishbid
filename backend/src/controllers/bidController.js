@@ -3,7 +3,7 @@ const { invalidateItemCache } = require('./itemController');
 
 const BID_FEE = 1.00;
 
-const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
+const createBidRecord = async (tx, { itemId, userId, amount, transactionId, io }) => {
   const item = await tx.item.findUnique({ where: { id: itemId } });
   if (!item) throw new Error('Item not found');
   if (item.status !== 'active') throw new Error('Auction is not active');
@@ -33,7 +33,13 @@ const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
   }
 
   const newBid = await tx.bid.create({
-    data: { amount: parsedAmount, is_unique, item_id: itemId, user_id: userId },
+    data: {
+      amount: parsedAmount,
+      is_unique,
+      item_id: itemId,
+      user_id: userId,
+      transaction_id: transactionId || null
+    },
     include: {
       user: {
         select: { id: true, name: true, phone_number: true, image_url: true }
@@ -46,7 +52,7 @@ const createBidRecord = async (tx, { itemId, userId, amount, io }) => {
   for (const duplicatedUserId of duplicatedUsers) {
     const message = `Your bid of ${parsedAmount} ETB for item "${item.title}" has been duplicated. Place a new unique bid to stay in the lead!`;
     await tx.notification.create({
-      data: { user_id: duplicatedUserId, message }
+      data: { user_id: duplicatedUserId, message, notification_type: 'bid' }
     });
     if (io && typeof io.to === 'function') {
       io.to(`user_${duplicatedUserId}`).emit('bid_duplicated', {

@@ -23,6 +23,7 @@ async function main() {
 
   // Clear existing demo items & bids safely to re-seed clean pool_type items
   await prisma.bid.deleteMany({});
+  await prisma.transaction.deleteMany({});
   await prisma.item.deleteMany({});
 
   const sampleItems = [

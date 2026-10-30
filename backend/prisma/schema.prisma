@@ -7,96 +7,137 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PaymentMethod {
+  cbe
+  telebirr
+  chapa
+  wallet
+}
+
+enum PaymentType {
+  deposit
+  bid_purchase
+  winning_fee
+  refund
+  withdrawal
+}
+
+enum NotificationType {
+  bid
+  deposit
+  winning_fee
+  refund
+  withdrawal
+}
+
 model User {
-  id             String    @id
+  id             String         @id
   name           String
-  phone_number   String    @unique
-  email          String?   @unique
+  phone_number   String         @unique
+  email          String?        @unique
   password_hash  String
-  role           String    @default("user")
-  wallet_balance Float     @default(0.00)
+  role           String         @default("user")
+  wallet_balance Float          @default(0.00)
   image_url      String?
-  created_at     DateTime  @default(now())
+  created_at     DateTime       @default(now())
   
   bids           Bid[]
   notifications  Notification[]
-  won_items      Item[]    @relation("Winner")
-  chapa_payments ChapaPayment[]
+  won_items      Item[]         @relation("ItemWinner")
+  created_items  Item[]         @relation("ItemCreator")
+  transactions   Transaction[]
+
+  @@index([role])
+  @@index([created_at])
 }
 
 model Item {
-  id             Int       @id @default(autoincrement())
-  title          String
-  description    String
-  image_url      String?
-  images         String[]  @default([])
-  category       String    @default("Electronics")
-  is_lub         Boolean   @default(false)
-  pool_type      String    @default("open")
-  base_price     Float 
-  start_time     DateTime
-  end_time       DateTime
-  status         String    @default("active")
-  winner_id      String?
-  created_at     DateTime  @default(now())
-  
-  winner         User?     @relation("Winner", fields: [winner_id], references: [id])
-  bids           Bid[]
-  chapa_payments ChapaPayment[]
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  image_url   String?
+  images      String[] @default([])
+  category    String   @default("Electronics")
+  is_lub      Boolean  @default(false)
+  pool_type   String   @default("open")
+  base_price  Float
+  start_time  DateTime
+  end_time    DateTime
+  status      String   @default("active")
+  winner_id   String?
+  created_by  String?
+  created_at  DateTime @default(now())
+
+  winner  User? @relation("ItemWinner", fields: [winner_id], references: [id], onDelete: SetNull)
+  creator User? @relation("ItemCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  bids    Bid[]
 
   @@index([status])
   @@index([end_time])
   @@index([created_at])
   @@index([pool_type])
+  @@index([winner_id])
+  @@index([created_by])
 }
 
-model ChapaPayment {
-  id          Int      @id @default(autoincrement())
-  tx_ref      String   @unique
-  chapa_ref   String?
-  amount      Float
-  bid_amount  Float
-  status      String   @default("pending")
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+model Transaction {
+  id             Int           @id @default(autoincrement())
+  tx_ref         String        @unique
+  chapa_ref      String?
+  amount         Float
+  bid_amount     Float?
+  status         String        @default("pending")
+  payment_method PaymentMethod @default(chapa)
+  payment_type   PaymentType   @default(deposit)
+  paid_phone     String?
+  created_by     String?
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
 
-  user_id     String
-  user        User     @relation(fields: [user_id], references: [id])
-  item_id     Int
-  item        Item     @relation(fields: [item_id], references: [id])
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  bids    Bid[]
 
   @@index([user_id])
-  @@index([item_id])
+  @@index([payment_method])
+  @@index([payment_type])
   @@index([status])
+  @@index([created_at])
 }
 
 model Bid {
-  id             Int       @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   amount         Float
-  is_unique      Boolean   @default(true)
-  created_at     DateTime  @default(now())
-  
+  is_unique      Boolean        @default(true)
+  created_at     DateTime       @default(now())
+
   item_id        Int
-  item           Item      @relation(fields: [item_id], references: [id])
-  
+  item           Item           @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
   user_id        String
-  user           User      @relation(fields: [user_id], references: [id])
+  user           User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  transaction_id Int?
+  transaction    Transaction?   @relation(fields: [transaction_id], references: [id], onDelete: SetNull)
 
   @@index([item_id])
   @@index([user_id])
   @@index([item_id, amount])
+  @@index([transaction_id])
   @@index([created_at])
 }
 
 model Notification {
-  id             Int       @id @default(autoincrement())
-  message        String
-  is_read        Boolean   @default(false)
-  created_at     DateTime  @default(now())
-  
-  user_id        String
-  user           User      @relation(fields: [user_id], references: [id])
+  id                Int              @id @default(autoincrement())
+  message           String
+  is_read           Boolean          @default(false)
+  notification_type NotificationType @default(bid)
+  created_at        DateTime         @default(now())
+
+  user_id           String
+  user              User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
+  @@index([notification_type])
   @@index([created_at])
 }
