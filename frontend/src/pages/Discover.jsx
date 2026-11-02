@@ -3,13 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { SlidersHorizontal, Tag, Search, ArrowLeft } from 'lucide-react';
 import { getCachedItems, setCachedItems } from '../utils/cache';
-
+import { getEATRemainingMs } from '../utils/timezone';
 
 const formatCountdownShort = (endTime) => {
   if (!endTime) return '00h 00m';
-  const now = new Date().getTime();
-  const end = new Date(endTime).getTime();
-  const distance = end - now;
+  const distance = getEATRemainingMs(endTime);
 
   if (distance <= 0) return 'EXPIRED';
 

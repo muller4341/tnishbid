@@ -1,44 +1,50 @@
 /**
  * East Africa Timezone Helper (EAT, UTC+3)
- * Used across the platform to align auction deadlines and countdown timers
- * with Addis Ababa / Nairobi time zone.
+ * Used across the platform to align auction deadlines, displays, and countdown timers
+ * with Addis Ababa / Nairobi time zone (UTC+3).
  */
 
 export const EAT_TIMEZONE = 'Africa/Addis_Ababa';
 export const EAT_OFFSET_HOURS = 3;
+export const EAT_OFFSET_MS = EAT_OFFSET_HOURS * 60 * 60 * 1000;
 
 /**
- * Parses any auction date/time string ensuring it is properly anchored to
- * East Africa Time (Addis Ababa / Nairobi, UTC+3).
- * 
- * If a naive datetime string is received (e.g. '2026-10-30T18:00' from datetime-local),
- * it explicitly attaches '+03:00' so that it doesn't get misconstrued by UTC
- * or local client system timezone.
+ * Parses any auction date/time value so that its UTC components
+ * preserve the exact East Africa Time wall-clock figures (YYYY-MM-DD HH:mm:ss).
  *
  * @param {string|Date|number} dateValue
  * @returns {Date|null}
  */
 export const parseAuctionDate = (dateValue) => {
   if (!dateValue) return null;
-  if (dateValue instanceof Date) return dateValue;
-  if (typeof dateValue === 'number') return new Date(dateValue);
+  if (dateValue instanceof Date) {
+    if (isNaN(dateValue.getTime())) return null;
+    return dateValue;
+  }
+  if (typeof dateValue === 'number') {
+    const d = new Date(dateValue);
+    return isNaN(d.getTime()) ? null : d;
+  }
 
   const str = String(dateValue).trim();
   if (!str) return null;
 
-  // If already contains an ISO timezone designator (Z or +HH:MM or -HH:MM), parse directly
-  if (/Z|[+-]\d{2}(:?\d{2})?$/i.test(str)) {
-    return new Date(str);
+  // Extract YYYY-MM-DD[ T]HH:mm(:ss)?
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss = '00'] = match;
+    return new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}.000Z`);
   }
 
-  // Naive date string (e.g. '2026-10-30T18:00' or '2026-10-30 18:00:00')
-  // Treat as East Africa Time (+03:00)
-  const normalized = str.replace(' ', 'T');
-  return new Date(`${normalized}+03:00`);
+  const fallback = new Date(str);
+  return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 /**
- * Computes remaining milliseconds until the auction ends in EAT.
+ * Computes remaining milliseconds until the auction ends.
+ * Since the database stores the exact EAT wall-clock timestamp (e.g. 14:18:00),
+ * the true real-world UTC deadline is (targetEAT - 3 hours).
+ * Remaining ms is: (targetEAT - 3 hours) - Date.now().
  *
  * @param {string|Date|number} endTime
  * @returns {number}
@@ -46,7 +52,8 @@ export const parseAuctionDate = (dateValue) => {
 export const getEATRemainingMs = (endTime) => {
   const targetDate = parseAuctionDate(endTime);
   if (!targetDate || isNaN(targetDate.getTime())) return 0;
-  return targetDate.getTime() - Date.now();
+  const targetUtcMs = targetDate.getTime() - EAT_OFFSET_MS;
+  return targetUtcMs - Date.now();
 };
 
 /**
@@ -99,7 +106,10 @@ export const formatEATTimeLeft = (endTime) => {
   const minutes = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((dist % (1000 * 60)) / 1000);
 
-  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  }
+  return `${hours}h ${minutes}m ${seconds}s`;
 };
 
 /**
@@ -118,7 +128,7 @@ export const countdownColorEAT = (endTime, isClosed) => {
 };
 
 /**
- * Formats date & time string in Addis Ababa / Nairobi time zone (EAT, UTC+3).
+ * Formats date & time string preserving the exact East Africa Time (EAT).
  *
  * @param {string|Date|number} dateValue
  * @param {object} options
@@ -129,7 +139,7 @@ export const formatEATDateTime = (dateValue, options = {}) => {
   if (!date || isNaN(date.getTime())) return 'N/A';
 
   return date.toLocaleString('en-US', {
-    timeZone: EAT_TIMEZONE,
+    timeZone: 'UTC', // date's UTC fields contain the exact EAT wall-clock numbers
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -143,6 +153,7 @@ export const formatEATDateTime = (dateValue, options = {}) => {
 export default {
   EAT_TIMEZONE,
   EAT_OFFSET_HOURS,
+  EAT_OFFSET_MS,
   parseAuctionDate,
   getEATRemainingMs,
   isAuctionEndedEAT,

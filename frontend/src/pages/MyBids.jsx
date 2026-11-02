@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import { ArrowLeft, Trophy, Clock, Package } from 'lucide-react';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
+import { getEATRemainingMs, formatEATDateTime } from '../utils/timezone';
 
 const formatActiveRemaining = (distance) => {
   if (distance <= 0) return 'Ended';
@@ -17,17 +18,7 @@ const formatActiveRemaining = (distance) => {
 };
 
 const formatEndDate = (dateStr) => {
-  if (!dateStr) return 'Ended';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return 'Ended';
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  return formatEATDateTime(dateStr);
 };
 
 const MyBids = () => {
@@ -97,7 +88,7 @@ const MyBids = () => {
 
           // Format grouped items
           const groupedList = Array.from(groupsMap.values()).map((g) => {
-            const isEnded = g.itemStatus === 'closed' || (g.endTime && new Date(g.endTime) <= new Date());
+            const isEnded = g.itemStatus === 'closed' || (g.endTime && getEATRemainingMs(g.endTime) <= 0);
 
             // Determine winner ID
             let resolvedWinnerId = g.winnerId ?? g.item?.winner_id ?? g.winner?.id ?? null;
@@ -154,9 +145,7 @@ const MyBids = () => {
               bidStatus = 'active';
             }
 
-            const now = new Date().getTime();
-            const end = g.endTime ? new Date(g.endTime).getTime() : 0;
-            const distance = end - now;
+            const distance = getEATRemainingMs(g.endTime);
 
             const timeStr = formatActiveRemaining(distance);
             const endDateStr = formatEndDate(g.endTime);
@@ -207,7 +196,7 @@ const MyBids = () => {
       setBids((prev) =>
         prev.map((g) => {
           if (!g.endTime || g.bidStatus !== 'active') return g;
-          const distance = new Date(g.endTime).getTime() - Date.now();
+          const distance = getEATRemainingMs(g.endTime);
           if (distance <= 0) {
             return {
               ...g,

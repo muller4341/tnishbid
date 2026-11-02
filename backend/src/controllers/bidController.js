@@ -1,12 +1,13 @@
 const prisma = require('../prismaClient');
 const { invalidateItemCache } = require('./itemController');
+const { isAuctionEndedBackend } = require('../utils/dateHelper');
 
 const BID_FEE = 1.00;
 
 const createBidRecord = async (tx, { itemId, userId, amount, transactionId, io }) => {
   const item = await tx.item.findUnique({ where: { id: itemId } });
   if (!item) throw new Error('Item not found');
-  if (item.status !== 'active') throw new Error('Auction is not active');
+  if (item.status !== 'active' || isAuctionEndedBackend(item.end_time)) throw new Error('Auction is not active or has ended');
 
   const parsedAmount = parseFloat(parseFloat(amount).toFixed(2));
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -82,7 +83,7 @@ exports.placeBid = async (req, res) => {
       // 1. Check item status and bid amount
       const item = await tx.item.findUnique({ where: { id: item_id } });
       if (!item) throw new Error('Item not found');
-      if (item.status !== 'active') throw new Error('Auction is not active');
+      if (item.status !== 'active' || isAuctionEndedBackend(item.end_time)) throw new Error('Auction is not active or has ended');
 
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -193,7 +194,7 @@ exports.getUserBids = async (req, res) => {
       const item = b.item;
       if (!item) return b;
 
-      const isEnded = item.status === 'closed' || (item.end_time && new Date(item.end_time) <= now);
+      const isEnded = item.status === 'closed' || isAuctionEndedBackend(item.end_time);
       let calculatedWinnerId = item.winner_id || (item.winner?.id ?? null);
 
       if (!calculatedWinnerId && isEnded && item.bids && item.bids.length > 0) {

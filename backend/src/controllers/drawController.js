@@ -1,5 +1,6 @@
 const prisma = require('../prismaClient');
 const { optimizeCloudinaryUrl } = require('../utils/cloudinary');
+const { isAuctionEndedBackend } = require('../utils/dateHelper');
 
 // Helper to mask phone numbers safely: e.g. "2519039***11" or "0943***20"
 const maskPhoneNumber = (phone) => {
@@ -63,7 +64,7 @@ exports.getDraws = async (req, res) => {
       const isPast =
         item.status === 'closed' ||
         item.winner_id !== null ||
-        (item.end_time && new Date(item.end_time) <= now);
+        isAuctionEndedBackend(item.end_time);
 
       const itemBids = item.bids || [];
       const totalBids = itemBids.length;

@@ -38,6 +38,7 @@ import {
   ChevronDown,
   Check
 } from 'lucide-react';
+import { formatEATDateTime } from '../utils/timezone';
 
 const CATEGORIES = [
   'Supercars & Vehicles',
@@ -49,29 +50,26 @@ const CATEGORIES = [
 ];
 
 const toLocalISO = (date) => {
-  const pad = (n) => (n < 10 ? '0' + n : n);
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '';
-  const year = d.getFullYear();
-  const month = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  try {
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Africa/Addis_Ababa',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(new Date(date)).replace(' ', 'T');
+  } catch {
+    const pad = (n) => (n < 10 ? '0' + n : n);
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 };
 
 const formatHumanDate = (isoStr) => {
-  if (!isoStr) return 'N/A';
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return 'N/A';
-  return d.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  return formatEATDateTime(isoStr);
 };
 
 const AdminDashboard = () => {

@@ -1,6 +1,7 @@
 const prisma = require('../prismaClient');
 const { uploadImage, uploadMultipleImages, optimizeCloudinaryUrl } = require('../utils/cloudinary');
 const cache = require('../utils/cache');
+const { parseExactTimestamp } = require('../utils/dateHelper');
 
 const invalidateItemCache = (id) => {
   cache.del('items:all');
@@ -14,15 +15,8 @@ const invalidateItemCache = (id) => {
 };
 exports.invalidateItemCache = invalidateItemCache;
 
-// Anchors naive date strings to East Africa Time (Nairobi / Addis Ababa, UTC+3)
-const parseToEAT = (dateStr) => {
-  if (!dateStr) return null;
-  const str = String(dateStr).trim();
-  if (/Z|[+-]\d{2}(:?\d{2})?$/i.test(str)) {
-    return new Date(str);
-  }
-  return new Date(`${str.replace(' ', 'T')}+03:00`);
-};
+// Anchors date strings so the exact wall-clock timestamp is preserved in PostgreSQL
+const parseToEAT = parseExactTimestamp;
 
 exports.getItems = async (req, res) => {
   try {

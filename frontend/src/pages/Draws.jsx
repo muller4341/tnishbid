@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
+import { formatEATDateTime } from '../utils/timezone';
 import {
   ChevronLeft,
   Trophy,
@@ -95,17 +96,7 @@ const TRANSLATIONS = {
 };
 
 const formatHumanDateTime = (dateStr) => {
-  if (!dateStr) return 'N/A';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return 'N/A';
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  return formatEATDateTime(dateStr);
 };
 
 const cleanText = (str) => {
