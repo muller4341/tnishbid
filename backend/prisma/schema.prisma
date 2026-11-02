@@ -7,29 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum PaymentMethod {
-  cbe
-  telebirr
-  chapa
-  wallet
-}
-
-enum PaymentType {
-  deposit
-  bid_purchase
-  winning_fee
-  refund
-  withdrawal
-}
-
-enum NotificationType {
-  bid
-  deposit
-  winning_fee
-  refund
-  withdrawal
-}
-
 model User {
   id             String   @id
   name           String
@@ -86,9 +63,9 @@ model Transaction {
   chapa_ref      String?
   amount         Float
   bid_amount     Float?
-  status         String        @default("pending")
-  payment_method PaymentMethod @default(chapa)
-  payment_type   PaymentType   @default(deposit)
+  status         String   @default("pending")
+  payment_method String   @default("chapa")
+  payment_type   String   @default("deposit")
   paid_phone     String?
   created_by     String?
   created_at     DateTime      @default(now())
@@ -131,7 +108,7 @@ model Notification {
   id                Int              @id @default(autoincrement())
   message           String
   is_read           Boolean          @default(false)
-  notification_type NotificationType @default(bid)
+  notification_type String   @default("bid")
   created_at        DateTime         @default(now())
 
   user_id String
