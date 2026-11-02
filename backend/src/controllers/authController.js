@@ -42,15 +42,42 @@ exports.register = async (req, res) => {
     }
 
     const password_hash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        id: customId,
-        name: name || trimmedPhone,
-        phone_number: trimmedPhone,
-        email: email || null,
-        password_hash,
-        wallet_balance: 10.0
-      }
+    const SIGNUP_BONUS = 10.0;
+
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          id: customId,
+          name: name || trimmedPhone,
+          phone_number: trimmedPhone,
+          email: email || null,
+          password_hash,
+          wallet_balance: SIGNUP_BONUS
+        }
+      });
+
+      const txRef = `tinish-signup-bonus-${newUser.id}-${Date.now()}`;
+      await tx.transaction.create({
+        data: {
+          tx_ref: txRef,
+          amount: SIGNUP_BONUS,
+          status: 'completed',
+          payment_method: 'wallet',
+          payment_type: 'deposit',
+          paid_phone: trimmedPhone,
+          user_id: newUser.id
+        }
+      });
+
+      await tx.notification.create({
+        data: {
+          user_id: newUser.id,
+          message: `Welcome to Tinish Bid! You have received a welcome bonus of ${SIGNUP_BONUS.toFixed(2)} ETB in your wallet.`,
+          notification_type: 'deposit'
+        }
+      });
+
+      return newUser;
     });
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
