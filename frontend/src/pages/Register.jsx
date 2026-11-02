@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { User, Phone, Lock, Smartphone, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import logoDark from '../assets/logo1.png';
 import logoLight from '../assets/logo2.png';
+import PolicyModal from '../components/PolicyModal';
 
 const PHONE_REGEX = /^(09|07)\d{8}$/;
 
@@ -13,6 +14,8 @@ const Register = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [agreePolicy, setAgreePolicy] = useState(false);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [policyModalTab, setPolicyModalTab] = useState('terms');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register, user } = useAuth();
@@ -172,7 +175,32 @@ const Register = () => {
               className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-[#111113] text-amber-500 focus:ring-amber-500/40 focus:ring-offset-0 cursor-pointer disabled:opacity-60"
             />
             <label htmlFor="privacy-policy-checkbox" className="text-xs text-zinc-400 cursor-pointer select-none leading-snug">
-              I agree to the <span className="text-amber-400 font-bold hover:underline">Privacy Policy</span> & <span className="text-amber-400 font-bold hover:underline">Terms of Service</span>
+              I agree to the{' '}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setPolicyModalTab('privacy');
+                  setIsPolicyModalOpen(true);
+                }}
+                className="text-amber-400 font-bold hover:underline inline-block cursor-pointer focus:outline-none"
+              >
+                Privacy Policy
+              </button>{' '}
+              &{' '}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setPolicyModalTab('terms');
+                  setIsPolicyModalOpen(true);
+                }}
+                className="text-amber-400 font-bold hover:underline inline-block cursor-pointer focus:outline-none"
+              >
+                Terms of Service
+              </button>
             </label>
           </div>
 
@@ -212,6 +240,14 @@ const Register = () => {
           </Link>
         </div>
       </div>
+
+      {/* Terms of Service & Privacy Policy Pop-up Modal */}
+      <PolicyModal
+        isOpen={isPolicyModalOpen}
+        initialTab={policyModalTab}
+        onClose={() => setIsPolicyModalOpen(false)}
+        onAccept={() => setAgreePolicy(true)}
+      />
     </div>
   );
 };
