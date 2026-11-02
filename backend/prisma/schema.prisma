@@ -67,7 +67,6 @@ model Transaction {
   payment_method String   @default("chapa")
   payment_type   String   @default("deposit")
   paid_phone     String?
-  created_by     String?
   created_at     DateTime      @default(now())
   updated_at     DateTime      @updatedAt
 
