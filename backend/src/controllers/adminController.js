@@ -1,4 +1,5 @@
 const prisma = require('../prismaClient');
+const { settleItem, settleExpiredAuctions } = require('../utils/settlement');
 
 const buildRealDailyTrend = (bidsArray, daysCount = 7) => {
   const result = [];
@@ -48,7 +49,8 @@ exports.getDashboardStats = async (req, res) => {
     const totalUsers = await prisma.user.count();
     const totalBids = await prisma.bid.count();
     const activeItemsCount = await prisma.item.count({ where: { status: 'active' } });
-    const closedItemsCount = await prisma.item.count({ where: { status: 'closed' } });
+    await settleExpiredAuctions(req.io);
+    const closedItemsCount = await prisma.item.count({ where: { status: { in: ['ended', 'closed'] } } });
 
     // 2. Total revenue estimate (Bid fees + user wallet balances)
     const walletAgg = await prisma.user.aggregate({
@@ -104,8 +106,8 @@ exports.getDashboardStats = async (req, res) => {
         description: item.description,
         image_url: item.image_url,
         category: item.category,
-        is_lub: item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium',
-        pool_type: (item.is_lub || item.pool_type === 'lub' || item.pool_type === 'premium') ? 'lub' : 'open',
+        is_lub: item.pool_type === 'lub' || item.pool_type === 'premium',
+        pool_type: item.pool_type || 'open',
         base_price: item.base_price,
         start_time: item.start_time,
         end_time: item.end_time,
@@ -210,108 +212,13 @@ exports.getDashboardStats = async (req, res) => {
 
 exports.endAuction = async (req, res) => {
   try {
-    const itemId = parseInt(req.params.id);
+    const itemId = parseInt(req.params.id, 10);
     const io = req.io;
 
-    const item = await prisma.item.findUnique({
-      where: { id: itemId },
-      include: { bids: true }
-    });
+    const updated = await settleItem(itemId, io);
+    if (!updated) return res.status(404).json({ error: 'Item not found' });
 
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-    if (item.status === 'closed') return res.status(400).json({ error: 'Auction is already closed' });
-
-    const basePrice = parseFloat(item.base_price || 0);
-    const getNetBid = (amt) => {
-      const a = parseFloat(amt || 0);
-      if (basePrice > 0 && a >= basePrice) {
-        const net = parseFloat((a - basePrice).toFixed(2));
-        return net > 0 ? net : a;
-      }
-      return parseFloat(a.toFixed(2));
-    };
-
-    // Calculate winner: Strictly Lowest Unique Bid
-    const amountMap = {};
-    item.bids.forEach((b) => {
-      const amtKey = getNetBid(b.amount).toFixed(2);
-      if (!amountMap[amtKey]) amountMap[amtKey] = [];
-      amountMap[amtKey].push(b);
-    });
-
-    const uniqueKeys = Object.keys(amountMap).filter((k) => amountMap[k].length === 1);
-    let winnerId = null;
-    let winningAmount = null;
-
-    if (uniqueKeys.length > 0) {
-      // Find lowest unique amount
-      uniqueKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
-      const winningBid = amountMap[uniqueKeys[0]][0];
-      winnerId = winningBid.user_id;
-      winningAmount = getNetBid(winningBid.amount);
-    }
-
-    const updated = await prisma.item.update({
-      where: { id: itemId },
-      data: {
-        status: 'closed',
-        winner_id: winnerId
-      },
-      include: { 
-        winner: { select: { id: true, name: true, phone_number: true, email: true, image_url: true } }
-      }
-    });
-
-    if (winnerId) {
-      const { getUserPreferences } = require('../utils/preferenceStore');
-      const winnerPrefs = getUserPreferences(winnerId);
-      const winnerMessage = `🎉 Congratulations! You won the auction for "${item.title}" with a winning bid of ${winningAmount || item.base_price} ETB!`;
-      
-      if (winnerPrefs.wins !== false) {
-        await prisma.notification.create({
-          data: {
-            user_id: winnerId,
-            message: winnerMessage,
-            notification_type: 'winning_fee'
-          }
-        });
-        if (io) {
-          io.to(`user_${winnerId}`).emit('auction_won', {
-            itemId: item.id,
-            itemTitle: item.title,
-            winningAmount: winningAmount || item.base_price,
-            message: winnerMessage
-          });
-        }
-      }
-
-      // Notify other participants that auction has concluded
-      const otherUserIds = [...new Set(item.bids.map(b => b.user_id).filter(id => id !== winnerId))];
-      for (const otherId of otherUserIds) {
-        const participantMessage = `The auction for "${item.title}" has concluded. Winner: ${updated.winner?.name || 'Declared Winner'} (${winningAmount || item.base_price} ETB).`;
-        await prisma.notification.create({
-          data: {
-            user_id: otherId,
-            message: participantMessage,
-            notification_type: 'bid'
-          }
-        });
-        if (io) {
-          io.to(`user_${otherId}`).emit('auction_ended', {
-            itemId: item.id,
-            itemTitle: item.title,
-            message: participantMessage
-          });
-        }
-      }
-    }
-
-    // Broadcast global update to update clients
-    if (io) {
-      io.emit('bid_update', { item_id: itemId, status: 'closed', winner: updated.winner });
-    }
-
-    res.json({ message: 'Auction closed successfully', item: updated });
+    res.json({ message: 'Auction ended successfully', item: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

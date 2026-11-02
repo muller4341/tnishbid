@@ -88,7 +88,7 @@ const MyBids = () => {
 
           // Format grouped items
           const groupedList = Array.from(groupsMap.values()).map((g) => {
-            const isEnded = g.itemStatus === 'closed' || (g.endTime && getEATRemainingMs(g.endTime) <= 0);
+            const isEnded = g.itemStatus === 'ended' || g.itemStatus === 'closed' || (g.endTime && getEATRemainingMs(g.endTime) <= 0);
 
             // Determine winner ID
             let resolvedWinnerId = g.winnerId ?? g.item?.winner_id ?? g.winner?.id ?? null;

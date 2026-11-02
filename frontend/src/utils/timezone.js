@@ -64,7 +64,7 @@ export const getEATRemainingMs = (endTime) => {
  */
 export const isAuctionEndedEAT = (item) => {
   if (!item) return true;
-  if (item.status === 'closed') return true;
+  if (item.status === 'ended' || item.status === 'closed') return true;
   if (!item.end_time) return false;
   return getEATRemainingMs(item.end_time) <= 0;
 };

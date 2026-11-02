@@ -1018,10 +1018,10 @@ const AdminDashboard = () => {
                           </td>
 
                           <td className="py-3.5 px-4">
-                            {prod.status === 'closed' ? (
+                            {(prod.status === 'ended' || prod.status === 'closed') ? (
                               <div>
                                 <span className="bg-rose-950/80 text-rose-400 border border-rose-500/30 text-[10px] font-black uppercase px-2 py-0.5 rounded-md">
-                                  CLOSED
+                                  ENDED
                                 </span>
                                 {prod.winner && (
                                   <p className="text-[11px] font-bold text-amber-400 mt-1 flex items-center gap-1">

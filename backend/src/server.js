@@ -49,6 +49,7 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const drawRoutes = require('./routes/drawRoutes');
+const { settleExpiredAuctions } = require('./utils/settlement');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -82,4 +83,9 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  // Periodically settle expired items to flip status to 'ended' and set winner_id
+  settleExpiredAuctions(io);
+  setInterval(() => {
+    settleExpiredAuctions(io);
+  }, 15000);
 });

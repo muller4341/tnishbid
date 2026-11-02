@@ -21,7 +21,6 @@ model User {
   bids          Bid[]
   notifications Notification[]
   won_items     Item[]         @relation("ItemWinner")
-  created_items Item[]         @relation("ItemCreator")
   transactions  Transaction[]
 
   @@index([role])
@@ -35,18 +34,15 @@ model Item {
   image_url   String?
   images      String[] @default([])
   category    String   @default("Electronics")
-  is_lub      Boolean  @default(false)
   pool_type   String   @default("open")
   base_price  Float
   start_time  DateTime
   end_time    DateTime
   status      String   @default("active")
   winner_id   String?
-  created_by  String?
   created_at  DateTime @default(now())
 
   winner  User? @relation("ItemWinner", fields: [winner_id], references: [id], onDelete: SetNull)
-  creator User? @relation("ItemCreator", fields: [created_by], references: [id], onDelete: SetNull)
   bids    Bid[]
 
   @@index([status])
@@ -54,7 +50,6 @@ model Item {
   @@index([created_at])
   @@index([pool_type])
   @@index([winner_id])
-  @@index([created_by])
 }
 
 model Transaction {

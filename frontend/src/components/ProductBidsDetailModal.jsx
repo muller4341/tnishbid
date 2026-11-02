@@ -112,11 +112,11 @@ const ProductBidsDetailModal = ({ product, onClose, onAdjustWallet, onRefresh })
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-black text-white tracking-tight">{product.title}</h2>
-                <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${product.status === 'closed'
+                <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${(product.status === 'ended' || product.status === 'closed')
                     ? 'bg-rose-950/80 text-rose-400 border-rose-500/40'
                     : 'bg-emerald-950/80 text-emerald-400 border-emerald-500/40'
                   }`}>
-                  {product.status === 'closed' ? 'Closed' : 'Active Auction'}
+                  {(product.status === 'ended' || product.status === 'closed') ? 'Ended' : 'Active Auction'}
                 </span>
                 <span className="text-[10px] font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/30 px-2.5 py-0.5 rounded-full">
                   {product.category}

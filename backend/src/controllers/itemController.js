@@ -2,6 +2,7 @@ const prisma = require('../prismaClient');
 const { uploadImage, uploadMultipleImages, optimizeCloudinaryUrl } = require('../utils/cloudinary');
 const cache = require('../utils/cache');
 const { parseExactTimestamp } = require('../utils/dateHelper');
+const { settleExpiredAuctions } = require('../utils/settlement');
 
 const invalidateItemCache = (id) => {
   cache.del('items:all');
@@ -28,6 +29,7 @@ exports.getItems = async (req, res) => {
       return res.json(cached);
     }
 
+    await settleExpiredAuctions(req.io);
     const items = await prisma.item.findMany({
       orderBy: { created_at: 'desc' },
       include: {
@@ -39,6 +41,7 @@ exports.getItems = async (req, res) => {
 
     const optimizedItems = items.map((item) => ({
       ...item,
+      is_lub: item.pool_type === 'lub' || item.pool_type === 'premium',
       image_url: optimizeCloudinaryUrl(item.image_url),
       images: Array.isArray(item.images) ? item.images.map(optimizeCloudinaryUrl) : item.images
     }));
@@ -88,6 +91,7 @@ exports.getItemById = async (req, res) => {
 
     const optimizedItem = {
       ...item,
+      is_lub: item.pool_type === 'lub' || item.pool_type === 'premium',
       image_url: optimizeCloudinaryUrl(item.image_url),
       images: Array.isArray(item.images) ? item.images.map(optimizeCloudinaryUrl) : item.images
     };
@@ -149,15 +153,14 @@ exports.createItem = async (req, res) => {
         title,
         description,
         category: category || 'Electronics',
-        is_lub: isLubBool,
+
         pool_type: isLubBool ? 'lub' : 'open',
         image_url,
         images: itemImages,
         base_price: parseFloat(base_price),
         start_time: parseToEAT(start_time),
         end_time: parseToEAT(end_time),
-        status: 'active',
-        created_by: req.user?.id || null
+        status: 'active'
       }
     });
     invalidateItemCache();
@@ -255,7 +258,7 @@ exports.updateItem = async (req, res) => {
         title: title !== undefined ? title : existing.title,
         description: description !== undefined ? description : existing.description,
         category: category !== undefined ? category : existing.category,
-        is_lub: isLubBool,
+
         pool_type: isLubBool ? 'lub' : 'open',
         base_price: base_price !== undefined ? parseFloat(base_price) : existing.base_price,
         start_time: start_time ? parseToEAT(start_time) : existing.start_time,

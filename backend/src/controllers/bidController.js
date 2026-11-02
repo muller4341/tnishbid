@@ -1,6 +1,7 @@
 const prisma = require('../prismaClient');
 const { invalidateItemCache } = require('./itemController');
 const { isAuctionEndedBackend } = require('../utils/dateHelper');
+const { settleExpiredAuctions } = require('../utils/settlement');
 
 const BID_FEE = 1.00;
 
@@ -171,6 +172,7 @@ const getNetBid = (amt, basePrice = 0) => {
 exports.getUserBids = async (req, res) => {
   try {
     const user_id = req.user.id;
+    await settleExpiredAuctions(req.io);
     const userBids = await prisma.bid.findMany({
       where: { user_id },
       include: {
@@ -194,7 +196,7 @@ exports.getUserBids = async (req, res) => {
       const item = b.item;
       if (!item) return b;
 
-      const isEnded = item.status === 'closed' || isAuctionEndedBackend(item.end_time);
+      const isEnded = item.status === 'ended' || item.status === 'closed' || isAuctionEndedBackend(item.end_time);
       let calculatedWinnerId = item.winner_id || (item.winner?.id ?? null);
 
       if (!calculatedWinnerId && isEnded && item.bids && item.bids.length > 0) {

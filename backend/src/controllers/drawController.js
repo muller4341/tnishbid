@@ -1,6 +1,7 @@
 const prisma = require('../prismaClient');
 const { optimizeCloudinaryUrl } = require('../utils/cloudinary');
 const { isAuctionEndedBackend } = require('../utils/dateHelper');
+const { settleExpiredAuctions } = require('../utils/settlement');
 
 // Helper to mask phone numbers safely: e.g. "2519039***11" or "0943***20"
 const maskPhoneNumber = (phone) => {
@@ -38,6 +39,7 @@ const getNetBid = (amt, basePrice = 0) => {
 
 exports.getDraws = async (req, res) => {
   try {
+    await settleExpiredAuctions(req.io);
     const items = await prisma.item.findMany({
       include: {
         winner: {
@@ -62,6 +64,7 @@ exports.getDraws = async (req, res) => {
 
     items.forEach((item) => {
       const isPast =
+        item.status === 'ended' ||
         item.status === 'closed' ||
         item.winner_id !== null ||
         isAuctionEndedBackend(item.end_time);
@@ -112,7 +115,7 @@ exports.getDraws = async (req, res) => {
           base_price: item.base_price,
           start_time: item.start_time,
           end_time: item.end_time,
-          status: 'closed',
+          status: 'ended',
           auction_code: auctionCode,
           entry_code: `Entry ${auctionCode}`,
           announced_at: item.end_time,
