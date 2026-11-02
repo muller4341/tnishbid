@@ -69,7 +69,7 @@ const createBidRecord = async (tx, { itemId, userId, amount, transactionId, io }
 exports.createBidRecord = createBidRecord;
 
 exports.placeBid = async (req, res) => {
-  const { item_id, amount, payment_method } = req.body;
+  const { item_id, amount, payment_method, phone_number } = req.body;
   const user_id = req.user.id;
   const io = req.io;
 
@@ -106,8 +106,37 @@ exports.placeBid = async (req, res) => {
         });
       }
 
-      // 3. Create the bid after the selected fee source is authorized.
-      return createBidRecord(tx, { itemId: item_id, userId: user_id, amount: parsedAmount, io });
+      // Requirement 1: paid phone - if changed take it, else default (registered phone number)
+      const phoneInput = phone_number || user.phone_number || '';
+      let rawPhone = String(phoneInput).replace(/\D/g, '');
+      if (rawPhone.startsWith('251')) rawPhone = '0' + rawPhone.slice(3);
+      if (!rawPhone.startsWith('0') && (rawPhone.startsWith('9') || rawPhone.startsWith('7'))) rawPhone = '0' + rawPhone;
+      const finalPaidPhone = rawPhone || user.phone_number || null;
+
+      // Requirement 2: payment_method -> 'wallet'
+      // Requirement 3: payment_type -> 'bid_purchase'
+      const txRef = `tinish-wallet-bid-${user_id}-${item_id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const walletTx = await tx.transaction.create({
+        data: {
+          tx_ref: txRef,
+          amount: bidFee,
+          bid_amount: parsedAmount,
+          status: 'completed',
+          payment_method: 'wallet',
+          payment_type: 'bid_purchase',
+          paid_phone: finalPaidPhone,
+          user_id: user_id
+        }
+      });
+
+      // 3. Create the bid linked to this transaction
+      return createBidRecord(tx, {
+        itemId: item_id,
+        userId: user_id,
+        amount: parsedAmount,
+        transactionId: walletTx.id,
+        io
+      });
     });
 
     // Invalidate cache so live auction details and item lists are up to date

@@ -686,7 +686,8 @@ const Profile = () => {
     try {
       const res = await axios.post('/api/payments/chapa/wallet/inline/prepare', {
         amount: amt,
-        method: method
+        method: method,
+        phone_number: phone
       });
 
       setInlineDeposit({
@@ -708,7 +709,8 @@ const Profile = () => {
     try {
       const res = await axios.post('/api/payments/chapa/wallet/verify', {
         tx_ref: txRef,
-        method: selectedMethod
+        method: selectedMethod,
+        phone_number: inlineDeposit?.mobile || senderPhone || user?.phone_number
       });
 
       const newBalance = res.data.wallet_balance;

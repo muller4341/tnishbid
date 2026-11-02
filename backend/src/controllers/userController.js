@@ -113,6 +113,12 @@ exports.addFunds = async (req, res) => {
         select: { id: true, name: true, phone_number: true, wallet_balance: true }
       });
 
+      const phoneInput = phone_number || user.phone_number || '';
+      let rawPhone = String(phoneInput).replace(/\D/g, '');
+      if (rawPhone.startsWith('251')) rawPhone = '0' + rawPhone.slice(3);
+      if (!rawPhone.startsWith('0') && (rawPhone.startsWith('9') || rawPhone.startsWith('7'))) rawPhone = '0' + rawPhone;
+      const finalPaidPhone = rawPhone || user.phone_number || null;
+
       await tx.transaction.create({
         data: {
           tx_ref: cleanTxn,
@@ -120,7 +126,7 @@ exports.addFunds = async (req, res) => {
           status: 'completed',
           payment_method: normMethod,
           payment_type: 'deposit',
-          paid_phone: phone_number || null,
+          paid_phone: finalPaidPhone,
           user_id: req.user.id
         }
       });

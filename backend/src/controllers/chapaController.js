@@ -20,6 +20,23 @@ const normalizeEmail = (email) => {
   return /^[^\s@]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(value) ? value : null;
 };
 
+const normalizePhone = (phone, fallbackPhone) => {
+  const input = phone || fallbackPhone || '';
+  let raw = String(input).replace(/\D/g, '');
+  if (raw.startsWith('251')) raw = '0' + raw.slice(3);
+  if (!raw.startsWith('0') && (raw.startsWith('9') || raw.startsWith('7'))) raw = '0' + raw;
+  return raw || (fallbackPhone ? String(fallbackPhone) : null);
+};
+
+const normalizePaymentMethod = (method, fallback = 'telebirr') => {
+  const m = String(method || '').toLowerCase();
+  if (m.includes('cbe')) return 'cbe';
+  if (m.includes('telebirr') || m.includes('tele')) return 'telebirr';
+  if (m.includes('wallet')) return 'wallet';
+  if (m.includes('chapa')) return 'chapa';
+  return fallback;
+};
+
 const extractItemIdFromTxRef = (ref, fallbackId) => {
   if (fallbackId) {
     const num = parseInt(fallbackId, 10);
@@ -69,7 +86,7 @@ const redirectToResult = (res, status, txRef, message) => {
 };
 
 exports.initializeBidPayment = async (req, res) => {
-  const { item_id, amount, phone_number } = req.body;
+  const { item_id, amount, phone_number, payment_method, method } = req.body;
   const userId = req.user.id;
 
   try {
@@ -91,9 +108,8 @@ exports.initializeBidPayment = async (req, res) => {
     const bidFee = item.base_price != null ? item.base_price : 1.00;
     const txRef = `tinish-bid-${userId}-${itemId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const nameParts = (user.name || 'Tinish Bid User').trim().split(/\s+/);
-    let rawPhone = String(phone_number || user.phone_number || '').replace(/\D/g, '');
-    if (rawPhone.startsWith('251')) rawPhone = '0' + rawPhone.slice(3);
-    if (!rawPhone.startsWith('0') && (rawPhone.startsWith('9') || rawPhone.startsWith('7'))) rawPhone = '0' + rawPhone;
+    const finalPaidPhone = normalizePhone(phone_number, user.phone_number);
+    const finalMethod = normalizePaymentMethod(payment_method || method, 'telebirr');
 
     await prisma.transaction.create({
       data: {
@@ -101,9 +117,9 @@ exports.initializeBidPayment = async (req, res) => {
         amount: bidFee,
         bid_amount: parsedBidAmount,
         status: 'pending',
-        payment_method: 'chapa',
+        payment_method: finalMethod,
         payment_type: 'bid_purchase',
-        paid_phone: rawPhone || null,
+        paid_phone: finalPaidPhone,
         user_id: userId
       }
     });
@@ -122,7 +138,7 @@ exports.initializeBidPayment = async (req, res) => {
         description: `Bid fee for ${item.title}`
       }
     };
-    if (/^(09|07)\d{8}$/.test(rawPhone)) chapaPayload.phone_number = rawPhone;
+    if (finalPaidPhone && /^(09|07)\d{8}$/.test(finalPaidPhone)) chapaPayload.phone_number = finalPaidPhone;
 
     const chapaResponse = await chapaRequest(CHAPA_INITIALIZE_URL, {
       method: 'POST',
@@ -147,7 +163,7 @@ exports.initializeBidPayment = async (req, res) => {
 };
 
 exports.prepareInlineBidPayment = async (req, res) => {
-  const { item_id, amount } = req.body;
+  const { item_id, amount, payment_method, method, phone_number } = req.body;
   const userId = req.user.id;
 
   try {
@@ -165,6 +181,9 @@ exports.prepareInlineBidPayment = async (req, res) => {
     if (item.status !== 'active') return res.status(400).json({ error: 'Auction is not active' });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    const finalPaidPhone = normalizePhone(phone_number, user.phone_number);
+    const finalMethod = normalizePaymentMethod(payment_method || method, 'telebirr');
+
     const txRef = `tinish-inline-${userId}-${itemId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const bidFee = item.base_price != null ? item.base_price : 1.00;
     await prisma.transaction.create({
@@ -173,13 +192,14 @@ exports.prepareInlineBidPayment = async (req, res) => {
         amount: bidFee,
         bid_amount: parsedBidAmount,
         status: 'pending',
-        payment_method: 'chapa',
+        payment_method: finalMethod,
         payment_type: 'bid_purchase',
+        paid_phone: finalPaidPhone,
         user_id: userId
       }
     });
 
-    res.json({ tx_ref: txRef, amount: bidFee });
+    res.json({ tx_ref: txRef, amount: bidFee, method: finalMethod, mobile: finalPaidPhone });
   } catch (error) {
     console.error('Inline Chapa preparation error:', error.message);
     res.status(500).json({ error: error.message });
@@ -187,7 +207,7 @@ exports.prepareInlineBidPayment = async (req, res) => {
 };
 
 exports.completeInlineBidPayment = async (req, res) => {
-  const { tx_ref: txRef, chapa_ref: chapaRef, item_id: bodyItemId } = req.body;
+  const { tx_ref: txRef, chapa_ref: chapaRef, item_id: bodyItemId, payment_method, method, phone_number } = req.body;
   const userId = req.user.id;
   if (!txRef) return res.status(400).json({ error: 'Missing payment reference' });
 
@@ -224,9 +244,21 @@ exports.completeInlineBidPayment = async (req, res) => {
         transactionId: currentPayment.id,
         io: req.io
       });
+
+      const updateData = {
+        status: 'completed',
+        chapa_ref: verifiedChapaRef
+      };
+      if (!currentPayment.paid_phone) {
+        updateData.paid_phone = normalizePhone(phone_number, req.user.phone_number);
+      }
+      if (currentPayment.payment_method === 'chapa' && (payment_method || method)) {
+        updateData.payment_method = normalizePaymentMethod(payment_method || method, 'telebirr');
+      }
+
       await tx.transaction.update({
         where: { tx_ref: txRef },
-        data: { status: 'completed', chapa_ref: verifiedChapaRef }
+        data: updateData
       });
       return bid;
     });
@@ -249,7 +281,7 @@ exports.completeInlineBidPayment = async (req, res) => {
 };
 
 exports.prepareInlineWalletDeposit = async (req, res) => {
-  const { amount, method } = req.body;
+  const { amount, method, phone_number } = req.body;
   const userId = req.user.id;
 
   try {
@@ -261,7 +293,8 @@ exports.prepareInlineWalletDeposit = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const normalizedMethod = String(method || '').toLowerCase().includes('cbe') ? 'cbe' : 'telebirr';
+    const normalizedMethod = normalizePaymentMethod(method, 'telebirr');
+    const finalPaidPhone = normalizePhone(phone_number, user.phone_number);
     const txRef = `tinish-w-inline-${userId}-${normalizedMethod}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
     await prisma.transaction.create({
@@ -271,6 +304,7 @@ exports.prepareInlineWalletDeposit = async (req, res) => {
         status: 'pending',
         payment_method: normalizedMethod,
         payment_type: 'deposit',
+        paid_phone: finalPaidPhone,
         user_id: userId
       }
     });
@@ -279,7 +313,8 @@ exports.prepareInlineWalletDeposit = async (req, res) => {
       success: true,
       tx_ref: txRef,
       amount: parsedAmount,
-      method: normalizedMethod === 'cbe' ? 'cbe' : 'telebirr'
+      method: normalizedMethod,
+      mobile: finalPaidPhone
     });
   } catch (error) {
     console.error('Inline wallet deposit preparation error:', error.message);
@@ -301,12 +336,10 @@ exports.initializeWalletDeposit = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const normalizedMethod = String(method || '').toLowerCase().includes('cbe') ? 'cbe' : 'telebirr';
+    const normalizedMethod = normalizePaymentMethod(method, 'telebirr');
+    const finalPaidPhone = normalizePhone(phone_number, user.phone_number);
     const txRef = `tinish-wallet-${userId}-${normalizedMethod}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const nameParts = (user.name || 'Tinish Bid User').trim().split(/\s+/);
-    let rawPhone = String(phone_number || user.phone_number || '').replace(/\D/g, '');
-    if (rawPhone.startsWith('251')) rawPhone = '0' + rawPhone.slice(3);
-    if (!rawPhone.startsWith('0') && (rawPhone.startsWith('9') || rawPhone.startsWith('7'))) rawPhone = '0' + rawPhone;
 
     await prisma.transaction.create({
       data: {
@@ -315,7 +348,7 @@ exports.initializeWalletDeposit = async (req, res) => {
         status: 'pending',
         payment_method: normalizedMethod,
         payment_type: 'deposit',
-        paid_phone: rawPhone || null,
+        paid_phone: finalPaidPhone,
         user_id: userId
       }
     });
@@ -334,7 +367,7 @@ exports.initializeWalletDeposit = async (req, res) => {
         description: `Add ${parsedAmount} Coins via ${normalizedMethod === 'cbe' ? 'CBE Birr' : 'Telebirr'}`
       }
     };
-    if (/^(09|07)\d{8}$/.test(rawPhone)) chapaPayload.phone_number = rawPhone;
+    if (finalPaidPhone && /^(09|07)\d{8}$/.test(finalPaidPhone)) chapaPayload.phone_number = finalPaidPhone;
 
     const chapaResponse = await chapaRequest(CHAPA_INITIALIZE_URL, {
       method: 'POST',
@@ -357,7 +390,7 @@ exports.initializeWalletDeposit = async (req, res) => {
 };
 
 exports.verifyWalletDeposit = async (req, res) => {
-  const { tx_ref: txRef, method: passedMethod, payment_method: passedPaymentMethod } = req.body;
+  const { tx_ref: txRef, method: passedMethod, payment_method: passedPaymentMethod, phone_number } = req.body;
   const userId = req.user.id;
 
   if (!txRef) {
@@ -386,17 +419,15 @@ exports.verifyWalletDeposit = async (req, res) => {
     }
 
     // Determine the real chosen payment method from request, Chapa verification data, or txRef
-    const rawMethod = String(
+    const normMethod = normalizePaymentMethod(
       passedMethod ||
       passedPaymentMethod ||
       verified.data?.payment_method ||
       (txRef.toLowerCase().includes('-cbe-') || txRef.toLowerCase().includes('cbe') ? 'cbe' : '') ||
-      (txRef.toLowerCase().includes('-telebirr-') || txRef.toLowerCase().includes('tele') ? 'telebirr' : '') ||
+      (txRef.toLowerCase().includes('-telebirr-') || txRef.toLowerCase().includes('tele') ? 'telebirr' : ''),
       'telebirr'
-    ).toLowerCase();
-
-    const methodName = rawMethod.includes('cbe') ? 'CBE Birr' : 'Telebirr';
-    const normMethod = rawMethod.includes('cbe') ? 'cbe' : 'telebirr';
+    );
+    const methodName = normMethod === 'cbe' ? 'CBE Birr' : 'Telebirr';
 
     // Check if this tx_ref has already been completed to prevent double crediting
     const existingTx = await prisma.transaction.findUnique({
@@ -426,6 +457,8 @@ exports.verifyWalletDeposit = async (req, res) => {
         select: { id: true, name: true, phone_number: true, wallet_balance: true }
       });
 
+      const finalPaidPhone = normalizePhone(phone_number, existingTx?.paid_phone || user.phone_number);
+
       await tx.transaction.upsert({
         where: { tx_ref: txRef },
         create: {
@@ -434,12 +467,16 @@ exports.verifyWalletDeposit = async (req, res) => {
           status: 'completed',
           payment_method: normMethod,
           payment_type: 'deposit',
+          paid_phone: finalPaidPhone,
           user_id: userId,
           chapa_ref: verified.data?.reference || verified.data?.ref_id || null
         },
         update: {
           status: 'completed',
           amount: verifiedAmount,
+          payment_method: normMethod,
+          payment_type: 'deposit',
+          ...(finalPaidPhone ? { paid_phone: finalPaidPhone } : {}),
           chapa_ref: verified.data?.reference || verified.data?.ref_id || null
         }
       });

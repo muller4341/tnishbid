@@ -208,7 +208,7 @@ export const ConfirmBidModal = memo(({
 
   const [agreed, setAgreed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState(mobile || '');
+  const [phoneNumber, setPhoneNumber] = useState(mobile || user?.phone_number || '');
   const [selectedMethod, setSelectedMethod] = useState(propSelectedPayment || 'telebirr');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [walletError, setWalletError] = useState('');
@@ -230,13 +230,13 @@ export const ConfirmBidModal = memo(({
       setPaymentSuccess(false);
       setWalletError('');
       timerStartedRef.current = false;
-      setPhoneNumber(mobile || '');
+      setPhoneNumber(mobile || user?.phone_number || '');
       if (propSelectedPayment) {
         setSelectedMethod(propSelectedPayment);
       }
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, mobile, propSelectedPayment]);
+  }, [isOpen, mobile, propSelectedPayment, user?.phone_number]);
 
   /* Auto-navigate to /my-bids exactly 1 second after payment success */
   useEffect(() => {
@@ -300,6 +300,8 @@ export const ConfirmBidModal = memo(({
   const handleConfirmClick = async () => {
     if (!agreed || isSubmitting) return;
 
+    const currentPhone = phoneNumber || mobile || user?.phone_number || '';
+
     if (isWallet) {
       if (!hasSufficientBalance) {
         setWalletError(`Insufficient wallet balance. Fee is ${requiredFee.toFixed(2)} Br, but your balance is ${walletBalance.toFixed(2)} Br.`);
@@ -307,7 +309,7 @@ export const ConfirmBidModal = memo(({
       }
       try {
         setWalletError('');
-        const res = await onConfirm('', 'wallet');
+        const res = await onConfirm(currentPhone, 'wallet');
         if (res !== false) {
           setPaymentSuccess(true);
         }
@@ -317,7 +319,7 @@ export const ConfirmBidModal = memo(({
       return;
     }
 
-    onConfirm(phoneNumber, activePayment);
+    onConfirm(currentPhone, activePayment);
   };
 
   if (!isOpen) return null;

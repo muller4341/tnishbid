@@ -517,16 +517,19 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
     setError('');
     setSuccess('');
     setSubmitting(true);
+    const resolvedPhone = phoneNumber || user?.phone_number || '';
     try {
       if (paymentToUse !== 'wallet') {
         const response = await axios.post('/api/payments/chapa/inline/prepare', {
           item_id: item.id,
           amount: pendingBidAmount,
+          payment_method: paymentToUse,
+          phone_number: resolvedPhone,
         });
         setInlinePayment({
           txRef: response.data.tx_ref,
           amount: response.data.amount,
-          mobile: phoneNumber || user?.phone_number
+          mobile: resolvedPhone
         });
         return;
       }
@@ -535,6 +538,7 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
         item_id: item.id,
         amount: pendingBidAmount,
         payment_method: paymentToUse,
+        phone_number: resolvedPhone,
       });
       const actualFee = item?.base_price ?? 1.0;
       if (user && setUser) {
@@ -731,7 +735,12 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
           }
         }}
         onInlineSuccess={async ({ txRef, chapaRef }) => {
-          await axios.post('/api/payments/chapa/inline/complete', { tx_ref: txRef, chapa_ref: chapaRef });
+          await axios.post('/api/payments/chapa/inline/complete', {
+            tx_ref: txRef,
+            chapa_ref: chapaRef,
+            payment_method: selectedPayment,
+            phone_number: inlinePayment?.mobile || user?.phone_number
+          });
           setLocalBidCount((count) => count + 1);
           setBidInput('');
           setSuccess(`Bid of ${pendingBidAmount?.toFixed(2) || ''} Br placed!`);

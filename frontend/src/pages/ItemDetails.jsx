@@ -1392,17 +1392,20 @@ const ItemDetails = memo(() => {
     setIsSubmittingBid(true);
     setError('');
     setSuccess('');
+    const resolvedPhone = phoneNumber || user?.phone_number || '';
 
     try {
       if (paymentToUse !== 'wallet') {
         const response = await axios.post('/api/payments/chapa/inline/prepare', {
           item_id: parseInt(id, 10),
           amount: pendingBidAmount,
+          payment_method: paymentToUse,
+          phone_number: resolvedPhone
         });
         setInlinePayment({
           txRef: response.data.tx_ref,
           amount: response.data.amount,
-          mobile: phoneNumber || user?.phone_number
+          mobile: resolvedPhone
         });
         return;
       }
@@ -1410,7 +1413,8 @@ const ItemDetails = memo(() => {
       const placeRes = await axios.post('/api/bids/place', {
         item_id: parseInt(id),
         amount: pendingBidAmount,
-        payment_method: paymentToUse
+        payment_method: paymentToUse,
+        phone_number: resolvedPhone
       });
       clearCachedItems();
 
@@ -2004,7 +2008,12 @@ const ItemDetails = memo(() => {
           }
         }}
         onInlineSuccess={async ({ txRef, chapaRef }) => {
-          await axios.post('/api/payments/chapa/inline/complete', { tx_ref: txRef, chapa_ref: chapaRef });
+          await axios.post('/api/payments/chapa/inline/complete', {
+            tx_ref: txRef,
+            chapa_ref: chapaRef,
+            payment_method: selectedPayment,
+            phone_number: inlinePayment?.mobile || user?.phone_number
+          });
           setLubBidAmount('');
           setItem((prev) => {
             if (!prev) return prev;
