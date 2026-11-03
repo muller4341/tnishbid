@@ -4,8 +4,8 @@ const { isAuctionEndedBackend } = require('./dateHelper');
 /**
  * Calculates the winner for an item based on its pool_type and bids.
  * For 'lub' (Lowest Unique Bid):
- *   Groups bids by net value (amount - base_price), finds unique bid amounts,
- *   and picks the bidder with the lowest unique amount.
+ *   Groups bids by their exact monetary amount, finds unique bid amounts,
+ *   and picks the bidder with the strictly lowest unique bid amount.
  * For 'open':
  *   Picks the highest bidder.
  *
@@ -16,22 +16,12 @@ function calculateWinner(item) {
   const bids = item.bids || [];
   if (bids.length === 0) return { winnerId: null, winningAmount: null };
 
-  const basePrice = parseFloat(item.base_price || 0);
-  const getNetBid = (amt) => {
-    const a = parseFloat(amt || 0);
-    if (basePrice > 0 && a >= basePrice) {
-      const net = parseFloat((a - basePrice).toFixed(2));
-      return net > 0 ? net : a;
-    }
-    return parseFloat(a.toFixed(2));
-  };
-
   const isLUB = item.pool_type === 'lub' || item.pool_type === 'premium';
 
   if (isLUB) {
     const amountMap = {};
     bids.forEach((b) => {
-      const amtKey = getNetBid(b.amount).toFixed(2);
+      const amtKey = parseFloat(b.amount || 0).toFixed(2);
       if (!amountMap[amtKey]) amountMap[amtKey] = [];
       amountMap[amtKey].push(b);
     });
@@ -42,7 +32,7 @@ function calculateWinner(item) {
       const winningBid = amountMap[uniqueKeys[0]][0];
       return {
         winnerId: winningBid.user_id,
-        winningAmount: getNetBid(winningBid.amount)
+        winningAmount: parseFloat(winningBid.amount)
       };
     }
     return { winnerId: null, winningAmount: null };
@@ -104,7 +94,8 @@ async function settleItem(itemId, io = null) {
     try {
       const { getUserPreferences } = require('./preferenceStore');
       const winnerPrefs = getUserPreferences(winnerId);
-      const winnerMessage = `🎉 Congratulations! You won the auction for "${item.title}" with a winning bid of ${winningAmount || item.base_price} ETB!`;
+      const displayAmount = winningAmount !== null ? winningAmount : (item.base_price || 0);
+      const winnerMessage = `🎉 Congratulations! You won the auction for "${item.title}" with a winning bid of ${displayAmount} ETB!`;
 
       if (winnerPrefs.wins !== false) {
         await prisma.notification.create({
@@ -118,7 +109,7 @@ async function settleItem(itemId, io = null) {
           io.to(`user_${winnerId}`).emit('auction_won', {
             itemId: item.id,
             itemTitle: item.title,
-            winningAmount: winningAmount || item.base_price,
+            winningAmount: displayAmount,
             message: winnerMessage
           });
         }
@@ -127,7 +118,7 @@ async function settleItem(itemId, io = null) {
       // Notify other participants
       const otherUserIds = [...new Set(item.bids.map(b => b.user_id).filter(id => id !== winnerId))];
       for (const otherId of otherUserIds) {
-        const participantMessage = `The auction for "${item.title}" has concluded. Winner: ${updated.winner?.name || 'Declared Winner'} (${winningAmount || item.base_price} ETB).`;
+        const participantMessage = `The auction for "${item.title}" has concluded. Winner: ${updated.winner?.name || 'Declared Winner'} (${displayAmount} ETB).`;
         await prisma.notification.create({
           data: {
             user_id: otherId,

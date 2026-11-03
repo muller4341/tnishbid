@@ -387,16 +387,6 @@ const formatHumanDateTime = (dateStr) => {
   return formatEATDateTime(dateStr);
 };
 
-const getNetBid = (amt, basePrice = 0) => {
-  const a = parseFloat(amt || 0);
-  const bp = parseFloat(basePrice || 0);
-  if (bp > 0 && a >= bp) {
-    const net = parseFloat((a - bp).toFixed(2));
-    return net > 0 ? net : parseFloat(a.toFixed(2));
-  }
-  return parseFloat(a.toFixed(2));
-};
-
 const EXPIRED_TRANSLATIONS = {
   en: {
     bidFee: 'Bid fee',
@@ -471,8 +461,7 @@ const ExpiredAuctionView = ({ item, user }) => {
 
     const grouped = {};
     allBids.forEach((b) => {
-      const netVal = isLUB ? getNetBid(b.amount, basePrice) : parseFloat(parseFloat(b.amount).toFixed(2));
-      const amtKey = netVal.toFixed(2);
+      const amtKey = parseFloat(parseFloat(b.amount || 0).toFixed(2)).toFixed(2);
       if (!grouped[amtKey]) {
         grouped[amtKey] = {
           amount: parseFloat(amtKey),
@@ -521,7 +510,7 @@ const ExpiredAuctionView = ({ item, user }) => {
       const found = allBids.find((b) => b.user_id === item.winner_id);
       if (found) {
         winB = found;
-        winAmt = isLUB ? getNetBid(found.amount, basePrice) : parseFloat(found.amount);
+        winAmt = parseFloat(parseFloat(found.amount).toFixed(2));
         winUser = found.user || item?.winner;
       }
     }

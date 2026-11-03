@@ -159,16 +159,6 @@ exports.placeBid = async (req, res) => {
   }
 };
 
-const getNetBid = (amt, basePrice = 0) => {
-  const a = parseFloat(amt || 0);
-  const bp = parseFloat(basePrice || 0);
-  if (bp > 0 && a >= bp) {
-    const net = parseFloat((a - bp).toFixed(2));
-    return net > 0 ? net : parseFloat(a.toFixed(2));
-  }
-  return parseFloat(a.toFixed(2));
-};
-
 exports.getUserBids = async (req, res) => {
   try {
     const user_id = req.user.id;
@@ -201,13 +191,11 @@ exports.getUserBids = async (req, res) => {
 
       if (!calculatedWinnerId && isEnded && item.bids && item.bids.length > 0) {
         const isLUB = item.pool_type === 'lub' || item.is_lub || item.pool_type === 'premium';
-        const basePrice = parseFloat(item.base_price || 0);
 
         if (isLUB) {
           const amountMap = {};
           item.bids.forEach((bidItem) => {
-            const netVal = getNetBid(bidItem.amount, basePrice);
-            const amtKey = netVal.toFixed(2);
+            const amtKey = parseFloat(bidItem.amount || 0).toFixed(2);
             if (!amountMap[amtKey]) amountMap[amtKey] = [];
             amountMap[amtKey].push(bidItem);
           });

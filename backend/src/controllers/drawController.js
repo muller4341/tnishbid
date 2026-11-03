@@ -24,19 +24,6 @@ const getAuctionCode = (item) => {
   return `#${hex}`;
 };
 
-// Calculate net bid amount: additional amount paid beyond the bid service fee (base_price)
-// E.g. base_price = 65.00, amount = 65.10 -> net = 0.10
-// If amount is already the increment (e.g. 0.10), net = 0.10
-const getNetBid = (amt, basePrice = 0) => {
-  const a = parseFloat(amt || 0);
-  const bp = parseFloat(basePrice || 0);
-  if (bp > 0 && a >= bp) {
-    const net = parseFloat((a - bp).toFixed(2));
-    return net > 0 ? net : parseFloat(a.toFixed(2));
-  }
-  return parseFloat(a.toFixed(2));
-};
-
 exports.getDraws = async (req, res) => {
   try {
     await settleExpiredAuctions(req.io);
@@ -73,11 +60,10 @@ exports.getDraws = async (req, res) => {
       const totalBids = itemBids.length;
       const basePrice = parseFloat(item.base_price || 0);
 
-      // Group all bids by net formatted 2-decimal amount to guarantee exact uniqueness
+      // Group all bids by exact formatted 2-decimal amount to guarantee exact uniqueness
       const amountMap = {};
       itemBids.forEach((b) => {
-        const netVal = getNetBid(b.amount, basePrice);
-        const amtKey = netVal.toFixed(2);
+        const amtKey = parseFloat(b.amount || 0).toFixed(2);
         if (!amountMap[amtKey]) amountMap[amtKey] = [];
         amountMap[amtKey].push(b);
       });
@@ -187,11 +173,10 @@ exports.getDrawDetails = async (req, res) => {
     const totalBids = itemBids.length;
     const basePrice = parseFloat(item.base_price || 0);
 
-    // Group bids by net amount (amount beyond base_price)
+    // Group bids by exact monetary amount
     const grouped = {};
     itemBids.forEach((b) => {
-      const netVal = getNetBid(b.amount, basePrice);
-      const amtKey = netVal.toFixed(2);
+      const amtKey = parseFloat(b.amount || 0).toFixed(2);
       if (!grouped[amtKey]) {
         grouped[amtKey] = {
           amount: parseFloat(amtKey),
@@ -218,7 +203,7 @@ exports.getDrawDetails = async (req, res) => {
       uniqueKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
       const lowestUniqueKey = uniqueKeys[0];
       winningAmount = parseFloat(lowestUniqueKey).toFixed(2);
-      const winBid = itemBids.find((b) => getNetBid(b.amount, basePrice).toFixed(2) === lowestUniqueKey);
+      const winBid = itemBids.find((b) => parseFloat(b.amount || 0).toFixed(2) === lowestUniqueKey);
       winnerUser = winBid?.user || item.winner;
     } else {
       // IF THERE IS NO UNIQUE BID, THERE IS NO WINNER!
