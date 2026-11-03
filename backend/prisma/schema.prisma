@@ -63,7 +63,7 @@ model Transaction {
   payment_type   String   @default("deposit")
   paid_phone     String?
   created_at     DateTime      @default(dbgenerated("timezone('Africa/Addis_Ababa', now())"))
-  updated_at     DateTime      @default(dbgenerated("timezone('Africa/Addis_Ababa', now())")) @updatedAt
+  updated_at     DateTime      @default(dbgenerated("timezone('Africa/Addis_Ababa', now())")) 
 
   user_id String
   user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
