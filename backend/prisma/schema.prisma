@@ -16,7 +16,7 @@ model User {
   role           String   @default("user")
   wallet_balance Float    @default(0.00)
   image_url      String?
-  created_at     DateTime @default(now())
+  created_at     DateTime @default(dbgenerated("timezone('Africa/Addis_Ababa', now())"))
 
   bids          Bid[]
   notifications Notification[]
@@ -40,7 +40,7 @@ model Item {
   end_time    DateTime
   status      String   @default("active")
   winner_id   String?
-  created_at  DateTime @default(now())
+  created_at  DateTime @default(dbgenerated("timezone('Africa/Addis_Ababa', now())"))
 
   winner  User? @relation("ItemWinner", fields: [winner_id], references: [id], onDelete: SetNull)
   bids    Bid[]
@@ -62,8 +62,8 @@ model Transaction {
   payment_method String   @default("chapa")
   payment_type   String   @default("deposit")
   paid_phone     String?
-  created_at     DateTime      @default(now())
-  updated_at     DateTime      @updatedAt
+  created_at     DateTime      @default(dbgenerated("timezone('Africa/Addis_Ababa', now())"))
+  updated_at     DateTime      @default(dbgenerated("timezone('Africa/Addis_Ababa', now())")) @updatedAt
 
   user_id String
   user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -80,7 +80,7 @@ model Bid {
   id         Int      @id @default(autoincrement())
   amount     Float
   is_unique  Boolean  @default(true)
-  created_at DateTime @default(now())
+  created_at DateTime @default(dbgenerated("timezone('Africa/Addis_Ababa', now())"))
 
   item_id Int
   item    Item @relation(fields: [item_id], references: [id], onDelete: Cascade)
@@ -103,7 +103,7 @@ model Notification {
   message           String
   is_read           Boolean          @default(false)
   notification_type String   @default("bid")
-  created_at        DateTime         @default(now())
+  created_at        DateTime         @default(dbgenerated("timezone('Africa/Addis_Ababa', now())"))
 
   user_id String
   user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)

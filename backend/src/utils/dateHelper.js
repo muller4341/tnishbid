@@ -56,10 +56,28 @@ const isAuctionEndedBackend = (endTime) => {
   return realUtcDeadline <= Date.now();
 };
 
+/**
+ * Returns a Date whose UTC components match current Africa/Addis_Ababa wall-clock time.
+ */
+const getNowEAT = () => {
+  const str = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Africa/Addis_Ababa',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(new Date()).replace(' ', 'T');
+  return new Date(`${str}.000Z`);
+};
+
 module.exports = {
   EAT_OFFSET_HOURS,
   EAT_OFFSET_MS,
   parseExactTimestamp,
-  isAuctionEndedBackend
+  isAuctionEndedBackend,
+  getNowEAT
 };
 

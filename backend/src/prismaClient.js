@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { generateUserId } = require('./utils/generateId');
+const { getNowEAT } = require('./utils/dateHelper');
 
 const prisma = new PrismaClient();
 
@@ -12,6 +13,12 @@ prisma.$use(async (params, next) => {
       params.args.create.id = generateUserId(6);
     }
   }
+
+  // If created_at is explicitly passed as a JS Date, anchor it to Africa/Addis_Ababa GMT
+  if (params.action === 'create' && params.args?.data && params.args.data.created_at instanceof Date) {
+    params.args.data.created_at = getNowEAT();
+  }
+
   return next(params);
 });
 
