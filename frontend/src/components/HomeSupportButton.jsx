@@ -57,7 +57,7 @@ export default function HomeSupportButton() {
       title: 'Email',
       subtitle: 'support@tnishbid.com',
       value: 'support@tnishbid.com',
-      actionUrl: 'mailto:support@tnishbid.com',
+      actionUrl: 'tinishbid@gmail.com',
       bgColor: 'rgba(139, 92, 246, 0.14)',
       borderColor: 'rgba(139, 92, 246, 0.3)',
       icon: <Mail className="w-5 h-5 text-purple-400" />
