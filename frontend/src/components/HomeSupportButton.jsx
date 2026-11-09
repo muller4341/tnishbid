@@ -29,7 +29,7 @@ export default function HomeSupportButton() {
       title: 'Telegram',
       subtitle: '@tnishbid',
       value: '@tnishbid',
-      actionUrl: 'https://t.me/tnishbid',
+      actionUrl: 'https://t.me/tinishbid',
       bgColor: 'rgba(34, 158, 217, 0.14)',
       borderColor: 'rgba(34, 158, 217, 0.3)',
       icon: (
@@ -43,7 +43,7 @@ export default function HomeSupportButton() {
       title: 'TikTok',
       subtitle: '@tnishbid',
       value: '@tnishbid',
-      actionUrl: 'https://www.tiktok.com/@tnishbid',
+      actionUrl: 'https://www.tiktok.com/@tinish.bid?_r=1&_d=emaeb6l2i0bgj1&sec_uid=MS4wLjABAAAAzvRZvYznjCIWbII12dshq-ZazSNCYWjlLvBb1ex1w1Bg3HyUs0XB8kYa7OSkuUcT&share_author_id=7706156763984921621&sharer_language=en&source=h5_m&u_code=f6eil9d8cehlc1&timestamp=1794230177&user_id=7706156763984921621&sec_user_id=MS4wLjABAAAAzvRZvYznjCIWbII12dshq-ZazSNCYWjlLvBb1ex1w1Bg3HyUs0XB8kYa7OSkuUcT&item_author_type=1&utm_source=copy&utm_campaign=client_share&utm_medium=android&share_iid=7704550678957557526&share_link_id=96cf9b92-a6b0-4177-ad93-f0879e3bf770&share_app_id=1233&ugbiz_name=ACCOUNT&ug_btm=b8727%2Cb7360&social_share_type=5&enable_checksum=1',
       bgColor: 'rgba(254, 44, 85, 0.14)',
       borderColor: 'rgba(254, 44, 85, 0.3)',
       icon: (
