@@ -262,14 +262,14 @@ const Navbar = () => {
             <div className="flex items-center gap-2">
               {/* Theme Toggle for logged-out users too */}
               <LanguageSwitcher />
-              <button
+              {/* <button
                 onClick={toggleTheme}
                 className="w-9 h-9 flex items-center justify-center bg-[#18181C] hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 rounded-full border border-zinc-800 transition-colors"
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 aria-label="Toggle theme"
               >
                 {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
+              </button> */}
               <Link
                 to={location.pathname === '/login' ? '/register' : '/login'}
                 className={`px-4 py-1.5 text-xs md:text-sm font-bold rounded-full transition-all active:scale-95 ${location.pathname === '/login' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-md shadow-amber-500/10' : 'text-zinc-300 hover:text-white border border-zinc-800 bg-[#18181C]'}`}
