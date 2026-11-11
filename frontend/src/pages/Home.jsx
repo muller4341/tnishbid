@@ -21,7 +21,8 @@ import {
   countdownColorEAT, 
   isAuctionEndedEAT, 
   parseAuctionDate, 
-  getEATRemainingMs 
+  getEATRemainingMs,
+  formatEATDateTime
 } from '../utils/timezone';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
 import { ConfirmBidModal } from '../components/BidPaymentModal';
@@ -71,6 +72,8 @@ const TRANSLATIONS = {
     allCategories: 'Category (All)',
     clearFilters: 'Clear filters',
     showingResults: 'results found',
+    recentWinners: 'RECENT WINNERS',
+    viewAll: 'VIEW ALL',
   },
   am: {
     langLabel: '\u12a0\u121b\u122d\u129b',
@@ -108,6 +111,8 @@ const TRANSLATIONS = {
     allCategories: '\u121d\u12f5\u1265 (\u1201\u1209\u121d)',
     clearFilters: '\u12a0\u1323\u122b\u12ce\u127d\u1295 \u12a0\u1325\u134b',
     showingResults: '\u12e8\u1270\u1308\u1299 \u1328\u1228\u1273\u12ce\u127d',
+    recentWinners: 'የቅርብ ጊዜ አሸናፊዎች',
+    viewAll: 'ሁሉንም ይመልከቱ',
   },
 };
 
@@ -893,6 +898,147 @@ const FilterDropdown = ({
   );
 };
 
+/* Recent Winners Section (Matches Draws winners feed) */
+const FALLBACK_WINNERS = [
+  {
+    id: 'w1',
+    title: 'ማራኪ የኤሌክትሪክ ብስክሌት — 26 ኢንች',
+    image_url: 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?auto=format&fit=crop&q=80&w=600',
+    winning_amount: 7.83,
+    announced_at: '2026-11-07T09:08:00.000Z'
+  },
+  {
+    id: 'w2',
+    title: 'ሼሎራ የውሃ ማቅረቢያ ከማጣሪያ ጋር',
+    image_url: 'https://images.unsplash.com/photo-1585670210693-e7fdd16b142e?auto=format&fit=crop&q=80&w=600',
+    winning_amount: 14.50,
+    announced_at: '2026-11-06T09:00:00.000Z'
+  },
+  {
+    id: 'w3',
+    title: 'Samsung 65" QLED 4K Smart TV',
+    image_url: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&q=80&w=600',
+    winning_amount: 23.40,
+    announced_at: '2026-11-05T14:30:00.000Z'
+  }
+];
+
+const RecentWinnersSection = ({ t, navigate, isLight }) => {
+  const [pastDraws, setPastDraws] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchWinners = async () => {
+      try {
+        const res = await axios.get('/api/draws');
+        if (isMounted) {
+          const list = (res.data?.pastDraws || []).filter(
+            (d) => d.winning_amount !== null && d.winning_amount !== undefined
+          );
+          if (list.length > 0) {
+            setPastDraws(list);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load recent winners:', err);
+      }
+    };
+    fetchWinners();
+    return () => { isMounted = false; };
+  }, []);
+
+  const winnersToDisplay = pastDraws.length > 0 ? pastDraws.slice(0, 8) : FALLBACK_WINNERS;
+
+  return (
+    <div className="mt-8 mb-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <h2 className={`font-black text-sm sm:text-base tracking-wider uppercase ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+          {t.recentWinners || 'RECENT WINNERS'}
+        </h2>
+        <button
+          type="button"
+          onClick={() => navigate('/draws')}
+          className={`text-[11px] font-extrabold uppercase tracking-wider transition-colors cursor-pointer ${
+            isLight ? 'text-zinc-500 hover:text-amber-600' : 'text-zinc-400 hover:text-amber-400'
+          }`}
+        >
+          {t.viewAll || 'VIEW ALL'}
+        </button>
+      </div>
+
+      {/* Horizontal Carousel */}
+      <div
+        className="flex gap-3 overflow-x-auto pb-3 pt-0.5 -mx-1 px-1 snap-x snap-mandatory"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {winnersToDisplay.map((w) => {
+          const winBid = w.winning_amount != null
+            ? Number(w.winning_amount).toFixed(2)
+            : '0.00';
+
+          const dateText = w.announced_at
+            ? formatEATDateTime(w.announced_at)
+            : w.end_time
+              ? formatEATDateTime(w.end_time)
+              : 'Recently announced';
+
+          return (
+            <div
+              key={w.id}
+              onClick={() => navigate('/draws')}
+              className={`snap-start shrink-0 w-[205px] sm:w-[230px] rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer active:scale-[0.98] group ${
+                isLight
+                  ? 'bg-white border-zinc-200/90 hover:border-amber-400 shadow-sm'
+                  : 'bg-[#141519] border-zinc-800/90 hover:border-amber-500/50 shadow-md shadow-black/40'
+              }`}
+            >
+              {/* Product Image Container */}
+              <div className="relative h-28 sm:h-32 w-full overflow-hidden bg-zinc-900">
+                <img
+                  src={optimizeImageUrl(w.image_url, { width: 500 })}
+                  alt={w.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+
+                {/* WINNER top-left badge */}
+                <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400 text-black font-black text-[9.5px] tracking-wider uppercase shadow-md pointer-events-none">
+                  <Trophy size={11} className="stroke-[2.5]" />
+                  <span>WINNER</span>
+                </div>
+
+                {/* Winning bid bottom-right oval badge */}
+                <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-xl text-center shadow-lg border border-white/10 pointer-events-none">
+                  <span className="text-[8.5px] font-medium text-zinc-300 block leading-none mb-0.5">
+                    Winning bid
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white font-mono leading-tight block">
+                    {winBid}
+                  </span>
+                </div>
+              </div>
+
+              {/* Card Footer Details */}
+              <div className="p-2.5 space-y-0.5 text-left">
+                <h4
+                  className={`text-xs font-bold truncate block ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}
+                  title={w.title}
+                >
+                  {w.title}
+                </h4>
+                <p className="text-[10px] text-zinc-400 truncate block">
+                  Announced {dateText}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 /* Home Page */
 const Home = () => {
   const { lang } = useLanguage();
@@ -1246,6 +1392,9 @@ const Home = () => {
           ))
         )}
       </div>
+
+      {/* Recent Winners Section */}
+      <RecentWinnersSection t={t} navigate={navigate} isLight={isLight} />
 
       {/* Floating Support & Social Media Button (Home Page Only) */}
       <HomeSupportButton />

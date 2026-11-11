@@ -76,6 +76,12 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
+
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

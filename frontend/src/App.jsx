@@ -28,8 +28,33 @@ const ScrollToTop = () => {
 };
 
 const PrivateRoute = ({ children }) => {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/login" />;
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+  return user ? children : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: '/admin' }} />;
+  }
+  if (user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+  return children;
 };
 
 const AppContent = () => {
@@ -71,9 +96,9 @@ const AppContent = () => {
           <Route 
             path="/admin" 
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <AdminDashboard />
-              </PrivateRoute>
+              </AdminRoute>
             } 
           />
           <Route path="*" element={<Navigate to="/" replace />} />
