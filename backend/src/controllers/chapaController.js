@@ -295,7 +295,8 @@ exports.prepareInlineWalletDeposit = async (req, res) => {
 
     const normalizedMethod = normalizePaymentMethod(method, 'telebirr');
     const finalPaidPhone = normalizePhone(phone_number, user.phone_number);
-    const txRef = `tinish-w-inline-${userId}-${normalizedMethod}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const mTag = normalizedMethod === 'cbe' ? 'cbe' : 'tele';
+    const txRef = `tw-inline-${userId}-${mTag}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
     await prisma.transaction.create({
       data: {
@@ -338,7 +339,8 @@ exports.initializeWalletDeposit = async (req, res) => {
 
     const normalizedMethod = normalizePaymentMethod(method, 'telebirr');
     const finalPaidPhone = normalizePhone(phone_number, user.phone_number);
-    const txRef = `tinish-wallet-${userId}-${normalizedMethod}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const mTag = normalizedMethod === 'cbe' ? 'cbe' : 'tele';
+    const txRef = `tw-${userId}-${mTag}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const nameParts = (user.name || 'Tinish Bid User').trim().split(/\s+/);
 
     await prisma.transaction.create({

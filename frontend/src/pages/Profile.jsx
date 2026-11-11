@@ -46,7 +46,14 @@ const ChapaPushEngine = ({ isOpen, amount, txRef, selectedPayment, mobile, onSuc
   const submitTimer = useRef(null);
   const successRef = useRef(onSuccess);
   const failureRef = useRef(onFailure);
-  const normalizedMobile = String(mobile || '').replace(/\D/g, '').replace(/^251(?=[97])/, '0');
+  const normalizedMobile = (() => {
+    let raw = String(mobile || '').replace(/\D/g, '');
+    if (raw.startsWith('251')) raw = '0' + raw.slice(3);
+    if (!raw.startsWith('0') && (raw.startsWith('9') || raw.startsWith('7'))) {
+      raw = '0' + raw;
+    }
+    return raw;
+  })();
 
   successRef.current = onSuccess;
   failureRef.current = onFailure;
@@ -233,7 +240,7 @@ const DepositPaymentModal = memo(({
             amount={inlinePayment.amount}
             txRef={inlinePayment.txRef}
             selectedPayment={inlinePayment.selectedPayment || selectedMethod}
-            mobile={phone}
+            mobile={inlinePayment.mobile || phone}
             onSuccess={onInlineSuccess}
             onFailure={(msg) => onInlineClose?.(msg)}
           />
@@ -694,7 +701,7 @@ const Profile = () => {
         txRef: res.data.tx_ref,
         amount: res.data.amount,
         selectedPayment: res.data.method || method,
-        mobile: phone
+        mobile: res.data.mobile || phone
       });
     } catch (err) {
       console.error('Failed to prepare inline deposit:', err);
@@ -979,12 +986,12 @@ const Profile = () => {
               {/* Preset Chips */}
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 27, label: '25 Br', coins: '27 Coins' },
-                  { value: 55, label: '50 Br', coins: '55 Coins' },
-                  { value: 113, label: '100 Br', coins: '113 Coins', badge: 'POPULAR' },
-                  { value: 270, label: '250 Br', coins: '270 Coins' },
-                  { value: 530, label: '500 Br', coins: '530 Coins' },
-                  { value: 1050, label: '1000 Br', coins: '1050 Coins', badge: 'BEST' },
+                  { value: 25, label: '25 Br', coins: '25 Coins' },
+                  { value: 50, label: '50 Br', coins: '50 Coins' },
+                  { value: 100, label: '100 Br', coins: '100 Coins', badge: 'POPULAR' },
+                  { value: 250, label: '250 Br', coins: '250 Coins' },
+                  { value: 500, label: '500 Br', coins: '500 Coins' },
+                  { value: 1000, label: '1000 Br', coins: '1000 Coins', badge: 'BEST' },
                 ].map((item) => {
                   const isSelected = selectedPreset === item.value;
                   return (
