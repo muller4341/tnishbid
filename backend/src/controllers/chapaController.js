@@ -1,6 +1,7 @@
 const prisma = require('../prismaClient');
 const bidController = require('./bidController');
 const { invalidateItemCache } = require('./itemController');
+const { isAuctionEndedBackend } = require('../utils/dateHelper');
 
 const CHAPA_INITIALIZE_URL = 'https://api.chapa.co/v1/transaction/initialize';
 const CHAPA_VERIFY_URL = 'https://api.chapa.co/v1/transaction/verify';
@@ -83,6 +84,187 @@ const redirectToResult = (res, status, txRef, message) => {
   const params = new URLSearchParams({ status, tx_ref: txRef });
   if (message) params.set('message', message);
   return res.redirect(`${frontendUrl}/payment-result?${params.toString()}`);
+};
+
+const finalizeBidPaymentRecord = async ({ txRef, verifiedChapaRef, phone, paymentMethod, fallbackItemId, io }) => {
+  const payment = await prisma.transaction.findUnique({ where: { tx_ref: txRef } });
+  if (!payment) throw new Error(`Payment record with ref ${txRef} not found`);
+  if (payment.status === 'completed') return { already_completed: true, payment };
+
+  const targetItemId = extractItemIdFromTxRef(txRef, fallbackItemId);
+  if (!targetItemId) throw new Error('Auction item could not be determined from transaction');
+
+  const item = await prisma.item.findUnique({ where: { id: targetItemId } });
+  const hasEnded = !item || item.status !== 'active' || isAuctionEndedBackend(item?.end_time);
+
+  if (hasEnded) {
+    // Auction closed before payment completed: refund the bid fee to user wallet
+    const refundedUser = await prisma.$transaction(async (tx) => {
+      const u = await tx.user.update({
+        where: { id: payment.user_id },
+        data: { wallet_balance: { increment: payment.amount } }
+      });
+      await tx.transaction.update({
+        where: { tx_ref: txRef },
+        data: {
+          status: 'refunded_to_wallet',
+          chapa_ref: verifiedChapaRef || payment.chapa_ref || null,
+          ...(phone ? { paid_phone: normalizePhone(phone, payment.paid_phone) } : {})
+        }
+      });
+      await tx.notification.create({
+        data: {
+          user_id: payment.user_id,
+          message: `The auction for "${item?.title || 'the item'}" ended before payment was confirmed. ${payment.amount.toFixed(2)} Birr has been credited back to your wallet.`,
+          notification_type: 'deposit'
+        }
+      });
+      return u;
+    });
+
+    if (io) {
+      io.to(`user_${payment.user_id}`).emit('wallet_updated', {
+        wallet_balance: refundedUser.wallet_balance,
+        added: payment.amount,
+        message: 'Auction ended. Fee refunded to your wallet.'
+      });
+    }
+
+    return {
+      status: 'refunded_to_wallet',
+      message: `Auction ended. Refunded ${payment.amount.toFixed(2)} Birr to user wallet.`,
+      user_id: payment.user_id,
+      amount: payment.amount
+    };
+  }
+
+  // Active auction: create bid record
+  const result = await prisma.$transaction(async (tx) => {
+    const currentPayment = await tx.transaction.findUnique({ where: { tx_ref: txRef } });
+    if (!currentPayment) throw new Error('Payment record not found');
+    if (currentPayment.status === 'completed') return null;
+
+    const bid = await bidController.createBidRecord(tx, {
+      itemId: targetItemId,
+      userId: currentPayment.user_id,
+      amount: currentPayment.bid_amount,
+      transactionId: currentPayment.id,
+      io
+    });
+
+    const updateData = {
+      status: 'completed',
+      chapa_ref: verifiedChapaRef || currentPayment.chapa_ref || null
+    };
+    if (phone || !currentPayment.paid_phone) {
+      updateData.paid_phone = normalizePhone(phone, currentPayment.paid_phone);
+    }
+    if (paymentMethod || currentPayment.payment_method === 'chapa') {
+      updateData.payment_method = normalizePaymentMethod(paymentMethod, currentPayment.payment_method || 'telebirr');
+    }
+
+    await tx.transaction.update({
+      where: { tx_ref: txRef },
+      data: updateData
+    });
+
+    return bid;
+  });
+
+  if (result) {
+    invalidateItemCache(targetItemId);
+    if (io) {
+      io.emit('bid_update', {
+        item_id: Number(targetItemId),
+        new_bid_amount: result.amount,
+        is_unique: result.is_unique,
+        total_bids: result.total_bids,
+        bid: result
+      });
+    }
+  }
+
+  return { status: 'success', bid: result };
+};
+
+const finalizeWalletDepositRecord = async ({ txRef, verifiedAmount, chapaRef, phone, method, io }) => {
+  const existingTx = await prisma.transaction.findUnique({ where: { tx_ref: txRef } });
+  if (existingTx && existingTx.status === 'completed') {
+    return { already_completed: true, existingTx };
+  }
+
+  const parts = txRef.split('-');
+  const userId = existingTx?.user_id || parts[2] || (parts[0] === 'tw' ? parts[1] : null);
+  if (!userId) {
+    throw new Error(`Could not determine user ID from reference ${txRef}`);
+  }
+
+  const amountToCredit = Number.isFinite(verifiedAmount) && verifiedAmount > 0 
+    ? verifiedAmount 
+    : Number(existingTx?.amount || 0);
+
+  if (!amountToCredit || amountToCredit <= 0) {
+    throw new Error(`Invalid deposit amount for ${txRef}`);
+  }
+
+  const normMethod = normalizePaymentMethod(
+    method || existingTx?.payment_method || (txRef.includes('cbe') ? 'cbe' : 'telebirr'),
+    'telebirr'
+  );
+  const methodName = normMethod === 'cbe' ? 'CBE Birr' : 'Telebirr';
+
+  const updatedUser = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: userId },
+      data: { wallet_balance: { increment: amountToCredit } },
+      select: { id: true, name: true, phone_number: true, wallet_balance: true }
+    });
+
+    const finalPaidPhone = normalizePhone(phone, existingTx?.paid_phone || user.phone_number);
+
+    await tx.transaction.upsert({
+      where: { tx_ref: txRef },
+      create: {
+        tx_ref: txRef,
+        amount: amountToCredit,
+        status: 'completed',
+        payment_method: normMethod,
+        payment_type: 'deposit',
+        paid_phone: finalPaidPhone,
+        user_id: userId,
+        chapa_ref: chapaRef || null
+      },
+      update: {
+        status: 'completed',
+        amount: amountToCredit,
+        payment_method: normMethod,
+        payment_type: 'deposit',
+        ...(finalPaidPhone ? { paid_phone: finalPaidPhone } : {}),
+        chapa_ref: chapaRef || null
+      }
+    });
+
+    await tx.notification.create({
+      data: {
+        user_id: userId,
+        message: `Deposit Successful! ${amountToCredit.toFixed(2)} Birr credited to your wallet via ${methodName} (Txn: ${txRef}).`,
+        notification_type: 'deposit'
+      }
+    });
+
+    return user;
+  });
+
+  if (io) {
+    io.to(`user_${userId}`).emit('wallet_updated', {
+      wallet_balance: updatedUser.wallet_balance,
+      added: amountToCredit,
+      method: methodName,
+      transaction_id: txRef
+    });
+  }
+
+  return { success: true, updatedUser };
 };
 
 exports.initializeBidPayment = async (req, res) => {
@@ -233,47 +415,20 @@ exports.completeInlineBidPayment = async (req, res) => {
 
     const verifiedChapaRef = verified.data?.reference || verified.data?.ref_id || (typeof chapaRef === 'string' ? chapaRef : null);
 
-    const result = await prisma.$transaction(async (tx) => {
-      const currentPayment = await tx.transaction.findUnique({ where: { tx_ref: txRef } });
-      if (!currentPayment) throw new Error('Payment record not found');
-      if (currentPayment.status === 'completed') return null;
-      const bid = await bidController.createBidRecord(tx, {
-        itemId: targetItemId,
-        userId: currentPayment.user_id,
-        amount: currentPayment.bid_amount,
-        transactionId: currentPayment.id,
-        io: req.io
-      });
-
-      const updateData = {
-        status: 'completed',
-        chapa_ref: verifiedChapaRef
-      };
-      if (!currentPayment.paid_phone) {
-        updateData.paid_phone = normalizePhone(phone_number, req.user.phone_number);
-      }
-      if (currentPayment.payment_method === 'chapa' && (payment_method || method)) {
-        updateData.payment_method = normalizePaymentMethod(payment_method || method, 'telebirr');
-      }
-
-      await tx.transaction.update({
-        where: { tx_ref: txRef },
-        data: updateData
-      });
-      return bid;
+    const result = await finalizeBidPaymentRecord({
+      txRef,
+      verifiedChapaRef,
+      phone: phone_number || req.user?.phone_number,
+      paymentMethod: payment_method || method,
+      fallbackItemId: targetItemId,
+      io: req.io
     });
 
-    if (result && req.io) {
-      invalidateItemCache(targetItemId);
-      req.io.emit('bid_update', {
-        item_id: Number(targetItemId),
-        new_bid_amount: result.amount,
-        is_unique: result.is_unique,
-        total_bids: result.total_bids,
-        bid: result
-      });
+    if (result.status === 'refunded_to_wallet') {
+      return res.json({ status: 'refunded_to_wallet', message: result.message });
     }
-    res.json({ status: 'success', bid: result });
+
+    res.json({ status: 'success', bid: result.bid });
   } catch (error) {
     console.error('Inline Chapa completion error:', error.message);
     res.status(502).json({ error: error.message });
@@ -524,7 +679,7 @@ exports.handleCallback = async (req, res) => {
   if (!txRef) return redirectToResult(res, 'failed', '', 'Missing Chapa transaction reference');
 
   // Handle wallet deposit callback
-  if (txRef.startsWith('tinish-wallet-') || txRef.startsWith('tinish-w-inline-')) {
+  if (txRef.startsWith('tinish-wallet-') || txRef.startsWith('tinish-w-inline-') || txRef.startsWith('tw-')) {
     try {
       const config = getConfig();
       const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
@@ -534,45 +689,13 @@ exports.handleCallback = async (req, res) => {
       const verifiedStatus = String(verified.data?.status || verified.status || '').toLowerCase();
       if (verifiedStatus === 'success') {
         const verifiedAmount = Number(verified.data?.amount);
-        const parts = txRef.split('-');
-        const userId = parts[2];
-        if (userId && Number.isFinite(verifiedAmount)) {
-          const existingTx = await prisma.transaction.findUnique({
-            where: { tx_ref: txRef }
-          });
-          if (!existingTx || existingTx.status !== 'completed') {
-            await prisma.$transaction(async (tx) => {
-              await tx.user.update({
-                where: { id: userId },
-                data: { wallet_balance: { increment: verifiedAmount } }
-              });
-              await tx.transaction.upsert({
-                where: { tx_ref: txRef },
-                create: {
-                  tx_ref: txRef,
-                  amount: verifiedAmount,
-                  status: 'completed',
-                  payment_method: txRef.includes('-cbe-') ? 'cbe' : 'telebirr',
-                  payment_type: 'deposit',
-                  user_id: userId,
-                  chapa_ref: verified.data?.reference || verified.data?.ref_id || null
-                },
-                update: {
-                  status: 'completed',
-                  amount: verifiedAmount,
-                  chapa_ref: verified.data?.reference || verified.data?.ref_id || null
-                }
-              });
-              await tx.notification.create({
-                data: {
-                  user_id: userId,
-                  message: `Deposit Successful! ${verifiedAmount.toFixed(2)} Birr credited to your wallet via Chapa (Txn: ${txRef}).`,
-                  notification_type: 'deposit'
-                }
-              });
-            });
-          }
-        }
+        const verifiedChapaRef = verified.data?.reference || verified.data?.ref_id || null;
+        await finalizeWalletDepositRecord({
+          txRef,
+          verifiedAmount,
+          chapaRef: verifiedChapaRef,
+          io: req.io
+        });
         return redirectToResult(res, 'success', txRef, 'Wallet credited successfully!');
       }
       return redirectToResult(res, 'failed', txRef, 'Payment not verified');
@@ -586,9 +709,6 @@ exports.handleCallback = async (req, res) => {
     const payment = await prisma.transaction.findUnique({ where: { tx_ref: txRef } });
     if (!payment) return redirectToResult(res, 'failed', txRef, 'Payment record not found');
     if (payment.status === 'completed') return redirectToResult(res, 'success', txRef);
-
-    const targetItemId = extractItemIdFromTxRef(txRef, req.query.item_id);
-    if (!targetItemId) return redirectToResult(res, 'failed', txRef, 'Auction item could not be identified');
 
     const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
       method: 'GET',
@@ -605,36 +725,16 @@ exports.handleCallback = async (req, res) => {
       return redirectToResult(res, 'failed', txRef, 'Chapa payment amount did not match the bid fee');
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const currentPayment = await tx.transaction.findUnique({ where: { tx_ref: txRef } });
-      if (!currentPayment) throw new Error('Payment record not found');
-      if (currentPayment.status === 'completed') return null;
-
-      const bid = await bidController.createBidRecord(tx, {
-        itemId: targetItemId,
-        userId: currentPayment.user_id,
-        amount: currentPayment.bid_amount,
-        transactionId: currentPayment.id,
-        io: req.io
-      });
-      await tx.transaction.update({
-        where: { tx_ref: txRef },
-        data: { status: 'completed', chapa_ref: verified.data?.ref_id || verified.data?.transaction_id || null }
-      });
-      return bid;
+    const verifiedChapaRef = verified.data?.reference || verified.data?.ref_id || null;
+    const result = await finalizeBidPaymentRecord({
+      txRef,
+      verifiedChapaRef,
+      fallbackItemId: req.query.item_id,
+      io: req.io
     });
 
-    if (result) {
-      invalidateItemCache(targetItemId);
-      if (req.io) {
-        req.io.emit('bid_update', {
-          item_id: Number(targetItemId),
-          new_bid_amount: result.amount,
-          is_unique: result.is_unique,
-          total_bids: result.total_bids,
-          bid: result
-        });
-      }
+    if (result.status === 'refunded_to_wallet') {
+      return redirectToResult(res, 'success', txRef, result.message);
     }
     return redirectToResult(res, 'success', txRef);
   } catch (error) {
@@ -642,3 +742,138 @@ exports.handleCallback = async (req, res) => {
     return redirectToResult(res, 'failed', txRef, error.message);
   }
 };
+
+exports.handleWebhook = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const query = req.query || {};
+    const txRef = body.tx_ref || body.trx_ref || body.reference || query.tx_ref || query.trx_ref;
+
+    if (!txRef) {
+      return res.status(400).json({ error: 'Missing tx_ref in webhook request' });
+    }
+
+    console.log(`[Chapa Webhook] Received webhook notification for tx_ref: ${txRef}`);
+
+    const config = getConfig();
+    const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${config.secretKey}` }
+    });
+
+    const verifiedStatus = String(verified.data?.status || verified.status || '').toLowerCase();
+    if (verifiedStatus !== 'success') {
+      console.warn(`[Chapa Webhook] Chapa verify returned status "${verifiedStatus}" for ${txRef}`);
+      return res.status(200).json({ status: 'ignored', reason: 'payment_not_successful' });
+    }
+
+    const verifiedChapaRef = verified.data?.reference || verified.data?.ref_id || body.reference || null;
+    const verifiedAmount = Number(verified.data?.amount || body.amount);
+    const paymentMethod = body.payment_method || verified.data?.payment_method;
+    const phone = body.mobile || body.phone_number || verified.data?.mobile;
+
+    const isWallet = txRef.startsWith('tw-') || txRef.startsWith('tinish-wallet-') || txRef.startsWith('tinish-w-');
+    if (isWallet) {
+      await finalizeWalletDepositRecord({
+        txRef,
+        verifiedAmount,
+        chapaRef: verifiedChapaRef,
+        phone,
+        method: paymentMethod,
+        io: req.io
+      });
+    } else {
+      await finalizeBidPaymentRecord({
+        txRef,
+        verifiedChapaRef,
+        phone,
+        paymentMethod,
+        io: req.io
+      });
+    }
+
+    return res.status(200).json({ status: 'success' });
+  } catch (error) {
+    console.error('[Chapa Webhook Error]:', error.message);
+    return res.status(200).json({ error: error.message });
+  }
+};
+
+exports.syncPendingChapaPayments = async (io) => {
+  try {
+    const config = getConfig();
+    // Find transactions created in the last 4 hours that are still 'pending'
+    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    const thirtySecsAgo = new Date(Date.now() - 25 * 1000);
+
+    const pendingList = await prisma.transaction.findMany({
+      where: {
+        status: 'pending',
+        created_at: {
+          gte: fourHoursAgo,
+          lte: thirtySecsAgo
+        }
+      },
+      take: 30
+    });
+
+    const results = [];
+    for (const tx of pendingList) {
+      try {
+        const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(tx.tx_ref)}`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${config.secretKey}` }
+        });
+        const status = String(verified.data?.status || verified.status || '').toLowerCase();
+        if (status === 'success') {
+          console.log(`[Auto-Sync] Found completed pending payment: ${tx.tx_ref}. Processing...`);
+          const verifiedChapaRef = verified.data?.reference || verified.data?.ref_id || null;
+          const verifiedAmount = Number(verified.data?.amount);
+          const isWallet = tx.payment_type === 'deposit' || tx.tx_ref.startsWith('tw-') || tx.tx_ref.startsWith('tinish-wallet-');
+
+          if (isWallet) {
+            await finalizeWalletDepositRecord({
+              txRef: tx.tx_ref,
+              verifiedAmount,
+              chapaRef: verifiedChapaRef,
+              phone: tx.paid_phone,
+              method: tx.payment_method,
+              io
+            });
+            results.push({ tx_ref: tx.tx_ref, type: 'wallet', status: 'completed' });
+          } else {
+            const res = await finalizeBidPaymentRecord({
+              txRef: tx.tx_ref,
+              verifiedChapaRef,
+              phone: tx.paid_phone,
+              paymentMethod: tx.payment_method,
+              io
+            });
+            results.push({ tx_ref: tx.tx_ref, type: 'bid', status: res.status });
+          }
+        }
+      } catch (err) {
+        // Transaction not yet paid in Chapa, ignore
+      }
+    }
+    return results;
+  } catch (err) {
+    console.error('[Sync Pending Error]:', err.message);
+    return [];
+  }
+};
+
+exports.syncPendingManual = async (req, res) => {
+  try {
+    const synced = await exports.syncPendingChapaPayments(req.io);
+    res.json({ success: true, count: synced.length, synced });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.finalizeBidPaymentRecord = finalizeBidPaymentRecord;
+exports.finalizeWalletDepositRecord = finalizeWalletDepositRecord;
+exports.chapaRequest = chapaRequest;
+exports.getConfig = getConfig;
+exports.CHAPA_VERIFY_URL = CHAPA_VERIFY_URL;

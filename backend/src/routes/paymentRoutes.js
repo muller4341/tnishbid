@@ -12,4 +12,10 @@ router.post('/chapa/wallet/inline/prepare', authMiddleware, chapaController.prep
 router.post('/chapa/wallet/verify', authMiddleware, chapaController.verifyWalletDeposit);
 router.get('/chapa/callback', chapaController.handleCallback);
 
+// Webhook endpoint: handles server-to-server notifications from Chapa (POST and GET)
+router.all('/chapa/webhook', chapaController.handleWebhook);
+
+// Manual sync endpoint to verify and recover pending payments
+router.post('/chapa/sync-pending', authMiddleware, chapaController.syncPendingManual);
+
 module.exports = router;

@@ -60,7 +60,7 @@ const ChapaPushEngine = ({ isOpen, amount, txRef, selectedPayment, mobile, onSuc
 
   useLayoutEffect(() => {
     if (!isOpen || !txRef) return undefined;
-    const publicKey = import.meta.env.VITE_CHAPA_PUBLIC_KEY || 'CHAPUBK-cjRlKJzo9HXQPNWcLAxnHYchL5kEuu0J';
+    const publicKey = import.meta.env.VITE_CHAPA_PUBLIC_KEY || 'CHAPUBK-zYua5cwS4V002tcvrTNQ7E5baWoF9ksE';
     if (!publicKey || publicKey === 'your_chapa_public_key') {
       failureRef.current?.('Chapa public key is not configured.');
       return undefined;
@@ -1093,9 +1093,8 @@ const Profile = () => {
 
                   boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
                 }}
-                className={`w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 ${
-                  (!effectiveAmount || effectiveAmount < 1) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
-                }`}
+                className={`w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:brightness-110 text-black rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/10 transition-all active:scale-[0.98] flex justify-center items-center gap-2 ${(!effectiveAmount || effectiveAmount < 1) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
               >
 
                 <span>Deposit Coins</span>

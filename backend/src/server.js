@@ -50,15 +50,16 @@ const adminRoutes = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const drawRoutes = require('./routes/drawRoutes');
 const { settleExpiredAuctions } = require('./utils/settlement');
+const { syncPendingChapaPayments } = require('./controllers/chapaController');
 
-// Use routes
-app.use('/api/auth', authRoutes);
-app.use('/api/items', itemRoutes);
-app.use('/api/bids', bidRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/draws', drawRoutes);
+// Use routes (supports both direct /api/* and Passenger stripped sub-URI /*)
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/items', '/items'], itemRoutes);
+app.use(['/api/bids', '/bids'], bidRoutes);
+app.use(['/api/users', '/users'], userRoutes);
+app.use(['/api/admin', '/admin'], adminRoutes);
+app.use(['/api/payments', '/payments'], paymentRoutes);
+app.use(['/api/draws', '/draws'], drawRoutes);
 
 app.get('/', (req, res) => {
   res.send('Tinish Bid API is running');
@@ -88,4 +89,9 @@ server.listen(PORT, () => {
   setInterval(() => {
     settleExpiredAuctions(io);
   }, 15000);
+
+  // Periodically auto-recover any pending Chapa payments every 30 seconds
+  setInterval(() => {
+    syncPendingChapaPayments(io);
+  }, 30000);
 });
