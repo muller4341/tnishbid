@@ -61,7 +61,10 @@ const Register = () => {
         }
       });
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      const data = err.response?.data;
+      const rawMsg = typeof data === 'string' ? data : (data?.error || data?.message || err.message);
+      const safeMsg = typeof rawMsg === 'string' ? rawMsg : (rawMsg?.message || JSON.stringify(rawMsg));
+      setError(safeMsg || 'Registration failed');
     } finally {
       setLoading(false);
       isSubmitting.current = false;

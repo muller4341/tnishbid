@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://api.tinishbid.com/api/$1"
+      "destination": "https://tinishbid.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://api.tinishbid.com/uploads/$1"
+      "destination": "https://tinishbid.com/uploads/$1"
     },
     {
       "source": "/((?!api|uploads|socket.io).*)" ,

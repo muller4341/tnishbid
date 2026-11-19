@@ -55,7 +55,10 @@ const Login = () => {
         });
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please check phone number and password.');
+      const data = err.response?.data;
+      const rawMsg = typeof data === 'string' ? data : (data?.error || data?.message || err.message);
+      const safeMsg = typeof rawMsg === 'string' ? rawMsg : (rawMsg?.message || JSON.stringify(rawMsg));
+      setError(safeMsg || 'Login failed. Please check phone number and password.');
     } finally {
       setLoading(false);
       isSubmitting.current = false;
