@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Check, CheckCircle2, Gavel, Info, Package, Smartphone, Wallet, X, AlertCircle } from 'lucide-react';
 import telebirrLogo from '../assets/telebirr.png';
 import cbeLogo from '../assets/cbe.png';
@@ -256,6 +257,52 @@ export const ConfirmBidModal = memo(({
       }, 1000);
     }
   }, [paymentSuccess]);
+
+  // Active Server-Side Polling Fallback:
+  // Polls our server every 3s while the USSD push is pending on the user's phone.
+  // The moment the user completes payment, this instantly detects it and finalizes the bid.
+  useEffect(() => {
+    if (!inlinePayment?.txRef || paymentSuccess || selectedMethod === 'wallet') return;
+    let isCancelled = false;
+    let pollAttempts = 0;
+
+    const pollInterval = setInterval(async () => {
+      pollAttempts++;
+      if (pollAttempts > 60 || isCancelled) {
+        clearInterval(pollInterval);
+        return;
+      }
+      try {
+        const res = await axios.post('/api/payments/chapa/inline/complete', {
+          tx_ref: inlinePayment.txRef,
+          payment_method: selectedMethod,
+          phone_number: phoneNumber || mobile || user?.phone_number
+        });
+        if (res.data?.status === 'success' || res.data?.status === 'refunded_to_wallet') {
+          clearInterval(pollInterval);
+          if (!isCancelled) {
+            setPaymentSuccess(true);
+            if (onInlineSuccess) {
+              await onInlineSuccess({ txRef: inlinePayment.txRef, chapaRef: null, bid: res.data?.bid });
+            }
+          }
+        }
+      } catch (err) {
+        // If payment explicitly cancelled on USSD, stop polling and notify
+        if (err.response?.status === 400 && err.response?.data?.error) {
+          clearInterval(pollInterval);
+          if (!isCancelled) {
+            onInlineClose?.(err.response.data.error);
+          }
+        }
+      }
+    }, 3000);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(pollInterval);
+    };
+  }, [inlinePayment?.txRef, paymentSuccess, selectedMethod, phoneNumber, mobile, user?.phone_number, onInlineSuccess, onInlineClose]);
 
   const activePayment = selectedMethod;
   const isWallet = activePayment === 'wallet';

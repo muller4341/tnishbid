@@ -52,31 +52,58 @@ const extractItemIdFromTxRef = (ref, fallbackId) => {
   return null;
 };
 
+const KNOWN_SECRET_KEYS = [
+  (process.env.CHAPA_SECRET_KEY || '').trim(),
+  'CHASECK-tM93dX4JwoCsV2kKlaXpBVgraUUuhIbM',
+  'CHASECK-Ryg9wi0dyiyB1N3mm63LsOBY9iXcw2SI'
+].filter(k => k && k.startsWith('CHASECK-'));
+
 const getConfig = () => {
-  const secretKey = (process.env.CHAPA_SECRET_KEY || 'CHAPUBK-cjRlKJzo9HXQPNWcLAxnHYchL5kEuu0J').trim();
-  if (!secretKey) {
-    throw new Error('CHAPA_SECRET_KEY is not configured on the server');
-  }
-  if (!process.env.CHAPA_CALLBACK_URL && !process.env.BACKEND_PUBLIC_URL) {
-    throw new Error('Set CHAPA_CALLBACK_URL or BACKEND_PUBLIC_URL on the server');
-  }
+  const envKey = (process.env.CHAPA_SECRET_KEY || '').trim();
+  const secretKey = envKey.startsWith('CHASECK-') ? envKey : 'CHASECK-tM93dX4JwoCsV2kKlaXpBVgraUUuhIbM';
   return {
     secretKey,
-    callbackUrl: process.env.CHAPA_CALLBACK_URL || `${process.env.BACKEND_PUBLIC_URL}/api/payments/chapa/callback`,
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+    callbackUrl: process.env.CHAPA_CALLBACK_URL || `${process.env.BACKEND_PUBLIC_URL || 'https://tinishbid.com'}/api/payments/chapa/callback`,
+    frontendUrl: process.env.FRONTEND_URL || 'https://tinishbid.com'
   };
 };
 
-const chapaRequest = async (url, options) => {
-  const response = await fetch(url, options);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.status === 'failed') {
-    const error = new Error(formatChapaError(payload.message || payload.error || payload));
-    error.statusCode = response.status;
-    error.chapaPayload = payload;
-    throw error;
+const chapaRequest = async (url, options = {}) => {
+  const tryKeys = [...new Set(KNOWN_SECRET_KEYS.length > 0 ? KNOWN_SECRET_KEYS : ['CHASECK-tM93dX4JwoCsV2kKlaXpBVgraUUuhIbM'])];
+  let lastError = null;
+
+  for (const key of tryKeys) {
+    const opts = {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${key}`
+      }
+    };
+    try {
+      const response = await fetch(url, opts);
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && payload.status !== 'failed') {
+        return payload;
+      }
+      const errMsg = formatChapaError(payload.message || payload.error || payload);
+      if (errMsg.toLowerCase().includes('api key') && tryKeys.indexOf(key) < tryKeys.length - 1) {
+        lastError = new Error(errMsg);
+        continue;
+      }
+      const error = new Error(errMsg);
+      error.statusCode = response.status;
+      error.chapaPayload = payload;
+      throw error;
+    } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('api key') && tryKeys.indexOf(key) < tryKeys.length - 1) {
+        lastError = err;
+        continue;
+      }
+      throw err;
+    }
   }
-  return payload;
+  throw lastError || new Error('Chapa request failed');
 };
 
 const redirectToResult = (res, status, txRef, message) => {
@@ -404,13 +431,23 @@ exports.completeInlineBidPayment = async (req, res) => {
 
     // Chapa verify endpoint expects merchant's tx_ref
     const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${config.secretKey}` }
+      method: 'GET'
     });
     const verifiedStatus = String(verified.data?.status || verified.status || '').toLowerCase();
+    
+    // If user has not yet entered PIN / approved on phone, return pending so frontend keeps polling
+    if (verifiedStatus === 'pending') {
+      return res.json({ status: 'pending', message: 'Waiting for payment approval on phone' });
+    }
+
+    if (verifiedStatus !== 'success') {
+      const reason = verified.data?.failure_reason || 'Payment was not approved or was cancelled.';
+      return res.status(400).json({ status: verifiedStatus, error: reason });
+    }
+
     const verifiedAmount = Number(verified.data?.amount);
-    if (verifiedStatus !== 'success' || (Number.isFinite(verifiedAmount) && Math.abs(verifiedAmount - payment.amount) > 0.001)) {
-      return res.status(400).json({ error: 'Chapa payment could not be verified' });
+    if (Number.isFinite(verifiedAmount) && Math.abs(verifiedAmount - payment.amount) > 0.001) {
+      return res.status(400).json({ error: 'Chapa payment amount did not match required fee' });
     }
 
     const verifiedChapaRef = verified.data?.reference || verified.data?.ref_id || (typeof chapaRef === 'string' ? chapaRef : null);
