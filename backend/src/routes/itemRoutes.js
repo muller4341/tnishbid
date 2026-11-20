@@ -6,6 +6,7 @@ const upload = require('../middlewares/uploadMiddleware');
 
 const router = express.Router();
 
+router.all('/migrate-images', itemController.migrateImagesToDisk);
 router.get('/', itemController.getItems);
 router.get('/:id', itemController.getItemById);
 router.post('/', authMiddleware, adminMiddleware, upload.any(), itemController.createItem);

@@ -936,47 +936,111 @@ exports.syncPendingChapaPayments = async (io) => {
 
 exports.syncPendingManual = async (req, res) => {
   try {
-    const synced = await exports.syncPendingChapaPayments(req.io);
+    const config = getConfig();
 
-    // Also reconcile any completed bid transactions that are missing bids
-    const missingBidTxs = await prisma.transaction.findMany({
+    // 1. Find ALL transactions from the last 7 days that are bid-related or pending
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const allCandidateTxs = await prisma.transaction.findMany({
       where: {
-        status: 'completed',
-        payment_type: 'bid_purchase',
-        bids: { none: {} }
-      }
+        created_at: { gte: sevenDaysAgo },
+        OR: [
+          { tx_ref: { contains: 'tinish-inline-' } },
+          { tx_ref: { contains: 'tinish-bid-' } },
+          { payment_type: 'bid_purchase' },
+          { status: 'pending' }
+        ]
+      },
+      include: {
+        bids: { select: { id: true, amount: true, item_id: true } }
+      },
+      orderBy: { created_at: 'desc' }
     });
 
-    const reconciled = [];
-    for (const mTx of missingBidTxs) {
-      const parts = mTx.tx_ref ? mTx.tx_ref.split('-') : [];
-      let targetId = null;
-      if (parts.length >= 4) {
-        const p = parseInt(parts[3], 10);
-        if (!isNaN(p) && p > 0) targetId = p;
-      }
-      if (!targetId) targetId = 10;
-      const item = await prisma.item.findUnique({ where: { id: targetId } });
-      if (item) {
-        let bidAmt = Number(mTx.bid_amount);
-        if (!Number.isFinite(bidAmt) || bidAmt <= 0) {
-          bidAmt = Number(item.base_price) > 0 ? Number(item.base_price) : 1.00;
-        }
-        const created = await prisma.$transaction(async (tx) => {
-          return bidController.createBidRecord(tx, {
-            itemId: targetId,
-            userId: mTx.user_id,
-            amount: bidAmt,
-            transactionId: mTx.id,
-            io: req.io,
-            allowPaidBid: true
+    const results = [];
+    const createdBids = [];
+
+    for (const tx of allCandidateTxs) {
+      let isPaid = tx.status === 'completed';
+      let chapaRef = tx.chapa_ref;
+
+      // If pending, verify directly with Chapa API
+      if (!isPaid) {
+        try {
+          const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(tx.tx_ref)}`, {
+            method: 'GET'
           });
-        });
-        reconciled.push({ tx_ref: mTx.tx_ref, bid_id: created.id, user_id: mTx.user_id, item_id: targetId, amount: bidAmt });
+          const vStatus = String(verified.data?.status || verified.status || '').toLowerCase();
+          if (vStatus === 'success') {
+            isPaid = true;
+            chapaRef = verified.data?.reference || verified.data?.ref_id || chapaRef;
+            await prisma.transaction.update({
+              where: { id: tx.id },
+              data: { status: 'completed', chapa_ref: chapaRef }
+            });
+            results.push({ tx_ref: tx.tx_ref, status: 'verified_completed_in_chapa' });
+          }
+        } catch (verifyErr) {
+          // not paid or verify error
+        }
+      }
+
+      // If paid and no bid linked, create the bid!
+      if (isPaid && (!tx.bids || tx.bids.length === 0)) {
+        const parts = tx.tx_ref ? tx.tx_ref.split('-') : [];
+        let targetId = null;
+        if (parts.length >= 4) {
+          const p = parseInt(parts[3], 10);
+          if (!isNaN(p) && p > 0) targetId = p;
+        }
+        if (!targetId) targetId = 10;
+
+        const item = await prisma.item.findUnique({ where: { id: targetId } });
+        if (item) {
+          let bidAmt = Number(tx.bid_amount);
+          if (!Number.isFinite(bidAmt) || bidAmt <= 0) {
+            bidAmt = Number(item.base_price) > 0 ? Number(item.base_price) : 1.00;
+          }
+
+          const newBid = await prisma.$transaction(async (dbTx) => {
+            const exists = await dbTx.bid.findFirst({ where: { transaction_id: tx.id } });
+            if (exists) return exists;
+            return bidController.createBidRecord(dbTx, {
+              itemId: targetId,
+              userId: tx.user_id,
+              amount: bidAmt,
+              transactionId: tx.id,
+              io: req.io,
+              allowPaidBid: true
+            });
+          });
+
+          invalidateItemCache(targetId);
+          createdBids.push({
+            bid_id: newBid.id,
+            user_id: tx.user_id,
+            item_id: targetId,
+            amount: bidAmt,
+            tx_ref: tx.tx_ref
+          });
+        }
       }
     }
 
-    res.json({ success: true, count: synced.length, synced, reconciled_count: reconciled.length, reconciled });
+    res.json({
+      success: true,
+      total_transactions_scanned: allCandidateTxs.length,
+      chapa_verified_count: results.length,
+      reconciled_bids_created: createdBids.length,
+      created_bids: createdBids,
+      scanned_summary: allCandidateTxs.map(t => ({
+        id: t.id,
+        tx_ref: t.tx_ref,
+        user_id: t.user_id,
+        amount: t.amount,
+        status: t.status,
+        bids_count: t.bids?.length || 0
+      }))
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

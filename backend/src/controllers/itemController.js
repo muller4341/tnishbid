@@ -24,8 +24,7 @@ exports.getItems = async (req, res) => {
     const cached = cache.get('items:all');
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=20');
       return res.json(cached);
     }
 
@@ -48,8 +47,7 @@ exports.getItems = async (req, res) => {
 
     cache.set('items:all', optimizedItems, 30);
     res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=20');
     res.json(optimizedItems);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -63,8 +61,7 @@ exports.getItemById = async (req, res) => {
     const cached = cache.get(cacheKey);
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Cache-Control', 'public, max-age=3, stale-while-revalidate=10');
       return res.json(cached);
     }
 
@@ -98,8 +95,7 @@ exports.getItemById = async (req, res) => {
 
     cache.set(cacheKey, optimizedItem, 15);
     res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Cache-Control', 'public, max-age=3, stale-while-revalidate=10');
     res.json(optimizedItem);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -271,6 +267,79 @@ exports.updateItem = async (req, res) => {
 
     invalidateItemCache(id);
     res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.migrateImagesToDisk = async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
+    const ITEMS_DIR = path.join(UPLOADS_DIR, 'items');
+    const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
+
+    [UPLOADS_DIR, ITEMS_DIR, AVATARS_DIR].forEach((dir) => {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    });
+
+    const items = await prisma.item.findMany();
+    let updatedCount = 0;
+    let bytesSaved = 0;
+
+    for (const item of items) {
+      let updated = false;
+      let newImageUrl = item.image_url;
+      let newImages = Array.isArray(item.images) ? [...item.images] : [];
+
+      if (item.image_url && item.image_url.startsWith('data:')) {
+        const match = item.image_url.match(/^data:([A-Za-z0-9-+/]+);base64,(.+)$/);
+        if (match) {
+          const ext = match[1].includes('png') ? '.png' : (match[1].includes('webp') ? '.webp' : '.jpg');
+          const fname = `item_${item.id}_main_${Date.now()}${ext}`;
+          const buf = Buffer.from(match[2], 'base64');
+          fs.writeFileSync(path.join(ITEMS_DIR, fname), buf);
+          newImageUrl = `/uploads/items/${fname}`;
+          bytesSaved += buf.length;
+          updated = true;
+        }
+      }
+
+      if (Array.isArray(item.images)) {
+        for (let i = 0; i < item.images.length; i++) {
+          const img = item.images[i];
+          if (img && typeof img === 'string' && img.startsWith('data:')) {
+            const match = img.match(/^data:([A-Za-z0-9-+/]+);base64,(.+)$/);
+            if (match) {
+              const ext = match[1].includes('png') ? '.png' : (match[1].includes('webp') ? '.webp' : '.jpg');
+              const fname = `item_${item.id}_gal_${i}_${Date.now()}${ext}`;
+              const buf = Buffer.from(match[2], 'base64');
+              fs.writeFileSync(path.join(ITEMS_DIR, fname), buf);
+              newImages[i] = `/uploads/items/${fname}`;
+              bytesSaved += buf.length;
+              updated = true;
+            }
+          }
+        }
+      }
+
+      if (updated) {
+        await prisma.item.update({
+          where: { id: item.id },
+          data: { image_url: newImageUrl, images: newImages }
+        });
+        updatedCount++;
+      }
+    }
+
+    invalidateItemCache();
+    res.json({
+      success: true,
+      updated_items: updatedCount,
+      mb_saved: (bytesSaved / (1024 * 1024)).toFixed(2),
+      items_summary: items.map(it => ({ id: it.id, title: it.title, image_url: it.image_url }))
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

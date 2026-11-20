@@ -1,10 +1,30 @@
+const fs = require('fs');
+const path = require('path');
 const cloudinary = require('cloudinary').v2;
 require('dotenv').config();
 
+const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
+const ITEMS_DIR = path.join(UPLOADS_DIR, 'items');
+const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
+
+// Ensure upload directories exist
+[UPLOADS_DIR, ITEMS_DIR, AVATARS_DIR].forEach((dir) => {
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (e) {
+    // ignore
+  }
+});
+
 const isConfigured = !!(
   process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloud_name' &&
   process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
+  process.env.CLOUDINARY_API_KEY !== 'your_api_key' &&
+  process.env.CLOUDINARY_API_SECRET &&
+  process.env.CLOUDINARY_API_SECRET !== 'your_api_secret'
 );
 
 if (isConfigured) {
@@ -13,44 +33,54 @@ if (isConfigured) {
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
     secure: true,
-    timeout: 120000
+    timeout: 60000
   });
 }
 
 /**
- * Uploads a file buffer directly to Cloudinary
- * @param {Buffer} buffer - File buffer from multer memoryStorage
- * @param {string} mimetype - File mimetype
- * @param {Object} options - Cloudinary upload options (e.g. folder)
- * @returns {Promise<string>} - Resolves to secure_url
+ * Saves binary buffer directly to local server disk in /uploads/
+ * Ultra-fast, zero external dependency, 0ms latency.
  */
-const uploadBufferToCloudinary = async (buffer, mimetype = 'image/jpeg', options = {}) => {
-  if (!isConfigured) {
-    console.warn('Cloudinary is not configured. Falling back to data URI.');
-    return `data:${mimetype};base64,${buffer.toString('base64')}`;
-  }
+const saveLocally = (buffer, mimetype = 'image/jpeg', folder = 'tinishbid/items') => {
+  const isAvatar = folder.includes('avatar');
+  const targetDir = isAvatar ? AVATARS_DIR : ITEMS_DIR;
+  const subFolder = isAvatar ? 'avatars' : 'items';
 
-  const base64Data = `data:${mimetype};base64,${buffer.toString('base64')}`;
-  const result = await cloudinary.uploader.upload(base64Data, {
-    folder: options.folder || 'tinishbid/items',
-    resource_type: options.resource_type || 'image',
-    transformation: options.transformation || [{ quality: 'auto', fetch_format: 'auto' }],
-    ...options
-  });
-  return optimizeCloudinaryUrl(result.secure_url);
+  let ext = '.jpg';
+  const m = (mimetype || '').toLowerCase();
+  if (m.includes('png')) ext = '.png';
+  else if (m.includes('webp')) ext = '.webp';
+  else if (m.includes('gif')) ext = '.gif';
+  else if (m.includes('svg')) ext = '.svg';
+
+  const filename = `${subFolder}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const filepath = path.join(targetDir, filename);
+
+  fs.writeFileSync(filepath, buffer);
+  return `/uploads/${subFolder}/${filename}`;
+};
+
+/**
+ * Decodes and saves a Base64 data URI to local server disk
+ */
+const saveBase64Locally = (base64String, folder = 'tinishbid/items') => {
+  if (!base64String || typeof base64String !== 'string') return base64String;
+  const match = base64String.match(/^data:([A-Za-z0-9-+/]+);base64,(.+)$/);
+  if (!match) return base64String;
+
+  const mimetype = match[1];
+  const buffer = Buffer.from(match[2], 'base64');
+  return saveLocally(buffer, mimetype, folder);
 };
 
 /**
  * Ensures a Cloudinary URL uses automatic format (WebP/AVIF) and quality optimization
- * @param {string} url - Image URL
- * @returns {string} - Optimized URL
  */
 const optimizeCloudinaryUrl = (url) => {
   if (!url || typeof url !== 'string') return url;
   if (!url.includes('res.cloudinary.com') || !url.includes('/image/upload/')) {
     return url;
   }
-  // Check if transformation is already present
   if (url.includes('/image/upload/f_auto,q_auto/') || url.includes('/upload/f_auto,q_auto/')) {
     return url;
   }
@@ -58,50 +88,57 @@ const optimizeCloudinaryUrl = (url) => {
 };
 
 /**
- * Universal image uploader: handles multer file object, Buffer, or data URI / URL
- * @param {Object|Buffer|string} input - Multer file, Buffer, or string (base64 or url)
- * @param {Object} options - Upload options
- * @returns {Promise<string>} - Cloudinary secure URL
+ * Universal image uploader:
+ * 1. If string is already a path/URL, returns it.
+ * 2. If Base64 string, writes directly to local server disk.
+ * 3. If file buffer, writes directly to local server disk or Cloudinary if explicitly configured.
  */
 const uploadImage = async (input, options = {}) => {
   if (!input) return null;
+  const folder = options.folder || 'tinishbid/items';
 
-  // If already a remote URL, return optimized URL
+  // 1. String inputs
   if (typeof input === 'string') {
+    if (input.startsWith('/uploads/')) return input;
     if (input.startsWith('http://') || input.startsWith('https://')) {
       return optimizeCloudinaryUrl(input);
     }
     if (input.startsWith('data:')) {
-      if (!isConfigured) return input;
-      const result = await cloudinary.uploader.upload(input, {
-        folder: options.folder || 'tinishbid/items',
-        resource_type: options.resource_type || 'image',
-        transformation: options.transformation || [{ quality: 'auto', fetch_format: 'auto' }],
-        ...options
-      });
-      return optimizeCloudinaryUrl(result.secure_url);
+      return saveBase64Locally(input, folder);
     }
     return input;
   }
 
-  // Multer file object
-  if (input.buffer && Buffer.isBuffer(input.buffer)) {
-    return uploadBufferToCloudinary(input.buffer, input.mimetype || 'image/jpeg', options);
-  }
+  // 2. Multer file object with buffer
+  const buffer = input.buffer && Buffer.isBuffer(input.buffer) ? input.buffer : (Buffer.isBuffer(input) ? input : null);
+  const mimetype = input.mimetype || 'image/jpeg';
 
-  // Raw Buffer
-  if (Buffer.isBuffer(input)) {
-    return uploadBufferToCloudinary(input, options.mimetype || 'image/jpeg', options);
+  if (buffer) {
+    // If Cloudinary is explicitly configured with real credentials, we can use it
+    if (isConfigured) {
+      try {
+        const base64Data = `data:${mimetype};base64,${buffer.toString('base64')}`;
+        const result = await cloudinary.uploader.upload(base64Data, {
+          folder,
+          resource_type: options.resource_type || 'image',
+          transformation: options.transformation || [{ quality: 'auto', fetch_format: 'auto' }],
+          ...options
+        });
+        return optimizeCloudinaryUrl(result.secure_url);
+      } catch (err) {
+        console.warn('Cloudinary upload error, falling back to local server disk:', err.message);
+      }
+    }
+
+    // Default: Save directly to your server's disk (/uploads/...)
+    return saveLocally(buffer, mimetype, folder);
   }
 
   return null;
 };
 
 /**
- * Upload multiple files to Cloudinary in parallel
- * @param {Array} files - Array of multer files or image strings
- * @param {Object} options - Upload options
- * @returns {Promise<string[]>}
+ * Upload multiple files in parallel
  */
 const uploadMultipleImages = async (files, options = {}) => {
   if (!Array.isArray(files) || files.length === 0) return [];
@@ -111,8 +148,9 @@ const uploadMultipleImages = async (files, options = {}) => {
 module.exports = {
   cloudinary,
   isConfigured,
-  uploadBufferToCloudinary,
   uploadImage,
   uploadMultipleImages,
-  optimizeCloudinaryUrl
+  optimizeCloudinaryUrl,
+  saveLocally,
+  saveBase64Locally
 };

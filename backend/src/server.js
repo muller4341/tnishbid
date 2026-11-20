@@ -25,11 +25,12 @@ app.use(compression());
 app.use(cors());
 app.use(express.json());
 
-// Serve uploads with 7-day cache and etags for maximum performance
+// Serve uploads with 30-day cache, immutable header and etags for maximum performance
 app.use(
   '/uploads',
   express.static(path.join(__dirname, '../uploads'), {
-    maxAge: '7d',
+    maxAge: '30d',
+    immutable: true,
     etag: true,
     lastModified: true
   })
