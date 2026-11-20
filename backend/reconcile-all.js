@@ -85,14 +85,9 @@ async function reconcile() {
     }
     if (!targetItemId) targetItemId = 10;
 
-    // Check if bid is already linked
+    // Check if bid is already linked to THIS specific transaction
     const existingBid = await prisma.bid.findFirst({
-      where: {
-        OR: [
-          { transaction_id: tx.id },
-          { user_id: targetUserId, item_id: targetItemId }
-        ]
-      }
+      where: { transaction_id: tx.id }
     });
 
     // Check if paid in DB or verify with Chapa

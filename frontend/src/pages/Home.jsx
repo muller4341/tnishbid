@@ -741,13 +741,21 @@ const ProductBidCard = ({ item, t, user, navigate }) => {
             setTimeout(() => setError(''), 4500);
           }
         }}
-        onInlineSuccess={async ({ txRef, chapaRef }) => {
-          await axios.post('/api/payments/chapa/inline/complete', {
-            tx_ref: txRef,
-            chapa_ref: chapaRef,
-            payment_method: selectedPayment,
-            phone_number: inlinePayment?.mobile || user?.phone_number
-          });
+        onInlineSuccess={async (payload) => {
+          const resolvedTxRef = payload?.txRef || payload?.tx_ref || inlinePayment?.txRef;
+          const resolvedChapaRef = payload?.chapaRef || payload?.reference || payload?.ref_id || null;
+          if (!payload?.alreadyCompleted && resolvedTxRef) {
+            try {
+              await axios.post('/api/payments/chapa/inline/complete', {
+                tx_ref: resolvedTxRef,
+                chapa_ref: resolvedChapaRef,
+                payment_method: selectedPayment,
+                phone_number: inlinePayment?.mobile || user?.phone_number
+              });
+            } catch (postErr) {
+              console.warn('inline complete post error:', postErr.message);
+            }
+          }
           setLocalBidCount((count) => count + 1);
           setBidInput('');
           setSuccess(`Bid of ${pendingBidAmount?.toFixed(2) || ''} Br placed!`);

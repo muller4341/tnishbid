@@ -1996,12 +1996,15 @@ const ItemDetails = memo(() => {
             setTimeout(() => setError(''), 4500);
           }
         }}
-        onInlineSuccess={async ({ txRef, chapaRef, alreadyCompleted }) => {
-          if (!alreadyCompleted) {
+        onInlineSuccess={async (payload) => {
+          const resolvedTxRef = payload?.txRef || payload?.tx_ref || inlinePayment?.txRef;
+          const resolvedChapaRef = payload?.chapaRef || payload?.reference || payload?.ref_id || null;
+          if (!payload?.alreadyCompleted && resolvedTxRef) {
             try {
               await axios.post('/api/payments/chapa/inline/complete', {
-                tx_ref: txRef,
-                chapa_ref: chapaRef,
+                tx_ref: resolvedTxRef,
+                chapa_ref: resolvedChapaRef,
+                item_id: parseInt(id, 10),
                 payment_method: selectedPayment,
                 phone_number: inlinePayment?.mobile || user?.phone_number
               });
@@ -2019,7 +2022,7 @@ const ItemDetails = memo(() => {
               _count: { ...(prev._count || {}), bids: cur + 1 }
             };
           });
-          fetchItemDetails();
+          await fetchItemDetails();
           setSuccess(`Bid placed successfully!`);
           setTimeout(() => setSuccess(''), 5000);
         }}

@@ -176,24 +176,49 @@ exports.getUserBids = async (req, res) => {
   try {
     const user_id = req.user.id;
 
-    // Auto-reconcile any completed/paid bid transactions for this user that don't yet have a Bid record!
+    // Auto-reconcile any paid or completed bid transactions for this user that don't yet have a Bid record!
     try {
       const missingBidTxs = await prisma.transaction.findMany({
         where: {
           user_id,
-          status: 'completed',
           payment_type: 'bid_purchase',
           bids: { none: {} }
-        }
+        },
+        orderBy: { created_at: 'desc' },
+        take: 20
       });
+
       for (const mTx of missingBidTxs) {
-        const parts = mTx.tx_ref ? mTx.tx_ref.split('-') : [];
-        let targetId = null;
-        if (parts.length >= 4) {
-          const p = parseInt(parts[3], 10);
-          if (!isNaN(p) && p > 0) targetId = p;
+        let isPaid = mTx.status === 'completed';
+        let chapaRef = mTx.chapa_ref;
+
+        if (!isPaid) {
+          try {
+            const { chapaRequest, CHAPA_VERIFY_URL } = require('./chapaController');
+            const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(mTx.tx_ref)}`, { method: 'GET' });
+            const vStatus = String(verified.data?.status || verified.status || '').toLowerCase();
+            if (vStatus === 'success') {
+              isPaid = true;
+              chapaRef = verified.data?.reference || verified.data?.ref_id || chapaRef;
+              await prisma.transaction.update({
+                where: { id: mTx.id },
+                data: { status: 'completed', chapa_ref: chapaRef }
+              });
+            }
+          } catch (e) {
+            // Not yet paid or error
+          }
         }
-        if (targetId) {
+
+        if (isPaid) {
+          const parts = mTx.tx_ref ? mTx.tx_ref.split('-') : [];
+          let targetId = null;
+          if (parts.length >= 4) {
+            const p = parseInt(parts[3], 10);
+            if (!isNaN(p) && p > 0) targetId = p;
+          }
+          if (!targetId) targetId = 10;
+
           const item = await prisma.item.findUnique({ where: { id: targetId } });
           if (item) {
             let bidAmt = Number(mTx.bid_amount);
@@ -201,15 +226,20 @@ exports.getUserBids = async (req, res) => {
               bidAmt = Number(item.base_price) > 0 ? Number(item.base_price) : 1.00;
             }
             await prisma.$transaction(async (tx) => {
-              await createBidRecord(tx, {
-                itemId: targetId,
-                userId: user_id,
-                amount: bidAmt,
-                transactionId: mTx.id,
-                io: req.io,
-                allowPaidBid: true
-              });
+              // Ensure we don't duplicate if another process just inserted it
+              const exists = await tx.bid.findFirst({ where: { transaction_id: mTx.id } });
+              if (!exists) {
+                await createBidRecord(tx, {
+                  itemId: targetId,
+                  userId: user_id,
+                  amount: bidAmt,
+                  transactionId: mTx.id,
+                  io: req.io,
+                  allowPaidBid: true
+                });
+              }
             });
+            invalidateItemCache(targetId);
             console.log(`[Auto-Reconciled Bid] for User ${user_id}, Tx ${mTx.tx_ref}, Item ${targetId}`);
           }
         }

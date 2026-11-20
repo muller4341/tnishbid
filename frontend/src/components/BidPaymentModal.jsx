@@ -281,10 +281,14 @@ export const ConfirmBidModal = memo(({
         if (res.data?.status === 'success' || res.data?.status === 'refunded_to_wallet') {
           clearInterval(pollInterval);
           if (!isCancelled) {
-            setPaymentSuccess(true);
-            if (onInlineSuccess) {
-              onInlineSuccess({ txRef: inlinePayment.txRef, chapaRef: null, bid: res.data?.bid, alreadyCompleted: true }).catch(() => {});
+            try {
+              if (onInlineSuccess) {
+                await onInlineSuccess({ txRef: inlinePayment.txRef, chapaRef: null, bid: res.data?.bid, alreadyCompleted: true });
+              }
+            } catch (postErr) {
+              console.warn('onInlineSuccess callback error:', postErr);
             }
+            setPaymentSuccess(true);
           }
         }
       } catch (err) {
@@ -334,14 +338,18 @@ export const ConfirmBidModal = memo(({
   };
 
   const handleInlineSuccessInternal = async (data) => {
-    setPaymentSuccess(true);
     try {
       if (onInlineSuccess) {
-        await onInlineSuccess(data);
+        await onInlineSuccess({
+          txRef: data?.txRef || data?.tx_ref || inlinePayment?.txRef,
+          chapaRef: data?.chapaRef || data?.reference || data?.ref_id || null,
+          alreadyCompleted: false
+        });
       }
     } catch (err) {
       console.warn('Post-success update:', err);
     }
+    setPaymentSuccess(true);
   };
 
   const handleConfirmClick = async () => {

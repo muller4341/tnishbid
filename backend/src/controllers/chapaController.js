@@ -120,14 +120,9 @@ const finalizeBidPaymentRecord = async ({ txRef, verifiedChapaRef, phone, paymen
   const targetItemId = extractItemIdFromTxRef(txRef, fallbackItemId);
   if (!targetItemId) throw new Error('Auction item could not be determined from transaction');
 
-  // Check if a bid is ALREADY created for this transaction
+  // Check if a bid is ALREADY created for THIS transaction
   const existingBid = await prisma.bid.findFirst({
-    where: {
-      OR: [
-        { transaction_id: payment.id },
-        { user_id: payment.user_id, item_id: targetItemId }
-      ]
-    },
+    where: { transaction_id: payment.id },
     include: {
       user: { select: { id: true, name: true, phone_number: true, image_url: true } }
     }
@@ -185,12 +180,7 @@ const finalizeBidPaymentRecord = async ({ txRef, verifiedChapaRef, phone, paymen
     if (!currentPayment) throw new Error('Payment record not found');
 
     const existingTxBid = await tx.bid.findFirst({
-      where: {
-        OR: [
-          { transaction_id: currentPayment.id },
-          { user_id: currentPayment.user_id, item_id: targetItemId }
-        ]
-      },
+      where: { transaction_id: currentPayment.id },
       include: {
         user: { select: { id: true, name: true, phone_number: true, image_url: true } }
       }
