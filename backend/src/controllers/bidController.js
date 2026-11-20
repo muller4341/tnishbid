@@ -5,10 +5,23 @@ const { settleExpiredAuctions } = require('../utils/settlement');
 
 const BID_FEE = 1.00;
 
-const createBidRecord = async (tx, { itemId, userId, amount, transactionId, io }) => {
+const createBidRecord = async (tx, { itemId, userId, amount, transactionId, io, allowPaidBid = false }) => {
   const item = await tx.item.findUnique({ where: { id: itemId } });
   if (!item) throw new Error('Item not found');
-  if (item.status !== 'active' || isAuctionEndedBackend(item.end_time)) throw new Error('Auction is not active or has ended');
+  
+  // If customer paid for this bid, ensure auction is active so their bid is NEVER lost!
+  if (allowPaidBid && (item.status !== 'active' || isAuctionEndedBackend(item.end_time))) {
+    await tx.item.update({
+      where: { id: itemId },
+      data: {
+        status: 'active',
+        end_time: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        winner_id: null
+      }
+    });
+  } else if (!allowPaidBid && (item.status !== 'active' || isAuctionEndedBackend(item.end_time))) {
+    throw new Error('Auction is not active or has ended');
+  }
 
   const parsedAmount = parseFloat(parseFloat(amount).toFixed(2));
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -162,6 +175,49 @@ exports.placeBid = async (req, res) => {
 exports.getUserBids = async (req, res) => {
   try {
     const user_id = req.user.id;
+
+    // Auto-reconcile any completed/paid bid transactions for this user that don't yet have a Bid record!
+    try {
+      const missingBidTxs = await prisma.transaction.findMany({
+        where: {
+          user_id,
+          status: 'completed',
+          payment_type: 'bid_purchase',
+          bids: { none: {} }
+        }
+      });
+      for (const mTx of missingBidTxs) {
+        const parts = mTx.tx_ref ? mTx.tx_ref.split('-') : [];
+        let targetId = null;
+        if (parts.length >= 4) {
+          const p = parseInt(parts[3], 10);
+          if (!isNaN(p) && p > 0) targetId = p;
+        }
+        if (targetId) {
+          const item = await prisma.item.findUnique({ where: { id: targetId } });
+          if (item) {
+            let bidAmt = Number(mTx.bid_amount);
+            if (!Number.isFinite(bidAmt) || bidAmt <= 0) {
+              bidAmt = Number(item.base_price) > 0 ? Number(item.base_price) : 1.00;
+            }
+            await prisma.$transaction(async (tx) => {
+              await createBidRecord(tx, {
+                itemId: targetId,
+                userId: user_id,
+                amount: bidAmt,
+                transactionId: mTx.id,
+                io: req.io,
+                allowPaidBid: true
+              });
+            });
+            console.log(`[Auto-Reconciled Bid] for User ${user_id}, Tx ${mTx.tx_ref}, Item ${targetId}`);
+          }
+        }
+      }
+    } catch (reconcileErr) {
+      console.warn('Auto-reconciliation in getUserBids:', reconcileErr.message);
+    }
+
     await settleExpiredAuctions(req.io);
     const userBids = await prisma.bid.findMany({
       where: { user_id },

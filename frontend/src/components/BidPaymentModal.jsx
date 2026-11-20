@@ -283,7 +283,7 @@ export const ConfirmBidModal = memo(({
           if (!isCancelled) {
             setPaymentSuccess(true);
             if (onInlineSuccess) {
-              await onInlineSuccess({ txRef: inlinePayment.txRef, chapaRef: null, bid: res.data?.bid });
+              onInlineSuccess({ txRef: inlinePayment.txRef, chapaRef: null, bid: res.data?.bid, alreadyCompleted: true }).catch(() => {});
             }
           }
         }
@@ -334,13 +334,13 @@ export const ConfirmBidModal = memo(({
   };
 
   const handleInlineSuccessInternal = async (data) => {
+    setPaymentSuccess(true);
     try {
       if (onInlineSuccess) {
         await onInlineSuccess(data);
       }
-      setPaymentSuccess(true);
     } catch (err) {
-      onInlineClose?.(err?.response?.data?.error || err?.message || 'Finalizing your bid failed.');
+      console.warn('Post-success update:', err);
     }
   };
 

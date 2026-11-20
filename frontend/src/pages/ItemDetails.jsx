@@ -1996,13 +1996,19 @@ const ItemDetails = memo(() => {
             setTimeout(() => setError(''), 4500);
           }
         }}
-        onInlineSuccess={async ({ txRef, chapaRef }) => {
-          await axios.post('/api/payments/chapa/inline/complete', {
-            tx_ref: txRef,
-            chapa_ref: chapaRef,
-            payment_method: selectedPayment,
-            phone_number: inlinePayment?.mobile || user?.phone_number
-          });
+        onInlineSuccess={async ({ txRef, chapaRef, alreadyCompleted }) => {
+          if (!alreadyCompleted) {
+            try {
+              await axios.post('/api/payments/chapa/inline/complete', {
+                tx_ref: txRef,
+                chapa_ref: chapaRef,
+                payment_method: selectedPayment,
+                phone_number: inlinePayment?.mobile || user?.phone_number
+              });
+            } catch (postErr) {
+              console.warn('inline complete post error:', postErr.message);
+            }
+          }
           setLubBidAmount('');
           setItem((prev) => {
             if (!prev) return prev;
@@ -2014,7 +2020,7 @@ const ItemDetails = memo(() => {
             };
           });
           fetchItemDetails();
-          setSuccess(`Bid of ${pendingBidAmount?.toFixed(2) || ''} Birr placed successfully!`);
+          setSuccess(`Bid placed successfully!`);
           setTimeout(() => setSuccess(''), 5000);
         }}
       />

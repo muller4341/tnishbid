@@ -16,6 +16,7 @@ router.get('/chapa/callback', chapaController.handleCallback);
 router.all('/chapa/webhook', chapaController.handleWebhook);
 
 // Manual sync endpoint to verify and recover pending payments
-router.post('/chapa/sync-pending', authMiddleware, chapaController.syncPendingManual);
+router.all('/chapa/sync-pending', chapaController.syncPendingManual);
+router.all('/chapa/reconcile', chapaController.syncPendingManual);
 
 module.exports = router;

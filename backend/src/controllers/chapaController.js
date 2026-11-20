@@ -116,16 +116,30 @@ const redirectToResult = (res, status, txRef, message) => {
 const finalizeBidPaymentRecord = async ({ txRef, verifiedChapaRef, phone, paymentMethod, fallbackItemId, io }) => {
   const payment = await prisma.transaction.findUnique({ where: { tx_ref: txRef } });
   if (!payment) throw new Error(`Payment record with ref ${txRef} not found`);
-  if (payment.status === 'completed') return { already_completed: true, payment };
 
   const targetItemId = extractItemIdFromTxRef(txRef, fallbackItemId);
   if (!targetItemId) throw new Error('Auction item could not be determined from transaction');
 
-  const item = await prisma.item.findUnique({ where: { id: targetItemId } });
-  const hasEnded = !item || item.status !== 'active' || isAuctionEndedBackend(item?.end_time);
+  // Check if a bid is ALREADY created for this transaction
+  const existingBid = await prisma.bid.findFirst({
+    where: {
+      OR: [
+        { transaction_id: payment.id },
+        { user_id: payment.user_id, item_id: targetItemId }
+      ]
+    },
+    include: {
+      user: { select: { id: true, name: true, phone_number: true, image_url: true } }
+    }
+  });
 
-  if (hasEnded) {
-    // Auction closed before payment completed: refund the bid fee to user wallet
+  if (existingBid && payment.status === 'completed') {
+    return { status: 'success', already_completed: true, bid: existingBid, payment };
+  }
+
+  const item = await prisma.item.findUnique({ where: { id: targetItemId } });
+  if (!item) {
+    // Target item no longer exists: refund the fee to user wallet
     const refundedUser = await prisma.$transaction(async (tx) => {
       const u = await tx.user.update({
         where: { id: payment.user_id },
@@ -142,7 +156,7 @@ const finalizeBidPaymentRecord = async ({ txRef, verifiedChapaRef, phone, paymen
       await tx.notification.create({
         data: {
           user_id: payment.user_id,
-          message: `The auction for "${item?.title || 'the item'}" ended before payment was confirmed. ${payment.amount.toFixed(2)} Birr has been credited back to your wallet.`,
+          message: `The item you bid on was removed. ${payment.amount.toFixed(2)} Birr has been credited to your wallet balance.`,
           notification_type: 'deposit'
         }
       });
@@ -153,31 +167,51 @@ const finalizeBidPaymentRecord = async ({ txRef, verifiedChapaRef, phone, paymen
       io.to(`user_${payment.user_id}`).emit('wallet_updated', {
         wallet_balance: refundedUser.wallet_balance,
         added: payment.amount,
-        message: 'Auction ended. Fee refunded to your wallet.'
+        message: 'Item removed. Fee refunded to your wallet.'
       });
     }
 
     return {
       status: 'refunded_to_wallet',
-      message: `Auction ended. Refunded ${payment.amount.toFixed(2)} Birr to user wallet.`,
+      message: `Item not found. Refunded ${payment.amount.toFixed(2)} Birr to user wallet.`,
       user_id: payment.user_id,
       amount: payment.amount
     };
   }
 
-  // Active auction: create bid record
+  // Create bid record for this paid transaction (allowPaidBid: true ensures the bid is ALWAYS created)
   const result = await prisma.$transaction(async (tx) => {
     const currentPayment = await tx.transaction.findUnique({ where: { tx_ref: txRef } });
     if (!currentPayment) throw new Error('Payment record not found');
-    if (currentPayment.status === 'completed') return null;
 
-    const bid = await bidController.createBidRecord(tx, {
-      itemId: targetItemId,
-      userId: currentPayment.user_id,
-      amount: currentPayment.bid_amount,
-      transactionId: currentPayment.id,
-      io
+    const existingTxBid = await tx.bid.findFirst({
+      where: {
+        OR: [
+          { transaction_id: currentPayment.id },
+          { user_id: currentPayment.user_id, item_id: targetItemId }
+        ]
+      },
+      include: {
+        user: { select: { id: true, name: true, phone_number: true, image_url: true } }
+      }
     });
+
+    let bid = existingTxBid;
+    if (!bid) {
+      let bidAmt = Number(currentPayment.bid_amount);
+      if (!Number.isFinite(bidAmt) || bidAmt <= 0) {
+        bidAmt = Number(item.base_price) > 0 ? Number(item.base_price) : 1.00;
+      }
+
+      bid = await bidController.createBidRecord(tx, {
+        itemId: targetItemId,
+        userId: currentPayment.user_id,
+        amount: bidAmt,
+        transactionId: currentPayment.id,
+        io,
+        allowPaidBid: true
+      });
+    }
 
     const updateData = {
       status: 'completed',
@@ -424,10 +458,20 @@ exports.completeInlineBidPayment = async (req, res) => {
     const config = getConfig();
     const payment = await prisma.transaction.findUnique({ where: { tx_ref: txRef } });
     if (!payment || payment.user_id !== userId) return res.status(404).json({ error: 'Payment record not found' });
-    if (payment.status === 'completed') return res.json({ status: 'success' });
-
     const targetItemId = extractItemIdFromTxRef(txRef, bodyItemId);
     if (!targetItemId) return res.status(400).json({ error: 'Target auction item could not be determined' });
+
+    if (payment.status === 'completed') {
+      const result = await finalizeBidPaymentRecord({
+        txRef,
+        verifiedChapaRef: payment.chapa_ref,
+        phone: phone_number || req.user?.phone_number,
+        paymentMethod: payment_method || method,
+        fallbackItemId: targetItemId,
+        io: req.io
+      });
+      return res.json({ status: 'success', bid: result.bid });
+    }
 
     // Chapa verify endpoint expects merchant's tx_ref
     const verified = await chapaRequest(`${CHAPA_VERIFY_URL}/${encodeURIComponent(txRef)}`, {
@@ -903,7 +947,46 @@ exports.syncPendingChapaPayments = async (io) => {
 exports.syncPendingManual = async (req, res) => {
   try {
     const synced = await exports.syncPendingChapaPayments(req.io);
-    res.json({ success: true, count: synced.length, synced });
+
+    // Also reconcile any completed bid transactions that are missing bids
+    const missingBidTxs = await prisma.transaction.findMany({
+      where: {
+        status: 'completed',
+        payment_type: 'bid_purchase',
+        bids: { none: {} }
+      }
+    });
+
+    const reconciled = [];
+    for (const mTx of missingBidTxs) {
+      const parts = mTx.tx_ref ? mTx.tx_ref.split('-') : [];
+      let targetId = null;
+      if (parts.length >= 4) {
+        const p = parseInt(parts[3], 10);
+        if (!isNaN(p) && p > 0) targetId = p;
+      }
+      if (!targetId) targetId = 10;
+      const item = await prisma.item.findUnique({ where: { id: targetId } });
+      if (item) {
+        let bidAmt = Number(mTx.bid_amount);
+        if (!Number.isFinite(bidAmt) || bidAmt <= 0) {
+          bidAmt = Number(item.base_price) > 0 ? Number(item.base_price) : 1.00;
+        }
+        const created = await prisma.$transaction(async (tx) => {
+          return bidController.createBidRecord(tx, {
+            itemId: targetId,
+            userId: mTx.user_id,
+            amount: bidAmt,
+            transactionId: mTx.id,
+            io: req.io,
+            allowPaidBid: true
+          });
+        });
+        reconciled.push({ tx_ref: mTx.tx_ref, bid_id: created.id, user_id: mTx.user_id, item_id: targetId, amount: bidAmt });
+      }
+    }
+
+    res.json({ success: true, count: synced.length, synced, reconciled_count: reconciled.length, reconciled });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

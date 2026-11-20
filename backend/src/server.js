@@ -90,7 +90,11 @@ server.listen(PORT, () => {
     settleExpiredAuctions(io);
   }, 15000);
 
-  // Periodically auto-recover any pending Chapa payments every 30 seconds
+  // Auto-recover any pending Chapa payments on startup and every 30 seconds
+  setTimeout(() => {
+    syncPendingChapaPayments(io);
+  }, 5000);
+
   setInterval(() => {
     syncPendingChapaPayments(io);
   }, 30000);
