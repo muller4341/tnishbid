@@ -105,6 +105,7 @@ exports.getDashboardStats = async (req, res) => {
         title: item.title,
         description: item.description,
         image_url: item.image_url,
+        images: Array.isArray(item.images) ? item.images : (item.images ? [item.images] : []),
         category: item.category,
         is_lub: item.pool_type === 'lub' || item.pool_type === 'premium',
         pool_type: item.pool_type || 'open',

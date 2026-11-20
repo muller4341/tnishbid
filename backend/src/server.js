@@ -27,7 +27,7 @@ app.use(express.json());
 
 // Serve uploads with 30-day cache, immutable header and etags for maximum performance
 app.use(
-  '/uploads',
+  ['/api/uploads', '/uploads'],
   express.static(path.join(__dirname, '../uploads'), {
     maxAge: '30d',
     immutable: true,

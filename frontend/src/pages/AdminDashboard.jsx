@@ -169,8 +169,114 @@ const AdminDashboard = () => {
 
   // Edit Form State
   const [editFormData, setEditFormData] = useState({});
+  const [editExistingImages, setEditExistingImages] = useState([]);
   const [editImageFiles, setEditImageFiles] = useState([]);
   const [editImagePreviews, setEditImagePreviews] = useState([]);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const handleStartEdit = (item) => {
+    setEditingItem(item);
+    setEditFormData({
+      title: item.title || '',
+      description: item.description || '',
+      category: item.category || 'Electronics',
+      pool_type: item.pool_type || (item.is_lub ? 'lub' : 'open'),
+      base_price: item.base_price ?? '',
+      start_time: item.start_time ? toLocalISO(new Date(item.start_time)) : '',
+      end_time: item.end_time ? toLocalISO(new Date(item.end_time)) : '',
+      status: item.status || 'active'
+    });
+
+    let existingImgs = [];
+    if (Array.isArray(item.images) && item.images.length > 0) {
+      existingImgs = [...item.images];
+    } else if (typeof item.images === 'string') {
+      try {
+        const parsed = JSON.parse(item.images);
+        if (Array.isArray(parsed)) existingImgs = parsed;
+        else if (typeof parsed === 'string') existingImgs = [parsed];
+      } catch {
+        existingImgs = item.images.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    if (existingImgs.length === 0 && item.image_url) {
+      existingImgs = [item.image_url];
+    }
+
+    setEditExistingImages(existingImgs);
+    setEditImageFiles([]);
+    setEditImagePreviews([]);
+  };
+
+  const handleEditImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setEditImageFiles(prev => [...prev, ...files]);
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setEditImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const handleRemoveExistingImage = (indexToRemove) => {
+    setEditExistingImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleSetExistingAsCover = (index) => {
+    if (index === 0) return;
+    setEditExistingImages(prev => {
+      const copy = [...prev];
+      const [chosen] = copy.splice(index, 1);
+      return [chosen, ...copy];
+    });
+  };
+
+  const handleRemoveNewImage = (indexToRemove) => {
+    setEditImageFiles(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    setEditImagePreviews(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setEditSubmitting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const data = new FormData();
+      Object.keys(editFormData).forEach(key => {
+        if (editFormData[key] !== undefined && editFormData[key] !== null) {
+          data.append(key, editFormData[key]);
+        }
+      });
+
+      // Send retained existing images as JSON string
+      data.append('existing_images', JSON.stringify(editExistingImages));
+      data.append('images', JSON.stringify(editExistingImages));
+
+      // Append all new image files (supports multiple images)
+      if (editImageFiles.length > 0) {
+        editImageFiles.forEach(file => {
+          data.append('image_files', file);
+          data.append('images', file);
+        });
+      }
+
+      await axios.put(`/api/items/${editingItem.id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setSuccess(`Auction item "${editFormData.title}" updated successfully!`);
+      setEditingItem(null);
+      setEditExistingImages([]);
+      setEditImageFiles([]);
+      setEditImagePreviews([]);
+      fetchDashboardData();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update auction item');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -1042,33 +1148,42 @@ const AdminDashboard = () => {
                             )}
                           </td>
 
-                          <td className="py-3.5 px-4 text-right space-x-1.5">
+                          <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                             {prod.status === 'active' && (
                               <button
                                 onClick={() => handleEndAuction(prod.id)}
                                 disabled={endingAuctionId === prod.id}
                                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
-                                title="End auction early and declare LUB winner"
+                                title="End auction early and declare winner"
                               >
-                                {endingAuctionId === prod.id ? 'Settling...' : 'End & Declare Winner'}
+                                {endingAuctionId === prod.id ? 'Settling...' : 'End Auction'}
                               </button>
                             )}
+
+                            <button
+                              onClick={() => handleStartEdit(prod)}
+                              className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-all shadow-sm active:scale-95"
+                              title="Edit item details, images, dates"
+                            >
+                              <Edit3 size={13} />
+                              <span>Edit</span>
+                            </button>
 
                             <button
                               onClick={() => setSelectedProductLog(prod)}
                               className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
                               title="View detailed bid information & bidder history"
                             >
-                              <Eye size={14} />
+                              <Eye size={13} />
                               <span>View Bids ({prod.totalBids})</span>
                             </button>
 
                             <button
                               onClick={() => setDeletingItem(prod)}
-                              className="bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 p-1.5 rounded-lg transition-colors border border-rose-900/50"
+                              className="bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 p-1.5 rounded-lg transition-colors border border-rose-900/50 inline-flex items-center"
                               title="Delete Item"
                             >
-                              <Trash2 size={15} />
+                              <Trash2 size={13} />
                             </button>
                           </td>
                         </tr>
@@ -1539,6 +1654,266 @@ const AdminDashboard = () => {
                 Delete Item
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Auction Item Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-[#141519] border border-zinc-800 w-full max-w-2xl rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto my-auto text-left">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+                  <Edit3 size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Edit Auction Item #{editingItem.id}</h3>
+                  <p className="text-xs text-zinc-400">Update item details, images, ending date, or status</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              {/* Title & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">Product Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.title || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                    className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">Category</label>
+                  <select
+                    value={editFormData.category || 'Electronics'}
+                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                    className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  >
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Pool Type, Base Price, Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">Auction Pool Type</label>
+                  <select
+                    value={editFormData.pool_type || 'open'}
+                    onChange={(e) => setEditFormData({ ...editFormData, pool_type: e.target.value })}
+                    className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="lub">Lowest Unique Bid (LUB)</option>
+                    <option value="open">Open Highest Bid</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">Bid Fee (ETB)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={editFormData.base_price ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, base_price: e.target.value })}
+                    className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">Auction Status</label>
+                  <select
+                    value={editFormData.status || 'active'}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="active">Active (Live)</option>
+                    <option value="ended">Ended / Closed</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Start Time & End Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">Start Date & Time (EAT)</label>
+                  <input
+                    type="datetime-local"
+                    value={editFormData.start_time || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, start_time: e.target.value })}
+                    className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">End Date & Time (EAT)</label>
+                  <input
+                    type="datetime-local"
+                    value={editFormData.end_time || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, end_time: e.target.value })}
+                    className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs font-bold text-zinc-300 block mb-1">Description</label>
+                <textarea
+                  rows="3"
+                  value={editFormData.description || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  className="w-full bg-[#0E0F12] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              {/* Product Images Management */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-zinc-300">
+                    Product Images Gallery ({editExistingImages.length + editImagePreviews.length} total)
+                  </label>
+                  <span className="text-[11px] text-amber-400 font-medium">Multiple Images Supported</span>
+                </div>
+
+                {/* Existing Images */}
+                {editExistingImages.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[11px] text-zinc-400 mb-1.5 flex items-center justify-between">
+                      <span>Saved Images:</span>
+                      <span className="text-[10px] text-zinc-500">First image is the main auction cover photo</span>
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                      {editExistingImages.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-700 bg-zinc-900 group shadow-sm flex flex-col justify-between">
+                          <img src={img} alt={`Existing ${idx}`} className="w-full h-full object-cover" />
+                          
+                          {/* Main Cover Badge */}
+                          {idx === 0 ? (
+                            <span className="absolute top-1 left-1 bg-amber-500 text-black font-black text-[9px] px-1.5 py-0.5 rounded shadow">
+                              ★ COVER
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetExistingAsCover(idx)}
+                              className="absolute bottom-1 left-1 right-1 bg-black/80 hover:bg-amber-500 hover:text-black text-white text-[9px] font-bold py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-center"
+                              title="Make this the primary cover photo"
+                            >
+                              Make Cover
+                            </button>
+                          )}
+
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExistingImage(idx)}
+                            className="absolute top-1 right-1 w-5 h-5 bg-rose-600 hover:bg-rose-500 rounded-full flex items-center justify-center text-white shadow-md transition-all cursor-pointer"
+                            title="Remove image from gallery"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* New Image Previews */}
+                {editImagePreviews.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[11px] text-emerald-400 mb-1.5">
+                      Newly Added Images ({editImagePreviews.length}) — will be uploaded on save:
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                      {editImagePreviews.map((prev, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-emerald-500/50 bg-zinc-900 shadow-sm">
+                          <img src={prev} alt={`New ${idx}`} className="w-full h-full object-cover" />
+                          <span className="absolute top-1 left-1 bg-emerald-600 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow">
+                            + NEW
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveNewImage(idx)}
+                            className="absolute top-1 right-1 w-5 h-5 bg-rose-600 hover:bg-rose-500 rounded-full flex items-center justify-center text-white shadow-md transition-all cursor-pointer"
+                            title="Cancel upload"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Multiple Image Input */}
+                <div className="border border-dashed border-zinc-700 hover:border-amber-400/60 rounded-2xl p-3 bg-zinc-900/40 text-center transition-colors">
+                  <input
+                    type="file"
+                    id="edit-multi-image-input"
+                    multiple
+                    accept="image/*"
+                    onChange={handleEditImageChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="edit-multi-image-input"
+                    className="cursor-pointer inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  >
+                    <span>+ Add Photos (Select Multiple)</span>
+                  </label>
+                  <p className="text-[10px] text-zinc-500 mt-2">
+                    Click above to choose 1 or more images from your phone or PC. You can click again anytime to add more.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-800">
+                {/* Instant End Auction Shortcut */}
+                {editingItem.status === 'active' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm(`Are you sure you want to end auction for "${editingItem.title}" immediately and calculate the winner?`)) {
+                        await handleEndAuction(editingItem.id);
+                        setEditingItem(null);
+                      }
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                  >
+                    End Auction Now & Declare Winner
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem(null)}
+                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editSubmitting}
+                    className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-5 py-2 rounded-xl text-xs font-black transition-all shadow-md disabled:opacity-50 cursor-pointer"
+                  >
+                    {editSubmitting ? 'Saving Changes...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

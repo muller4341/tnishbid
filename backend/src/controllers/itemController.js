@@ -2,7 +2,7 @@ const prisma = require('../prismaClient');
 const { uploadImage, uploadMultipleImages, optimizeCloudinaryUrl } = require('../utils/cloudinary');
 const cache = require('../utils/cache');
 const { parseExactTimestamp } = require('../utils/dateHelper');
-const { settleExpiredAuctions } = require('../utils/settlement');
+const { settleItem, settleExpiredAuctions } = require('../utils/settlement');
 
 const invalidateItemCache = (id) => {
   cache.del('items:all');
@@ -200,49 +200,57 @@ exports.createItem = async (req, res) => {
 exports.updateItem = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { title, description, category, pool_type, is_lub, base_price, start_time, end_time, status, images } = req.body;
+    const { title, description, category, pool_type, is_lub, base_price, start_time, end_time, status, images, existing_images } = req.body;
     
     const existing = await prisma.item.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Item not found' });
 
-    let image_url = existing.image_url;
-    let itemImages = existing.images || [];
+    // 1. Determine retained existing images
+    let itemImages = [];
+    const rawImagesPayload = existing_images !== undefined ? existing_images : images;
 
-    if (images !== undefined) {
-      if (Array.isArray(images)) {
-        itemImages = images;
-      } else if (typeof images === 'string') {
+    if (rawImagesPayload !== undefined) {
+      if (Array.isArray(rawImagesPayload)) {
+        itemImages = rawImagesPayload.filter(img => typeof img === 'string' && img.trim() !== '');
+      } else if (typeof rawImagesPayload === 'string') {
         try {
-          itemImages = JSON.parse(images);
+          const parsed = JSON.parse(rawImagesPayload);
+          if (Array.isArray(parsed)) {
+            itemImages = parsed.filter(img => typeof img === 'string' && img.trim() !== '');
+          } else if (typeof parsed === 'string' && parsed.trim() !== '') {
+            itemImages = [parsed.trim()];
+          }
         } catch {
-          itemImages = images.split(',').map(s => s.trim()).filter(Boolean);
+          itemImages = rawImagesPayload.split(',').map(s => s.trim()).filter(Boolean);
         }
       }
+    } else if (existing.images && Array.isArray(existing.images) && existing.images.length > 0) {
+      itemImages = [...existing.images];
+    } else if (existing.image_url) {
+      itemImages = [existing.image_url];
     }
 
+    // 2. Upload and append any new files from req.files or req.file
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-      const uploadedUrls = await uploadMultipleImages(req.files, { folder: 'tinishbid/items' });
+      const uploadedUrls = await uploadMultipleImages(req.files, { folder: 'tinishbid/items', prefix: `item_${id}` });
       const validUrls = uploadedUrls.filter(Boolean);
       if (validUrls.length > 0) {
-        image_url = validUrls[0];
         itemImages = [...itemImages, ...validUrls];
       }
     } else if (req.file) {
-      const uploadedUrl = await uploadImage(req.file, { folder: 'tinishbid/items' });
+      const uploadedUrl = await uploadImage(req.file, { folder: 'tinishbid/items', prefix: `item_${id}` });
       if (uploadedUrl) {
-        image_url = uploadedUrl;
         itemImages = [...itemImages, uploadedUrl];
       }
     }
 
-    // Also upload any base64 images passed in the body
+    // 3. Process any base64 images if passed
     if (itemImages.length > 0) {
       itemImages = (await uploadMultipleImages(itemImages, { folder: 'tinishbid/items' })).filter(Boolean);
     }
 
-    if (!image_url && itemImages.length > 0) {
-      image_url = itemImages[0];
-    }
+    // 4. Primary cover photo is strictly the first image
+    const primaryImageUrl = itemImages.length > 0 ? itemImages[0] : null;
 
     const isLubBool = is_lub !== undefined 
       ? (is_lub === true || is_lub === 'true')
@@ -254,18 +262,26 @@ exports.updateItem = async (req, res) => {
         title: title !== undefined ? title : existing.title,
         description: description !== undefined ? description : existing.description,
         category: category !== undefined ? category : existing.category,
-
         pool_type: isLubBool ? 'lub' : 'open',
         base_price: base_price !== undefined ? parseFloat(base_price) : existing.base_price,
         start_time: start_time ? parseToEAT(start_time) : existing.start_time,
         end_time: end_time ? parseToEAT(end_time) : existing.end_time,
         status: status !== undefined ? status : existing.status,
-        image_url,
+        image_url: primaryImageUrl,
         images: itemImages
       }
     });
 
     invalidateItemCache(id);
+
+    if ((status === 'ended' || status === 'closed') && existing.status === 'active') {
+      try {
+        await settleItem(id, req.io);
+      } catch (settleErr) {
+        console.warn('Manual end auction settlement error:', settleErr.message);
+      }
+    }
+
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -333,11 +349,15 @@ exports.migrateImagesToDisk = async (req, res) => {
       }
     }
 
+    const { syncUploadsToPublicHtml } = require('../utils/cloudinary');
+    const syncedCount = syncUploadsToPublicHtml();
+
     invalidateItemCache();
     res.json({
       success: true,
       updated_items: updatedCount,
       mb_saved: (bytesSaved / (1024 * 1024)).toFixed(2),
+      synced_to_public_html: syncedCount,
       items_summary: items.map(it => ({ id: it.id, title: it.title, image_url: it.image_url }))
     });
   } catch (err) {

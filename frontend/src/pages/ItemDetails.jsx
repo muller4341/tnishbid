@@ -133,7 +133,7 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
   const categoryLabel = (item?.category || 'ELECTRONICS').toUpperCase();
   const title = item?.title || 'Auction Item';
 
-  // Construct image gallery array (custom item.images or generated complementary angles)
+  // Construct image gallery array (STRICTLY this item's uploaded images, never other products)
   const images = useMemo(() => {
     let allImgs = [];
     if (primaryImage) allImgs.push(primaryImage);
@@ -141,23 +141,18 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
       allImgs = [...allImgs, ...item.images];
     }
     const uniqueImgs = Array.from(new Set(allImgs.filter(Boolean)));
-    if (uniqueImgs.length > 1) {
+    if (uniqueImgs.length > 0) {
       return uniqueImgs;
     }
-    // High-resolution multi-angle preset images based on title/category
-    return [
-      primaryImage,
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=600'
-    ];
+    return [primaryImage];
   }, [item, primaryImage]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Auto animation slide effect
+  // Auto animation slide effect only when item has multiple images
   useEffect(() => {
+    if (images.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
     }, 4000);
@@ -165,6 +160,7 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
   }, [images.length]);
 
   const handleNext = useCallback(() => {
+    if (images.length <= 1) return;
     setIsTransitioning(true);
     setTimeout(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
@@ -173,6 +169,7 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
   }, [images.length]);
 
   const handlePrev = useCallback(() => {
+    if (images.length <= 1) return;
     setIsTransitioning(true);
     setTimeout(() => {
       setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -187,14 +184,14 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
       setCurrentIndex(idx);
       setIsTransitioning(false);
     }, 150);
-  }, [currentIndex, images.length]);
+  }, [currentIndex]);
 
   return (
     <div className="space-y-3">
       {/* Main Image Frame with Smooth Fade & Scale Animation */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#16171D] to-[#0A0B0E] border border-zinc-800/80 shadow-2xl group select-none">
         <img
-          src={optimizeImageUrl(images[currentIndex], { width: 800 })}
+          src={optimizeImageUrl(images[currentIndex] || primaryImage, { width: 800 })}
           alt={`${title} - Angle ${currentIndex + 1}`}
           loading="lazy"
           decoding="async"
@@ -207,76 +204,82 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
           {categoryLabel}
         </span>
 
-       
-
         {/* Left Navigation Arrow */}
-        <button
-          type="button"
-          onClick={handlePrev}
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 hover:text-black text-white flex items-center justify-center backdrop-blur-md border border-zinc-700/50 transition-all opacity-80 group-hover:opacity-100 active:scale-90 cursor-pointer z-20"
-          aria-label="Previous Image"
-        >
-          <ChevronLeft size={20} />
-        </button>
+        {images.length > 1 && (
+          <button
+            type="button"
+            onClick={handlePrev}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 hover:text-black text-white flex items-center justify-center backdrop-blur-md border border-zinc-700/50 transition-all opacity-80 group-hover:opacity-100 active:scale-90 cursor-pointer z-20"
+            aria-label="Previous Image"
+          >
+            <ChevronLeft size={20} />
+          </button>
+        )}
 
         {/* Right Navigation Arrow */}
-        <button
-          type="button"
-          onClick={handleNext}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 hover:text-black text-white flex items-center justify-center backdrop-blur-md border border-zinc-700/50 transition-all opacity-80 group-hover:opacity-100 active:scale-90 cursor-pointer z-20"
-          aria-label="Next Image"
-        >
-          <ChevronRight size={20} />
-        </button>
+        {images.length > 1 && (
+          <button
+            type="button"
+            onClick={handleNext}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 hover:text-black text-white flex items-center justify-center backdrop-blur-md border border-zinc-700/50 transition-all opacity-80 group-hover:opacity-100 active:scale-90 cursor-pointer z-20"
+            aria-label="Next Image"
+          >
+            <ChevronRight size={20} />
+          </button>
+        )}
 
         {/* Overlay Pagination Indicators */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full z-20">
-          {images.map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSelect(idx)}
-              className={`transition-all duration-300 rounded-full cursor-pointer ${currentIndex === idx
-                ? 'w-5 h-2 bg-amber-400 shadow-sm'
-                : 'w-2 h-2 bg-zinc-600 hover:bg-zinc-400'
-                }`}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-
-
-      </div>
-
-      {/* Interactive Thumbnail Gallery Row */}
-      <div className="flex items-center justify-between gap-2.5 px-1">
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none ml-10">
-          {images.map((img, idx) => {
-            const isActive = currentIndex === idx;
-            return (
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full z-20">
+            {images.map((_, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSelect(idx)}
-                className={`relative rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${isActive
-                  ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20'
-                  : 'border-zinc-800/90 opacity-60 hover:opacity-100 hover:border-zinc-600'
+                className={`transition-all duration-300 rounded-full cursor-pointer ${currentIndex === idx
+                  ? 'w-5 h-2 bg-amber-400 shadow-sm'
+                  : 'w-2 h-2 bg-zinc-600 hover:bg-zinc-400'
                   }`}
-              >
-                <img
-                  src={optimizeImageUrl(img, { width: 120, height: 120 })}
-                  alt={`Thumbnail ${idx + 1}`}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-12 h-12 md:w-14 md:h-14 object-cover"
-                />
-                {isActive && (
-                  <span className="absolute inset-0 bg-amber-400/10 pointer-events-none"></span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Interactive Thumbnail Gallery Row & Share */}
+      <div className="flex items-center justify-between gap-2.5 px-1">
+        {images.length > 1 ? (
+          <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none ml-10">
+            {images.map((img, idx) => {
+              const isActive = currentIndex === idx;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSelect(idx)}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${isActive
+                    ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105 shadow-md shadow-amber-500/20'
+                    : 'border-zinc-800/90 opacity-60 hover:opacity-100 hover:border-zinc-600'
+                    }`}
+                >
+                  <img
+                    src={optimizeImageUrl(img, { width: 120, height: 120 })}
+                    alt={`Thumbnail ${idx + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-12 h-12 md:w-14 md:h-14 object-cover"
+                  />
+                  {isActive && (
+                    <span className="absolute inset-0 bg-amber-400/10 pointer-events-none"></span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div></div>
+        )}
 
         {/* Share Button (Right Side) */}
         <button
@@ -288,7 +291,7 @@ const ProductGalleryCarousel = memo(({ item, badgeText, badgeColorClass }) => {
               navigator.clipboard.writeText(window.location.href);
             }
           }}
-          className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors shrink-0 cursor-pointer shadow-md"
+          className="w-9 h-9 rounded-full bg-[#141519] border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition-colors shrink-0 cursor-pointer shadow-md ml-auto"
           aria-label="Share"
         >
           <Share2 size={16} />

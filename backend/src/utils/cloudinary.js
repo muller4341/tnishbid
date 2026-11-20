@@ -6,9 +6,17 @@ require('dotenv').config();
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 const ITEMS_DIR = path.join(UPLOADS_DIR, 'items');
 const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
+const PUBLIC_HTML_UPLOADS = path.resolve(__dirname, '../../../public_html/uploads');
 
-// Ensure upload directories exist
-[UPLOADS_DIR, ITEMS_DIR, AVATARS_DIR].forEach((dir) => {
+// Ensure upload directories exist in both backend and public_html
+[
+  UPLOADS_DIR,
+  ITEMS_DIR,
+  AVATARS_DIR,
+  PUBLIC_HTML_UPLOADS,
+  path.join(PUBLIC_HTML_UPLOADS, 'items'),
+  path.join(PUBLIC_HTML_UPLOADS, 'avatars')
+].forEach((dir) => {
   try {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -17,6 +25,56 @@ const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
     // ignore
   }
 });
+
+/**
+ * Copies a newly saved upload file directly to public_html/uploads so Apache/LiteSpeed
+ * can serve it immediately without routing through Node.js.
+ */
+const copyToPublicHtml = (filepath, filename, subFolder) => {
+  try {
+    const targetDir = path.join(PUBLIC_HTML_UPLOADS, subFolder);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    const dest = path.join(targetDir, filename);
+    fs.copyFileSync(filepath, dest);
+  } catch (err) {
+    // Silently continue in environments without public_html (e.g. local dev)
+  }
+};
+
+/**
+ * Syncs any existing files from backend/uploads to public_html/uploads.
+ */
+const syncUploadsToPublicHtml = () => {
+  let count = 0;
+  try {
+    ['items', 'avatars'].forEach((sub) => {
+      const srcSub = path.join(UPLOADS_DIR, sub);
+      const dstSub = path.join(PUBLIC_HTML_UPLOADS, sub);
+      if (fs.existsSync(srcSub)) {
+        if (!fs.existsSync(dstSub)) fs.mkdirSync(dstSub, { recursive: true });
+        const files = fs.readdirSync(srcSub);
+        files.forEach((file) => {
+          const srcFile = path.join(srcSub, file);
+          const dstFile = path.join(dstSub, file);
+          if (fs.existsSync(srcFile) && !fs.existsSync(dstFile)) {
+            try {
+              fs.copyFileSync(srcFile, dstFile);
+              count++;
+            } catch (e) {}
+          }
+        });
+      }
+    });
+  } catch (err) {
+    // ignore
+  }
+  return count;
+};
+
+// Sync existing files immediately on startup
+syncUploadsToPublicHtml();
 
 const isConfigured = !!(
   process.env.CLOUDINARY_CLOUD_NAME &&
@@ -41,7 +99,7 @@ if (isConfigured) {
  * Saves binary buffer directly to local server disk in /uploads/
  * Ultra-fast, zero external dependency, 0ms latency.
  */
-const saveLocally = (buffer, mimetype = 'image/jpeg', folder = 'tinishbid/items') => {
+const saveLocally = (buffer, mimetype = 'image/jpeg', folder = 'tinishbid/items', prefix = '') => {
   const isAvatar = folder.includes('avatar');
   const targetDir = isAvatar ? AVATARS_DIR : ITEMS_DIR;
   const subFolder = isAvatar ? 'avatars' : 'items';
@@ -53,22 +111,27 @@ const saveLocally = (buffer, mimetype = 'image/jpeg', folder = 'tinishbid/items'
   else if (m.includes('gif')) ext = '.gif';
   else if (m.includes('svg')) ext = '.svg';
 
-  const filename = `${subFolder}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const pfx = prefix ? `${prefix}_` : `${subFolder}_`;
+  const filename = `${pfx}${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
   const filepath = path.join(targetDir, filename);
 
   fs.writeFileSync(filepath, buffer);
+  copyToPublicHtml(filepath, filename, subFolder);
   return `/uploads/${subFolder}/${filename}`;
 };
 
 /**
  * Decodes and saves a Base64 data URI to local server disk
  */
-const saveBase64Locally = (base64String, folder = 'tinishbid/items') => {
+const saveBase64Locally = (base64String, folder = 'tinishbid/items', prefix = '') => {
   if (!base64String || typeof base64String !== 'string') return base64String;
   const match = base64String.match(/^data:([A-Za-z0-9-+/]+);base64,(.+)$/);
   if (!match) return base64String;
 
   const mimetype = match[1];
+  const buffer = Buffer.from(match[2], 'base64');
+  return saveLocally(buffer, mimetype, folder, prefix);
+};
   const buffer = Buffer.from(match[2], 'base64');
   return saveLocally(buffer, mimetype, folder);
 };
@@ -104,7 +167,7 @@ const uploadImage = async (input, options = {}) => {
       return optimizeCloudinaryUrl(input);
     }
     if (input.startsWith('data:')) {
-      return saveBase64Locally(input, folder);
+      return saveBase64Locally(input, folder, options.prefix);
     }
     return input;
   }
@@ -131,7 +194,7 @@ const uploadImage = async (input, options = {}) => {
     }
 
     // Default: Save directly to your server's disk (/uploads/...)
-    return saveLocally(buffer, mimetype, folder);
+    return saveLocally(buffer, mimetype, folder, options.prefix);
   }
 
   return null;
@@ -152,5 +215,6 @@ module.exports = {
   uploadMultipleImages,
   optimizeCloudinaryUrl,
   saveLocally,
-  saveBase64Locally
+  saveBase64Locally,
+  syncUploadsToPublicHtml
 };
